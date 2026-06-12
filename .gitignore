@@ -86,3 +86,12 @@ output.mid
 # System / temp
 .dotnet-home/
 artifacts/
+*.log
+*.err
+
+# Server runtime
+ClawDia/sv2.log
+ClawDia/sv2.err
+
+# Python loader cache
+ClawDia/loader_errors.log

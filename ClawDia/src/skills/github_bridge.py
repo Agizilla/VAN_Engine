@@ -181,8 +181,9 @@ class GitHubBridgeSkill(BaseSkill):
                 "result": {"action": action, "status": "error", "message": f"Unknown action: {action}"},
             }
 
+        safe_kwargs = {k: v for k, v in kwargs.items() if k != "repo"}
         try:
-            data = handler(repo, **kwargs)
+            data = handler(repo, **safe_kwargs)
             return {"result": {"action": action, "status": "ok", "data": data}}
         except RuntimeError as e:
             return {"result": {"action": action, "status": "error", "message": str(e)}}
