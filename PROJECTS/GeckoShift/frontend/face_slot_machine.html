@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Face Slot Machine – Emotion Chat + Save Cards</title>
+    <style>
+        body { margin:0; overflow:hidden; font-family:'Segoe UI','Inter',system-ui,monospace; color:#eef; }
+        #ui-container { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; }
+        .panel {
+            position:absolute; background:rgba(10,10,20,0.85); backdrop-filter:blur(12px);
+            border:1px solid #ffaa33; border-radius:20px; padding:12px;
+            pointer-events:auto; box-shadow:0 8px 20px rgba(0,0,0,0.5);
+        }
+        .panel-left { left:20px; top:20px; width:280px; bottom:20px; overflow-y:auto; }
+        .panel-right { right:20px; top:20px; width:320px; bottom:20px; overflow-y:auto; }
+        .slot-lever {
+            position:absolute; bottom:120px; left:50%; transform:translateX(-50%);
+            background:#c49a6c; border-radius:30px; padding:10px 30px; font-weight:bold;
+            color:#2a1a0a; cursor:pointer; box-shadow:0 5px 0 #6a4a2a; transition:0.05s linear;
+            text-align:center; font-size:1.2rem; pointer-events:auto; z-index:20;
+        }
+        .slot-lever:active { transform:translateX(-50%) translateY(4px); box-shadow:0 1px 0 #6a4a2a; }
+        .chat-area {
+            position:absolute; bottom:20px; left:320px; right:360px;
+            background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:20px;
+            padding:10px; pointer-events:auto; display:flex; gap:8px; z-index:20;
+        }
+        .chat-area input {
+            flex:1; background:#1e1e2a; border:1px solid #ffaa33; border-radius:40px;
+            padding:8px 16px; color:white; font-family:monospace;
+        }
+        .chat-area button { background:#ff3366; border:none; padding:8px 16px; border-radius:40px; cursor:pointer; color:#fff; font-size:.7rem; }
+        .emotion-chip {
+            display:inline-block; background:#2a3f60; border-radius:40px;
+            padding:4px 12px; margin:4px; font-size:0.75rem; cursor:pointer; transition:0.05s;
+        }
+        .emotion-chip:hover { background:#ff3366; }
+        .emotion-chip.active { background:#ff3366; box-shadow:0 0 8px #ff3366; }
+        .zone-slider { margin-bottom:12px; }
+        .zone-slider label { display:block; font-size:0.65rem; }
+        input[type="range"] { width:100%; accent-color:#ffaa44; }
+        .face-card {
+            background:#1a1e30; border-radius:16px; padding:10px; margin-bottom:12px;
+            display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+        }
+        .face-card canvas { width:64px; height:64px; border-radius:12px; background:#2a3f60; }
+        .card-buttons { display:flex; gap:6px; flex-wrap:wrap; }
+        button {
+            background:#2c3e5a; border:1px solid #4f6f8f; color:white;
+            padding:4px 10px; border-radius:20px; cursor:pointer; font-size:0.7rem;
+        }
+        button.primary { background:#ff3366; border-color:#ff6699; }
+        .modal {
+            position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.8); backdrop-filter:blur(8px);
+            z-index:1000; display:none; align-items:center; justify-content:center;
+        }
+        .modal.active { display:flex; }
+        .modal-content {
+            background:#1a1e2a; border-radius:24px; padding:20px; max-width:500px; width:90%;
+        }
+        .editor-tools { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+        .editor-canvas { width:100%; border-radius:12px; background:#2a3f60; }
+        #age-gate {
+            position:fixed; inset:0; background:rgba(0,0,0,0.98);
+            backdrop-filter:blur(8px); z-index:10000; display:flex;
+            align-items:center; justify-content:center;
+        }
+        .gate-card {
+            background:#111; border:2px solid #ff3366; border-radius:24px;
+            padding:2rem; max-width:400px; text-align:center;
+        }
+        .bypass-link { color:#888; font-size:0.8rem; cursor:pointer; text-decoration:underline; margin-top:12px; }
+        .history-log {
+            font-size:0.7rem; margin-top:8px; max-height:80px; overflow-y:auto;
+            background:#00000044; border-radius:12px; padding:4px;
+        }
+        #overlay-canvas {
+            position:absolute; top:0; left:0; z-index:5; pointer-events:auto; cursor:crosshair;
+        }
+    </style>
+</head>
+<body>
+<div id="age-gate">
+    <div class="gate-card">
+        <h2>Age verification</h2>
+        <div><label><input type="checkbox" id="terms"> I am 18+ and consent</label></div>
+        <button id="verify">ENTER</button>
+        <div class="bypass-link" id="bypass">Test bypass</div>
+    </div>
+</div>
+
+<div id="ui-container">
+    <div class="panel panel-left">
+        <h3>Emotion Tags (25)</h3>
+        <div id="emotionChips"></div>
+        <h3>Zone Sliders</h3>
+        <div id="zoneSliders"></div>
+        <button id="resetZonesBtn" class="primary">Reset All Zones</button>
+        <button id="saveMasterBtn" style="margin-top:8px;background:#6a4a2a;">Save changes as card</button>
+        <button id="previewWheelBtn" style="margin-top:4px;background:#2a5a3a;">Preview on Wheel</button>
+        <h3 style="margin-top:12px;">Grid Controls</h3>
+        <div>Grid X <input type="range" id="gridOffX" min="-1" max="1" step="0.005" value="0"></div>
+        <div>Grid Y <input type="range" id="gridOffY" min="-1" max="1" step="0.005" value="0"></div>
+        <div>Grid Scale <input type="range" id="gridScale" min="0.3" max="2.5" step="0.01" value="1"></div>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+            <button id="gridUp">▲</button>
+            <button id="gridDown">▼</button>
+            <button id="gridLeft">◀</button>
+            <button id="gridRight">▶</button>
+            <button id="gridIn">＋</button>
+            <button id="gridOut">−</button>
+        </div>
+    </div>
+
+    <div class="panel panel-right">
+        <h3>Dropped Faces (Cards)</h3>
+        <div id="dropZone" style="border:2px dashed #ffaa33; border-radius:16px; padding:12px; text-align:center; margin-bottom:12px;">
+            Drag & drop images here
+        </div>
+        <div id="faceCardsList"></div>
+    </div>
+
+    <div id="leverBtn" class="slot-lever">PULL LEVER</div>
+
+    <div class="chat-area">
+        <input type="text" id="chatInput" placeholder="Type emotions: [Surprise] [Anger] [Contempt] ..." spellcheck="false">
+        <button id="simulateBtn">SIMULATE</button>
+        <button id="undoLastBtn" style="background:#6a4a2a;">Undo last</button>
+    </div>
+</div>
+
+<div id="editorModal" class="modal">
+    <div class="modal-content">
+        <h3>Image Editor</h3>
+        <canvas id="editorCanvas" width="200" height="200" class="editor-canvas"></canvas>
+        <div class="editor-tools">
+            <label>Background: <input type="color" id="bgColorPicker" value="#00ff00"></label>
+            <label>Threshold: <input type="range" id="bgThreshold" min="0" max="100" value="40"></label>
+            <button id="applyBgRemove">Remove bg</button>
+            <button id="eraserBtn" class="primary">Eraser</button>
+            <label>Resize: <input type="range" id="resizeSlider" min="50" max="200" value="100">%</label>
+            <button id="saveEditBtn">Save</button>
+            <button id="closeModalBtn">Cancel</button>
+        </div>
+        <div id="editStatus" style="font-size:0.7rem;"></div>
+    </div>
+</div>
+
+<canvas id="overlay-canvas"></canvas>
+
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js" } }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+<script type="module">
+    import * as THREE from 'three';
+
+    // ==================== AGE GATE ====================
+    (function() {
+        const gate = document.getElementById('age-gate');
+        const terms = document.getElementById('terms');
+        const verify = document.getElementById('verify');
+        const bypass = document.getElementById('bypass');
+        verify.onclick = () => { if (terms.checked) { sessionStorage.setItem('ara_age_verified','true'); gate.style.display='none'; initApp(); } else alert('Consent required'); };
+        bypass.onclick = () => { sessionStorage.setItem('ara_age_verified','true'); gate.style.display='none'; initApp(); };
+        if (sessionStorage.getItem('ara_age_verified') === 'true') { gate.style.display='none'; initApp(); }
+    })();
+
+    // ==================== THREE.JS SLOT MACHINE ====================
+    const MCW = 512, MCH = 512;
+    let scene, camera, renderer, displayTexture, displayMaterial, displayPlane;
+    let masterCanvas = document.createElement('canvas');
+    masterCanvas.width = MCW;
+    masterCanvas.height = MCH;
+    let masterCtx = masterCanvas.getContext('2d');
+    masterCtx.fillStyle = '#d4a88c';
+    masterCtx.fillRect(0, 0, MCW, MCH);
+    masterCtx.fillStyle = '#333';
+    masterCtx.font = '24px monospace';
+    masterCtx.fillText('Face Slot Machine', 150, 260);
+
+    let overlayCanvas, overlayCtx;
+    let dragHandle = null;
+    let marbleState = null;
+    let selectedZoneIdx = -1;
+    let dragGrid = null; // for moving the entire grid
+    let gridOffX = 0, gridOffY = 0, gridScale = 1;
+    let morphTargetImages = null; // array of 12 target zone canvases
+    let morphDrag = null; // { startX, morphStartImages }
+    let morphT = 0;
+
+    function initThree() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.5, 5);
+        camera.lookAt(0, 1, 0);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const bodyGeo = new THREE.BoxGeometry(2.5, 2.2, 1.5);
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.4, metalness: 0.1 });
+        const body = new THREE.Mesh(bodyGeo, woodMat);
+        body.position.y = 0.9;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        scene.add(body);
+
+        const topGeo = new THREE.CylinderGeometry(1.4, 1.6, 0.2, 8);
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0xccaa77, metalness: 0.7, roughness: 0.3 });
+        const topMesh = new THREE.Mesh(topGeo, metalMat);
+        topMesh.position.y = 2.05;
+        scene.add(topMesh);
+
+        displayTexture = new THREE.CanvasTexture(masterCanvas);
+        displayMaterial = new THREE.MeshStandardMaterial({ map: displayTexture, side: THREE.DoubleSide });
+        displayPlane = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), displayMaterial);
+        displayPlane.position.set(0, 1.2, 0.81);
+        displayPlane.castShadow = false;
+        scene.add(displayPlane);
+
+        const reelMat = new THREE.MeshStandardMaterial({ color: 0xdd9933, metalness: 0.6 });
+        const leftReel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.8, 16), reelMat);
+        leftReel.position.set(-1.2, 1.2, 0.6);
+        scene.add(leftReel);
+        const rightReel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.8, 16), reelMat);
+        rightReel.position.set(1.2, 1.2, 0.6);
+        scene.add(rightReel);
+
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+        const mainLight = new THREE.DirectionalLight(0xffccaa, 1);
+        mainLight.position.set(2, 3, 2);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+        const fillLight = new THREE.PointLight(0x8855aa, 0.5);
+        fillLight.position.set(-1, 1, 2);
+        scene.add(fillLight);
+
+        const neonMat = new THREE.MeshStandardMaterial({ color: 0xff66aa, emissive: 0xff3366 });
+        const neonStrip = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.05, 0.1), neonMat);
+        neonStrip.position.set(0, 1.9, 0.85);
+        scene.add(neonStrip);
+
+        // ─── 2D Overlay canvas for zone resize handles ─────────────
+        overlayCanvas = document.getElementById('overlay-canvas');
+        overlayCtx = overlayCanvas.getContext('2d');
+        overlayCanvas.width = window.innerWidth;
+        overlayCanvas.height = window.innerHeight;
+        overlayCanvas.style.width = window.innerWidth + 'px';
+        overlayCanvas.style.height = window.innerHeight + 'px';
+
+        // ─── Drop on canvas ────────────────────────────────────────
+        const canvasEl = renderer.domElement;
+        canvasEl.style.pointerEvents = 'none';
+
+        overlayCanvas.ondragover = (e) => { e.preventDefault(); overlayCanvas.style.opacity = '0.7'; };
+        overlayCanvas.ondragleave = () => { overlayCanvas.style.opacity = '1'; };
+        overlayCanvas.ondrop = (e) => {
+            e.preventDefault();
+            overlayCanvas.style.opacity = '1';
+            for (const file of Array.from(e.dataTransfer.files)) {
+                if (file.type.startsWith('image/')) {
+                    const img = new Image();
+                    img.onload = () => {
+                        addFaceCard(img);
+                        applyImageToAllZones(img);
+                    };
+                    img.src = URL.createObjectURL(file);
+                }
+            }
+        };
+
+        // ─── Zone corner dragging + zone body dragging + grid dragging ───
+        overlayCanvas.addEventListener('mousedown', (e) => {
+            const rect = overlayCanvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            const W = overlayCanvas.width, H = overlayCanvas.height;
+            const baseW = W * 0.38, baseH = H * 0.55;
+            const gW = baseW * gridScale, gH = baseH * gridScale;
+            const gL = W * 0.5 - gW * 0.5 + gridOffX * W * 0.25;
+            const gT = H * 0.45 - gH * 0.5 + gridOffY * H * 0.25;
+            // Check corner handles first
+            for (let r = 0; r <= 6; r++) {
+                for (let c = 0; c <= 2; c++) {
+                    const sx = gL + (c / 2) * gW, sy = gT + (r / 6) * gH;
+                    if (Math.abs(mx - sx) < 12 && Math.abs(my - sy) < 12) {
+                        dragHandle = { row: r, col: c, startX: mx, startY: my };
+                        overlayCanvas.style.cursor = 'grabbing';
+                        return;
+                    }
+                }
+            }
+            // Check if morph mode is active (before zone body, after handles)
+            if (morphTargetImages) {
+                morphDrag = {
+                    startX: mx,
+                    morphStartImages: masterZones.map(z => z.image ? cloneCanvas(z.image) : null)
+                };
+                morphT = 0;
+                overlayCanvas.style.cursor = 'ew-resize';
+                return;
+            }
+            // Check if inside a zone body — enter marble push mode
+            for (let i = 0; i < zoneRects.length; i++) {
+                const col = i % 2, row = Math.floor(i / 2);
+                const zw = gW / 2, zh = gH / 6;
+                const zx = gL + col * zw, zy = gT + row * zh;
+                if (mx >= zx && mx <= zx + zw && my >= zy && my <= zy + zh) {
+                    selectedZoneIdx = i;
+                    marbleState = { zoneIdx: i, axis: null, startX: mx, startY: my, startOffsets: masterZones.map(z => ({ offsetX: z.offsetX, offsetY: z.offsetY })) };
+                    overlayCanvas.style.cursor = 'move';
+                    return;
+                }
+            }
+            // Otherwise drag the entire grid
+            dragGrid = { startX: mx, startY: my, startOffX: gridOffX, startOffY: gridOffY };
+            overlayCanvas.style.cursor = 'all-scroll';
+        });
+
+        overlayCanvas.addEventListener('mousemove', (e) => {
+            const rect = overlayCanvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            if (dragHandle) {
+                const W = overlayCanvas.width, H = overlayCanvas.height;
+                const baseW = W * 0.38, baseH = H * 0.55;
+                const gW = baseW * gridScale, gH = baseH * gridScale;
+                const dx = (mx - dragHandle.startX) / gW * 2;
+                const dy = (my - dragHandle.startY) / gH * 6;
+                const { row: r, col: c } = dragHandle;
+                for (let i = 0; i < masterZones.length; i++) {
+                    const z = masterZones[i];
+                    if (z.row === r - 1 && z.col === c - 1) { z.scaleX = Math.max(0.3, Math.min(2.2, z.scaleX + dx)); z.scaleY = Math.max(0.3, Math.min(2.2, z.scaleY + dy)); }
+                    if (z.row === r - 1 && z.col === c)     { z.scaleX = Math.max(0.3, Math.min(2.2, z.scaleX - dx)); }
+                    if (z.row === r && z.col === c - 1)     { z.scaleY = Math.max(0.3, Math.min(2.2, z.scaleY - dy)); }
+                }
+                dragHandle.startX = mx; dragHandle.startY = my;
+                drawMasterFace(); rebuildSliders();
+                return;
+            }
+            if (marbleState) {
+                const z = masterZones[marbleState.zoneIdx];
+                const scale = 0.002;
+                const dx = mx - marbleState.startX;
+                const dy = my - marbleState.startY;
+                if (!marbleState.axis && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+                    marbleState.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                }
+                if (marbleState.axis === 'x') {
+                    const delta = dx * scale;
+                    for (let i = 0; i < masterZones.length; i++) {
+                        if (masterZones[i].row === z.row) masterZones[i].offsetX = marbleState.startOffsets[i].offsetX + delta;
+                    }
+                } else if (marbleState.axis === 'y') {
+                    const delta = dy * scale;
+                    for (let i = 0; i < masterZones.length; i++) {
+                        if (masterZones[i].col === z.col) masterZones[i].offsetY = marbleState.startOffsets[i].offsetY + delta;
+                    }
+                }
+                drawMasterFace(); rebuildSliders();
+                return;
+            }
+            if (dragGrid) {
+                const scale = 0.003;
+                gridOffX = dragGrid.startOffX + (mx - dragGrid.startX) * scale;
+                gridOffY = dragGrid.startOffY + (my - dragGrid.startY) * scale;
+                document.getElementById('gridOffX').value = gridOffX;
+                document.getElementById('gridOffY').value = gridOffY;
+                drawMasterFace();
+                return;
+            }
+            if (morphDrag) {
+                const dx = (mx - morphDrag.startX) / (overlayCanvas.width * 0.25);
+                const t = Math.max(0, Math.min(1, dx));
+                morphT = t;
+                for (let i = 0; i < masterZones.length; i++) {
+                    const src = morphDrag.morphStartImages[i];
+                    const tgt = morphTargetImages[i];
+                    if (!src || !tgt) continue;
+                    const bw = Math.max(src.width, tgt.width);
+                    const bh = Math.max(src.height, tgt.height);
+                    const c = document.createElement('canvas');
+                    c.width = bw; c.height = bh;
+                    const ctx = c.getContext('2d');
+                    ctx.globalAlpha = 1 - t;
+                    ctx.drawImage(src, 0, 0);
+                    ctx.globalAlpha = t;
+                    ctx.drawImage(tgt, 0, 0);
+                    masterZones[i].image = c;
+                }
+                drawMasterFace();
+                return;
+            }
+        });
+
+        overlayCanvas.addEventListener('mouseup', () => {
+            const touched = marbleState || dragHandle || morphDrag;
+            if (marbleState) { blendZoneSeams(marbleState.zoneIdx); marbleState = null; }
+            if (touched) resolveGaps();
+            morphDrag = null; dragHandle = null; dragGrid = null;
+            overlayCanvas.style.cursor = 'crosshair';
+        });
+        overlayCanvas.addEventListener('mouseleave', () => {
+            const touched = marbleState || dragHandle || morphDrag;
+            if (marbleState) { blendZoneSeams(marbleState.zoneIdx); marbleState = null; }
+            if (touched) resolveGaps();
+            morphDrag = null; dragHandle = null; dragGrid = null;
+            overlayCanvas.style.cursor = 'crosshair';
+        });
+
+        // ─── Animation ─────────────────────────────────────────────
+        function animate() {
+            requestAnimationFrame(animate);
+            displayTexture.needsUpdate = true;
+            renderer.render(scene, camera);
+            drawOverlay();
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            overlayCanvas.width = window.innerWidth;
+            overlayCanvas.height = window.innerHeight;
+            overlayCanvas.style.width = window.innerWidth + 'px';
+            overlayCanvas.style.height = window.innerHeight + 'px';
+        });
+    }
+
+    function applyImageToAllZones(img) {
+        const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+        const pieceW = iw / 2, pieceH = ih / 6;
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 2; c++) {
+                const piece = document.createElement('canvas');
+                piece.width = pieceW; piece.height = pieceH;
+                piece.getContext('2d').drawImage(img, c*pieceW, r*pieceH, pieceW, pieceH, 0, 0, pieceW, pieceH);
+                const z = masterZones.find(z => z.row === r && z.col === c);
+                if (z) z.image = piece;
+            }
+        }
+        drawMasterFace();
+        // Non-blocking face detection for grid positioning
+        autoPositionGrid(img);
+    }
+
+    async function autoPositionGrid(img) {
+        if (!meshReady) await initFaceMesh();
+        try {
+            const results = await faceMesh.send({ image: img });
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const lm = results.multiFaceLandmarks[0];
+                let minX = 1, maxX = 0, minY = 1, maxY = 0;
+                for (const p of lm) {
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
+                }
+                const fcx = (minX + maxX) / 2, fcy = (minY + maxY) / 2;
+                const fw = maxX - minX, fh = maxY - minY;
+                gridOffX = (fcx - 0.5) * 1.6;
+                gridOffY = (fcy - 0.5) * 1.6;
+                gridScale = Math.max(fw, fh) * 1.8;
+                gridScale = Math.max(0.3, Math.min(2.5, gridScale));
+                document.getElementById('gridOffX').value = gridOffX;
+                document.getElementById('gridOffY').value = gridOffY;
+                document.getElementById('gridScale').value = gridScale;
+            }
+        } catch(e) {}
+    }
+
+    function applyZoneResize(row, col, dx, dy) {
+        for (let i = 0; i < masterZones.length; i++) {
+            const z = masterZones[i];
+            if (z.row === row - 1 && z.col === col - 1) {
+                z.scaleX = Math.max(0.3, Math.min(2.2, z.scaleX + dx));
+                z.scaleY = Math.max(0.3, Math.min(2.2, z.scaleY + dy));
+            }
+            // Also affect adjacent zones
+            if (z.row === row - 1 && z.col === col) {
+                z.scaleX = Math.max(0.3, Math.min(2.2, z.scaleX - dx));
+            }
+            if (z.row === row && z.col === col - 1) {
+                z.scaleY = Math.max(0.3, Math.min(2.2, z.scaleY - dy));
+            }
+        }
+        drawMasterFace();
+        rebuildSliders();
+    }
+
+    function drawOverlay() {
+        const W = overlayCanvas.width, H = overlayCanvas.height;
+        overlayCtx.clearRect(0, 0, W, H);
+        if (!zoneRects.length) return;
+        const baseW = W * 0.38, baseH = H * 0.55;
+        const gW = baseW * gridScale, gH = baseH * gridScale;
+        const gL = W * 0.5 - gW * 0.5 + gridOffX * W * 0.25;
+        const gT = H * 0.45 - gH * 0.5 + gridOffY * H * 0.25;
+        const rows = 6, cols = 2;
+
+        for (let r = 0; r <= rows; r++) {
+            for (let c = 0; c <= cols; c++) {
+                const x = gL + (c / cols) * gW, y = gT + (r / rows) * gH;
+                overlayCtx.fillStyle = 'rgba(255,50,102,0.6)';
+                overlayCtx.beginPath(); overlayCtx.arc(x, y, 6, 0, Math.PI * 2); overlayCtx.fill();
+                overlayCtx.strokeStyle = 'rgba(255,170,51,0.3)'; overlayCtx.stroke();
+            }
+        }
+
+        overlayCtx.strokeStyle = 'rgba(255,170,51,0.12)';
+        overlayCtx.lineWidth = 1;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const x1 = gL + (c / cols) * gW, y1 = gT + (r / rows) * gH;
+                const x2 = gL + ((c+1) / cols) * gW, y2 = gT + ((r+1) / rows) * gH;
+                overlayCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            }
+        }
+        // Highlight selected zone
+        if (selectedZoneIdx >= 0 && !marbleState) {
+            const r = Math.floor(selectedZoneIdx / 2), c = selectedZoneIdx % 2;
+            const x1 = gL + (c / cols) * gW, y1 = gT + (r / rows) * gH;
+            const x2 = gL + ((c+1) / cols) * gW, y2 = gT + ((r+1) / rows) * gH;
+            overlayCtx.fillStyle = 'rgba(255,50,102,0.12)';
+            overlayCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            overlayCtx.strokeStyle = '#ff3366';
+            overlayCtx.lineWidth = 2;
+            overlayCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        }
+        // Morph progress bar
+        if (morphTargetImages && morphT >= 0) {
+            const barW = W * 0.3, barH = 8, barX = W * 0.5 - barW * 0.5, barY = H * 0.88;
+            overlayCtx.fillStyle = 'rgba(30,30,50,0.7)';
+            overlayCtx.beginPath(); overlayCtx.roundRect(barX, barY, barW, barH, 4); overlayCtx.fill();
+            overlayCtx.fillStyle = '#ff3366';
+            overlayCtx.beginPath(); overlayCtx.roundRect(barX, barY, barW * morphT, barH, 4); overlayCtx.fill();
+            overlayCtx.strokeStyle = '#ffaa33';
+            overlayCtx.lineWidth = 1;
+            overlayCtx.beginPath(); overlayCtx.roundRect(barX, barY, barW, barH, 4); overlayCtx.stroke();
+            overlayCtx.fillStyle = '#fff';
+            overlayCtx.font = '11px monospace';
+            overlayCtx.fillText(`MORPH ${(morphT*100).toFixed(0)}%`, barX + 8, barY + barH + 14);
+        }
+    }
+
+    function updateMasterDisplay() { displayTexture.needsUpdate = true; }
+
+    // ==================== FACE DETECTION & ZONE EXTRACTION ====================
+    let faceMesh = null, meshReady = false;
+    function initFaceMesh() {
+        return new Promise((resolve) => {
+            faceMesh = new FaceMesh({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
+            faceMesh.setOptions({
+                maxNumFaces: 1, refineLandmarks: true,
+                minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
+            });
+            faceMesh.initialize().then(() => { meshReady = true; resolve(); });
+        });
+    }
+
+    async function extractZonesFromImage(imgElement) {
+        if (!meshReady) await initFaceMesh();
+        return new Promise((resolve) => {
+            faceMesh.send({ image: imgElement }).then((results) => {
+                if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) { resolve(null); return; }
+                const landmarks = results.multiFaceLandmarks[0];
+                const canvas = document.createElement('canvas');
+                canvas.width = imgElement.width; canvas.height = imgElement.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(imgElement, 0, 0);
+                const centerX = landmarks[1].x;
+                function extractRow(row, colSide) {
+                    const yMin = row * 0.166, yMax = (row+1) * 0.166;
+                    let minX = 1, maxX = 0;
+                    for (let lm of landmarks) {
+                        if (colSide === 'left' && lm.x < centerX) { if (lm.x < minX) minX = lm.x; if (lm.x > maxX) maxX = lm.x; }
+                        else if (colSide === 'right' && lm.x > centerX) { if (lm.x < minX) minX = lm.x; if (lm.x > maxX) maxX = lm.x; }
+                        else if (colSide === 'both') { if (lm.x < minX) minX = lm.x; if (lm.x > maxX) maxX = lm.x; }
+                    }
+                    if (minX > maxX) return null;
+                    const x = minX * canvas.width, w = (maxX - minX) * canvas.width;
+                    const y = yMin * canvas.height, h = (yMax - yMin) * canvas.height;
+                    if (w <= 0 || h <= 0) return null;
+                    const s = document.createElement('canvas');
+                    s.width = w; s.height = h;
+                    s.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, w, h);
+                    return s;
+                }
+                const eL = extractRow(2,'left'), eR = extractRow(2,'right');
+                const mL = extractRow(4,'left'), mR = extractRow(4,'right');
+                const bL = extractRow(1,'left'), bR = extractRow(1,'right');
+                const eyes = document.createElement('canvas');
+                eyes.width = (eL?.width||0)+(eR?.width||0); eyes.height = Math.max(eL?.height||0, eR?.height||0);
+                const eC = eyes.getContext('2d');
+                if (eL) eC.drawImage(eL,0,0); if (eR) eC.drawImage(eR, eL?.width||0, 0);
+                const mouth = document.createElement('canvas');
+                mouth.width = (mL?.width||0)+(mR?.width||0); mouth.height = Math.max(mL?.height||0, mR?.height||0);
+                const mC = mouth.getContext('2d');
+                if (mL) mC.drawImage(mL,0,0); if (mR) mC.drawImage(mR, mL?.width||0, 0);
+                const brows = document.createElement('canvas');
+                brows.width = (bL?.width||0)+(bR?.width||0); brows.height = Math.max(bL?.height||0, bR?.height||0);
+                const bC = brows.getContext('2d');
+                if (bL) bC.drawImage(bL,0,0); if (bR) bC.drawImage(bR, bL?.width||0, 0);
+                resolve({ eyes, mouth, brows });
+            }).catch(() => resolve(null));
+        });
+    }
+
+    // ==================== MASTER FACE ZONES ====================
+    let masterZones = [], zoneRects = [];
+    let activeEmotions = [];
+
+    function initZones() {
+        const rows = 6, cols = 2, margin = 0.02;
+        const colW = (1 - 2*margin) / 2, rowH = (1 - 2*margin) / 6;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                masterZones.push({ row: r, col: c, scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0, image: null });
+                zoneRects.push({ x: margin + c*colW, y: margin + r*rowH, width: colW, height: rowH });
+            }
+        }
+    }
+
+    function cloneCanvas(src) {
+        const c = document.createElement('canvas');
+        c.width = src.width; c.height = src.height;
+        c.getContext('2d').drawImage(src, 0, 0);
+        return c;
+    }
+
+    function setMorphFromCard(imgElement) {
+        const iw = imgElement.naturalWidth || imgElement.width, ih = imgElement.naturalHeight || imgElement.height;
+        const pieceW = iw / 2, pieceH = ih / 6;
+        morphTargetImages = [];
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 2; c++) {
+                const p = document.createElement('canvas');
+                p.width = pieceW; p.height = pieceH;
+                p.getContext('2d').drawImage(imgElement, c*pieceW, r*pieceH, pieceW, pieceH, 0, 0, pieceW, pieceH);
+                morphTargetImages.push(p);
+            }
+        }
+        morphT = 0;
+        document.getElementById('saveMasterBtn').textContent = 'MORPH: drag on wheel';
+        setTimeout(() => document.getElementById('saveMasterBtn').textContent = 'Save changes as card', 2000);
+    }
+
+    function drawMasterFace() {
+        const w = masterCanvas.width, h = masterCanvas.height;
+        masterCtx.clearRect(0, 0, w, h);
+        masterCtx.fillStyle = '#d4a88c';
+        masterCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < masterZones.length; i++) {
+            const z = masterZones[i], rect = zoneRects[i];
+            if (!z.image) continue;
+            const cx = (rect.x + rect.width/2) * w + gridOffX * w;
+            const cy = (rect.y + rect.height/2) * h + gridOffY * h;
+            const gsw = rect.width * w * z.scaleX * gridScale;
+            const gsh = rect.height * h * z.scaleY * gridScale;
+            masterCtx.drawImage(z.image, cx - gsw/2 + z.offsetX * w, cy - gsh/2 + z.offsetY * h, gsw, gsh);
+        }
+        // Draw zone boundary guides on master
+        masterCtx.strokeStyle = 'rgba(255,170,51,0.12)';
+        masterCtx.lineWidth = 1;
+        for (let i = 0; i < zoneRects.length; i++) {
+            const r = zoneRects[i];
+            const x = (r.x + gridOffX) * w, y = (r.y + gridOffY) * h;
+            const rw = r.width * w * gridScale, rh = r.height * h * gridScale;
+            masterCtx.strokeRect(x, y, rw, rh);
+        }
+        updateMasterDisplay();
+    }
+
+    function blendZoneSeams(zoneIdx) {
+        const z = masterZones[zoneIdx];
+        if (!z || !z.image) return;
+        const rect = zoneRects[zoneIdx];
+        const l = Math.floor(rect.x * MCW), t = Math.floor(rect.y * MCH);
+        const r = Math.ceil((rect.x + rect.width) * MCW), b = Math.ceil((rect.y + rect.height) * MCH);
+        const row = z.row, col = z.col;
+        const bw = 4;
+
+        const neighbors = [
+            { dr: 0, dc: 1, axis: 'v', seam: 'r' },
+            { dr: 0, dc: -1, axis: 'v', seam: 'l' },
+            { dr: 1, dc: 0, axis: 'h', seam: 'b' },
+            { dr: -1, dc: 0, axis: 'h', seam: 't' }
+        ];
+
+        for (const n of neighbors) {
+            const ni = masterZones.findIndex(nz => nz.row === row + n.dr && nz.col === col + n.dc);
+            if (ni < 0 || !masterZones[ni].image) continue;
+
+            let sx, sy, sw, sh;
+            if (n.seam === 'r') { sx = r - bw; sy = t; sw = bw * 2; sh = b - t; }
+            else if (n.seam === 'l') { sx = l - bw; sy = t; sw = bw * 2; sh = b - t; }
+            else if (n.seam === 'b') { sx = l; sy = b - bw; sw = r - l; sh = bw * 2; }
+            else { sx = l; sy = t - bw; sw = r - l; sh = bw * 2; }
+
+            sx = Math.max(0, sx); sy = Math.max(0, sy);
+            sw = Math.min(MCW - sx, sw); sh = Math.min(MCH - sy, sh);
+            if (sw < 2 || sh < 2) continue;
+
+            const imgData = masterCtx.getImageData(sx, sy, sw, sh);
+            const d = imgData.data;
+
+            if (n.axis === 'v') {
+                for (let py = 0; py < sh; py++) {
+                    for (let px = 0; px < sw; px++) {
+                        const factor = px / (sw - 1);
+                        const srcL = py * sw * 4;
+                        const srcR = (py * sw + (sw - 1)) * 4;
+                        const idx = (py * sw + px) * 4;
+                        d[idx] = d[srcL] * (1 - factor) + d[srcR] * factor;
+                        d[idx + 1] = d[srcL + 1] * (1 - factor) + d[srcR + 1] * factor;
+                        d[idx + 2] = d[srcL + 2] * (1 - factor) + d[srcR + 2] * factor;
+                    }
+                }
+            } else {
+                for (let py = 0; py < sh; py++) {
+                    const factor = py / (sh - 1);
+                    const srcT = 0;
+                    const srcB = (sh - 1) * sw * 4;
+                    for (let px = 0; px < sw; px++) {
+                        const idx = (py * sw + px) * 4;
+                        const tIdx = srcT + px * 4;
+                        const bIdx = srcB + px * 4;
+                        d[idx] = d[tIdx] * (1 - factor) + d[bIdx] * factor;
+                        d[idx + 1] = d[tIdx + 1] * (1 - factor) + d[bIdx + 1] * factor;
+                        d[idx + 2] = d[tIdx + 2] * (1 - factor) + d[bIdx + 2] * factor;
+                    }
+                }
+            }
+            masterCtx.putImageData(imgData, sx, sy);
+        }
+        updateMasterDisplay();
+    }
+
+    function resolveGaps() {
+        const colW = zoneRects[0].width, rowH = zoneRects[0].height;
+        let changed = false;
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 1; c++) {
+                const a = masterZones[r * 2 + c], b = masterZones[r * 2 + c + 1];
+                const gap = colW - colW * (a.scaleX + b.scaleX) / 2 + (b.offsetX - a.offsetX);
+                if (gap > 0.002) {
+                    const fill = Math.min(gap / colW, 0.4);
+                    const canA = a.scaleX + fill <= 2.2, canB = b.scaleX + fill <= 2.2;
+                    const expandA = !canB || (canA && a.scaleX <= b.scaleX);
+                    if (expandA) a.scaleX = Math.min(2.2, a.scaleX + fill * 1.2);
+                    else b.scaleX = Math.min(2.2, b.scaleX + fill * 1.2);
+                    changed = true;
+                }
+            }
+        }
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 2; c++) {
+                const a = masterZones[r * 2 + c], b = masterZones[(r + 1) * 2 + c];
+                const gap = rowH - rowH * (a.scaleY + b.scaleY) / 2 + (b.offsetY - a.offsetY);
+                if (gap > 0.002) {
+                    const fill = Math.min(gap / rowH, 0.4);
+                    const canA = a.scaleY + fill <= 2.2, canB = b.scaleY + fill <= 2.2;
+                    const expandA = !canB || (canA && a.scaleY <= b.scaleY);
+                    if (expandA) a.scaleY = Math.min(2.2, a.scaleY + fill * 1.2);
+                    else b.scaleY = Math.min(2.2, b.scaleY + fill * 1.2);
+                    changed = true;
+                }
+            }
+        }
+        if (changed) {
+            drawMasterFace();
+            rebuildSliders();
+        }
+    }
+
+    function applyLaneToMaster(laneCanvas, row, colSide) {
+        for (let i = 0; i < masterZones.length; i++) {
+            const z = masterZones[i];
+            if (z.row === row && (colSide === 'both' || (colSide === 'left' && z.col === 0) || (colSide === 'right' && z.col === 1))) {
+                z.image = laneCanvas;
+            }
+        }
+        drawMasterFace();
+    }
+
+    function resetZones() {
+        for (let z of masterZones) { z.scaleX = 1; z.scaleY = 1; z.offsetX = 0; z.offsetY = 0; }
+        gridOffX = 0; gridOffY = 0; gridScale = 1;
+        document.getElementById('gridOffX').value = 0;
+        document.getElementById('gridOffY').value = 0;
+        document.getElementById('gridScale').value = 1;
+        morphTargetImages = null; morphT = 0;
+        activeEmotions = [];
+        updateChipStyles();
+        drawMasterFace();
+        rebuildSliders();
+    }
+
+    // ==================== EMOTION DICTIONARY (25 Clawdia emotions) ====================
+    const EMOTION_DICT = {
+        "Calculation":       { rows:[1,2,4], cols:[0,1], scaleY:0.83, scaleX:0.85, desc:"Narrowed eyes, tight lips" },
+        "Surprise":          { rows:[2,4], cols:[0,1], scaleY:1.45, desc:"Wide eyes, dropped jaw" },
+        "Anger":             { rows:[1,5], cols:[0,1], scaleY:0.75, scaleX:0.85, desc:"Furrowed brow, compressed mouth" },
+        "Tension":           { rows:[2,5], cols:[0,1], scaleX:0.80, scaleY:0.85, desc:"Tight jaw, narrowed eyes" },
+        "Contempt":          { rows:[4], cols:[1], scaleY:1.30, scaleX:1.10, desc:"Asymmetric smirk" },
+        "RighteousIndignation": { rows:[1,2,5], cols:[0,1], scaleY:[0.80,1.20,0.85], scaleX:[null,null,1.15], desc:"Righteous anger + raised brows" },
+        "SmugSatisfaction":  { rows:[0,4], cols:[0,1], scaleY:1.15, desc:"One-sided smirk" },
+        "Panic":             { rows:[1,2,4], cols:[0,1], scaleY:1.35, desc:"Wide eyes, high brows" },
+        "Triumph":           { rows:[2,3,4], cols:[0,1], scaleY:1.20, scaleX:1.15, desc:"Wide smile, raised chin" },
+        "Stonewall":         { rows:[2,5], cols:[0,1], scaleX:0.90, scaleY:0.95, desc:"Neutral mask" },
+        "Curiosity":         { rows:[1,2], cols:[0,1], scaleY:1.08, desc:"Slightly raised brows" },
+        "Doubt":             { rows:[1,4], cols:[0,1], scaleY:0.88, scaleX:0.95, desc:"Asymmetric brow furrow" },
+        "Exhaustion":        { rows:[0,2,5], cols:[0,1], scaleY:0.88, desc:"Drooping features" },
+        "Mischief":          { rows:[1,2,4], cols:[1], scaleY:1.08, scaleX:1.05, desc:"Asymmetric smirk" },
+        "Joy":               { rows:[2,4], cols:[0,1], scaleY:1.20, scaleX:1.10, desc:"Warm smile" },
+        "Sadness":           { rows:[0,2,5], cols:[0,1], scaleY:0.85, desc:"Drooping features" },
+        "Fear":              { rows:[1,2,4], cols:[0,1], scaleY:1.30, desc:"Wide eyes, tense brows" },
+        "Disgust":           { rows:[1,4,5], cols:[0,1], scaleY:0.85, scaleX:0.90, desc:"Scrunched nose" },
+        "Anticipation":      { rows:[1,2], cols:[0,1], scaleY:1.12, desc:"Alert, expectant" },
+        "Trust":             { rows:[2,4], cols:[0,1], scaleY:1.08, desc:"Warm expression" },
+        "Love":              { rows:[2,4], cols:[0,1], scaleY:1.15, scaleX:1.10, desc:"Warm smile" },
+        "Neutral":           { rows:[], cols:[], scaleY:1, desc:"Baseline" },
+        "Speak":             { rows:[], cols:[], scaleY:1, desc:"Verbalization tag" },
+        "Think":             { rows:[], cols:[], scaleY:1, desc:"Inner monologue tag" },
+        "Intent":            { rows:[], cols:[], scaleY:1, desc:"Intent marker" }
+    };
+    const emotionNames = Object.keys(EMOTION_DICT);
+
+    function toggleEmotion(emotion) {
+        const idx = activeEmotions.findIndex(e => e.emotion === emotion);
+        if (idx >= 0) {
+            activeEmotions.splice(idx, 1);
+        } else {
+            activeEmotions.push({ emotion, intensity: 1.0 });
+        }
+        recomputeZonesFromEmotions();
+        rebuildSliders();
+        drawMasterFace();
+        updateChipStyles();
+        addHistoryEntry([{ emotion, intensity: 1, action: idx >= 0 ? 'removed' : 'added' }]);
+        resolveGaps();
+    }
+
+    function recomputeZonesFromEmotions() {
+        for (let z of masterZones) { z.scaleX = 1; z.scaleY = 1; z.offsetX = 0; z.offsetY = 0; }
+        for (let { emotion, intensity } of activeEmotions) {
+            applyEmotion(emotion, intensity);
+        }
+    }
+
+    function applyEmotion(emotion, intensity) {
+        const def = EMOTION_DICT[emotion];
+        if (!def || def.rows.length === 0) return;
+        const sxArr = Array.isArray(def.scaleX) ? def.scaleX : def.rows.map(() => def.scaleX || 1);
+        const syArr = Array.isArray(def.scaleY) ? def.scaleY : def.rows.map(() => def.scaleY || 1);
+        for (let i = 0; i < def.rows.length; i++) {
+            const row = def.rows[i];
+            const sx = sxArr[i];
+            const sy = syArr[i];
+            for (let z of masterZones) {
+                if (z.row === row && def.cols.includes(z.col)) {
+                    if (sx && sx !== 1) z.scaleX = 1 + (sx - 1) * intensity;
+                    if (sy && sy !== 1) z.scaleY = 1 + (sy - 1) * intensity;
+                }
+            }
+        }
+    }
+
+    function updateChipStyles() {
+        document.querySelectorAll('.emotion-chip').forEach(chip => {
+            const em = chip.dataset.emotion;
+            chip.classList.toggle('active', activeEmotions.some(e => e.emotion === em));
+        });
+    }
+
+    function randomizeLever() {
+        const facial = emotionNames.filter(e => EMOTION_DICT[e].rows.length > 0);
+        const emotion = facial[Math.floor(Math.random() * facial.length)];
+        const intensity = 0.5 + Math.random() * 1.3;
+        if (!activeEmotions.some(e => e.emotion === emotion)) {
+            activeEmotions.push({ emotion, intensity });
+        } else {
+            const existing = activeEmotions.find(e => e.emotion === emotion);
+            existing.intensity = intensity;
+        }
+        recomputeZonesFromEmotions();
+        rebuildSliders();
+        drawMasterFace();
+        updateChipStyles();
+        addHistoryEntry([{ emotion, intensity, action: 'lever' }]);
+        resolveGaps();
+    }
+
+    // ==================== CHAT EMOTION PARSING & HISTORY ====================
+    let emotionHistory = [];
+
+    function parseEmotionsFromText(text) {
+        const matches = [...text.matchAll(/\[(.*?)\]/g)];
+        const found = [];
+        for (const m of matches) {
+            const tag = m[1].trim();
+            const matched = emotionNames.find(em => em.toLowerCase() === tag.toLowerCase());
+            if (matched) found.push(matched);
+        }
+        return found;
+    }
+
+    function addHistoryEntry(batch) {
+        emotionHistory.push({ batch: batch.slice(), timestamp: Date.now() });
+        updateChatHistory();
+    }
+
+    function applyEmotionBatch(emotions, intensity) {
+        if (!emotions.length) return;
+        const applied = [];
+        for (let em of emotions) {
+            if (EMOTION_DICT[em].rows.length > 0) {
+                if (!activeEmotions.some(e => e.emotion === em)) {
+                    activeEmotions.push({ emotion: em, intensity });
+                }
+                applied.push({ emotion: em, intensity });
+            }
+        }
+        recomputeZonesFromEmotions();
+        rebuildSliders();
+        drawMasterFace();
+        updateChipStyles();
+        if (applied.length) addHistoryEntry(applied);
+        resolveGaps();
+    }
+
+    function undoLastBatch() {
+        if (emotionHistory.length === 0) return;
+        emotionHistory.pop();
+        activeEmotions = [];
+        for (let z of masterZones) { z.scaleX = 1; z.scaleY = 1; z.offsetX = 0; z.offsetY = 0; }
+        for (let batch of emotionHistory) {
+            for (let item of batch.batch) {
+                if (item.action === 'removed') continue;
+                const existing = activeEmotions.find(e => e.emotion === item.emotion);
+                if (existing) existing.intensity = item.intensity;
+                else activeEmotions.push({ emotion: item.emotion, intensity: item.intensity });
+            }
+        }
+        recomputeZonesFromEmotions();
+        rebuildSliders();
+        drawMasterFace();
+        updateChipStyles();
+        updateChatHistory();
+        resolveGaps();
+    }
+
+    function updateChatHistory() {
+        const historyDiv = document.getElementById('historyLog');
+        if (historyDiv) {
+            historyDiv.innerHTML = emotionHistory.map((h, i) =>
+                `<div>${i+1}. ${h.batch.map(e => e.emotion + (e.intensity !== 1 ? ` (${e.intensity.toFixed(1)}x)` : '') + (e.action ? ` [${e.action}]` : '')).join(', ')}</div>`
+            ).join('');
+        }
+    }
+
+    // ==================== SAVE / PREVIEW ====================
+    function saveCurrentMasterAsCard() {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = masterCanvas.width;
+        tempCanvas.height = masterCanvas.height;
+        tempCanvas.getContext('2d').drawImage(masterCanvas, 0, 0);
+        const img = new Image();
+        img.onload = () => {
+            addFaceCard(img);
+            resetZones();
+            for (let z of masterZones) z.image = null;
+            drawMasterFace();
+        };
+        img.src = tempCanvas.toDataURL();
+    }
+
+    function previewOnWheel() {
+        // Re-render master canvas at full quality applying current slider values
+        drawMasterFace();
+        // Flash overlay
+        const flash = document.createElement('div');
+        flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,170,51,0.1);z-index:999;pointer-events:none;transition:opacity 0.3s';
+        document.body.appendChild(flash);
+        setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 300); }, 200);
+    }
+
+    // ==================== UI: SLIDERS ====================
+    function rebuildSliders() {
+        const container = document.getElementById('zoneSliders');
+        container.innerHTML = '';
+        for (let i = 0; i < masterZones.length; i++) {
+            const z = masterZones[i];
+            const div = document.createElement('div');
+            div.className = 'zone-slider';
+            div.innerHTML = `<label>Zone ${z.row},${z.col}</label>
+                <div>ScaleX <input type="range" min="0.3" max="2.2" step="0.01" value="${z.scaleX}" data-zone="${i}" data-key="scaleX" data-sym="1"></div>
+                <div>ScaleY <input type="range" min="0.3" max="2.2" step="0.01" value="${z.scaleY}" data-zone="${i}" data-key="scaleY" data-sym="1"></div>
+                <div>OffsetX <input type="range" min="-0.2" max="0.2" step="0.005" value="${z.offsetX}" data-zone="${i}" data-key="offsetX" data-sym="-1"></div>
+                <div>OffsetY <input type="range" min="-0.2" max="0.2" step="0.005" value="${z.offsetY}" data-zone="${i}" data-key="offsetY" data-sym="1"></div>`;
+            container.appendChild(div);
+            div.querySelectorAll('input').forEach(inp => {
+                inp.addEventListener('input', () => {
+                    const idx = parseInt(inp.dataset.zone);
+                    const val = parseFloat(inp.value);
+                    masterZones[idx][inp.dataset.key] = val;
+                    // Mirror to symmetric zone
+                    const src = masterZones[idx];
+                    const mirror = masterZones.find(m => m.row === src.row && m.col !== src.col);
+                    if (mirror) {
+                        const sym = parseFloat(inp.dataset.sym);
+                        mirror[inp.dataset.key] = src.col === 0 ? val * sym : val;
+                        // Update the mirror slider UI
+                        const mirrorInp = container.querySelector(`input[data-zone="${masterZones.indexOf(mirror)}"][data-key="${inp.dataset.key}"]`);
+                        if (mirrorInp) mirrorInp.value = mirror[inp.dataset.key];
+                    }
+                    drawMasterFace();
+                });
+                inp.addEventListener('change', () => resolveGaps());
+            });
+        }
+    }
+
+    // ==================== FACE CARDS + EDITOR ====================
+    let currentEditingCard = null, currentEditingImage = null, currentEditingCanvas = null;
+
+    function addFaceCard(imgElement) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'face-card';
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 100; thumbCanvas.height = 100;
+        thumbCanvas.getContext('2d').drawImage(imgElement, 0, 0, 100, 100);
+        cardDiv.appendChild(thumbCanvas);
+        const btnDiv = document.createElement('div');
+        btnDiv.className = 'card-buttons';
+        const mkBtn = (text, fn) => { const b = document.createElement('button'); b.innerText = text; b.onclick = fn; return b; };
+        btnDiv.appendChild(mkBtn('Eyes', async () => { const z = await extractZonesFromImage(imgElement); if (z?.eyes) applyLaneToMaster(z.eyes, 2, 'both'); }));
+        btnDiv.appendChild(mkBtn('Mouth', async () => { const z = await extractZonesFromImage(imgElement); if (z?.mouth) applyLaneToMaster(z.mouth, 4, 'both'); }));
+        btnDiv.appendChild(mkBtn('Brows', async () => { const z = await extractZonesFromImage(imgElement); if (z?.brows) applyLaneToMaster(z.brows, 1, 'both'); }));
+        btnDiv.appendChild(mkBtn('All Zones', () => applyImageToAllZones(imgElement)));
+        btnDiv.appendChild(mkBtn('Morph', () => setMorphFromCard(imgElement)));
+        btnDiv.appendChild(mkBtn('Edit', () => openEditor(imgElement, thumbCanvas, cardDiv)));
+        cardDiv.appendChild(btnDiv);
+        document.getElementById('faceCardsList').appendChild(cardDiv);
+    }
+
+    function openEditor(img, thumbCanvas, cardDiv) {
+        currentEditingCard = { img, thumbCanvas, cardDiv };
+        const modal = document.getElementById('editorModal');
+        const editorCanvas = document.getElementById('editorCanvas');
+        const ctx = editorCanvas.getContext('2d');
+        editorCanvas.width = 200; editorCanvas.height = 200;
+        ctx.drawImage(img, 0, 0, 200, 200);
+        currentEditingImage = img;
+        currentEditingCanvas = editorCanvas;
+        modal.classList.add('active');
+    }
+
+    document.getElementById('applyBgRemove').onclick = () => {
+        const c = currentEditingCanvas, ctx = c.getContext('2d');
+        const d = ctx.getImageData(0, 0, c.width, c.height);
+        const t = hexToRgb(document.getElementById('bgColorPicker').value);
+        const th = parseInt(document.getElementById('bgThreshold').value);
+        for (let i = 0; i < d.data.length; i += 4) {
+            if (Math.sqrt((d.data[i]-t.r)**2 + (d.data[i+1]-t.g)**2 + (d.data[i+2]-t.b)**2) < th) d.data[i+3] = 0;
+        }
+        ctx.putImageData(d, 0, 0);
+        document.getElementById('editStatus').innerText = 'Background removed';
+    };
+    let eraserActive = false;
+    document.getElementById('eraserBtn').onclick = () => {
+        eraserActive = !eraserActive;
+        document.getElementById('eraserBtn').style.background = eraserActive ? '#ff3366' : '';
+        const canvas = currentEditingCanvas;
+        canvas.style.cursor = eraserActive ? 'crosshair' : 'default';
+        if (canvas._eraserHandler) { canvas.removeEventListener('click', canvas._eraserHandler); canvas._eraserHandler = null; }
+        if (eraserActive) {
+            canvas._eraserHandler = (e) => {
+                if (!eraserActive) return;
+                const r = canvas.getBoundingClientRect();
+                const x = (e.clientX - r.left) * (canvas.width / r.width);
+                const y = (e.clientY - r.top) * (canvas.height / r.height);
+                const ctx = canvas.getContext('2d');
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI*2); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            };
+            canvas.addEventListener('click', canvas._eraserHandler);
+        }
+    };
+    document.getElementById('resizeSlider').oninput = (e) => {
+        const pct = parseInt(e.target.value) / 100;
+        const w = Math.floor(200 * pct), h = Math.floor(200 * pct);
+        const t = document.createElement('canvas'); t.width = w; t.height = h;
+        t.getContext('2d').drawImage(currentEditingCanvas, 0, 0, w, h);
+        currentEditingCanvas.width = w; currentEditingCanvas.height = h;
+        currentEditingCanvas.getContext('2d').drawImage(t, 0, 0);
+    };
+    document.getElementById('saveEditBtn').onclick = () => {
+        if (!currentEditingCard) return;
+        const img = new Image();
+        img.onload = () => {
+            currentEditingCard.thumbCanvas.getContext('2d').drawImage(img, 0, 0, 100, 100);
+            currentEditingCard.img = img;
+            document.getElementById('editorModal').classList.remove('active');
+        };
+        img.src = currentEditingCanvas.toDataURL();
+    };
+    document.getElementById('closeModalBtn').onclick = () => { document.getElementById('editorModal').classList.remove('active'); };
+    function hexToRgb(hex) { return { r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16) }; }
+
+    // ==================== DRAG & DROP (right panel) ====================
+    const dropZoneDiv = document.getElementById('dropZone');
+    dropZoneDiv.ondragover = (e) => { e.preventDefault(); dropZoneDiv.style.background = '#2a3f60'; };
+    dropZoneDiv.ondragleave = () => { dropZoneDiv.style.background = ''; };
+    dropZoneDiv.ondrop = (e) => {
+        e.preventDefault(); dropZoneDiv.style.background = '';
+        for (const file of Array.from(e.dataTransfer.files)) {
+            if (file.type.startsWith('image/')) {
+                const img = new Image();
+                img.onload = () => addFaceCard(img);
+                img.src = URL.createObjectURL(file);
+            }
+        }
+    };
+
+    // ==================== INIT APP ====================
+    async function initApp() {
+        initThree();
+        await initFaceMesh();
+        initZones();
+        drawMasterFace();
+        rebuildSliders();
+
+        const chipContainer = document.getElementById('emotionChips');
+        emotionNames.forEach(em => {
+            const chip = document.createElement('div');
+            chip.className = 'emotion-chip';
+            chip.dataset.emotion = em;
+            chip.innerText = em;
+            chip.title = EMOTION_DICT[em].desc || '';
+            chip.onclick = () => toggleEmotion(em);
+            chipContainer.appendChild(chip);
+        });
+
+        document.getElementById('resetZonesBtn').onclick = resetZones;
+        document.getElementById('leverBtn').onclick = randomizeLever;
+        document.getElementById('saveMasterBtn').onclick = saveCurrentMasterAsCard;
+        document.getElementById('previewWheelBtn').onclick = previewOnWheel;
+
+        // Grid controls
+        const setupGridSlider = (id, setter) => {
+            document.getElementById(id).oninput = (e) => {
+                setter(parseFloat(e.target.value));
+                drawMasterFace();
+            };
+        };
+        setupGridSlider('gridOffX', v => gridOffX = v);
+        setupGridSlider('gridOffY', v => gridOffY = v);
+        setupGridSlider('gridScale', v => gridScale = v);
+        const gridStep = 0.02;
+        document.getElementById('gridLeft').onclick = () => { gridOffX -= gridStep; document.getElementById('gridOffX').value = gridOffX; drawMasterFace(); };
+        document.getElementById('gridRight').onclick = () => { gridOffX += gridStep; document.getElementById('gridOffX').value = gridOffX; drawMasterFace(); };
+        document.getElementById('gridUp').onclick = () => { gridOffY -= gridStep; document.getElementById('gridOffY').value = gridOffY; drawMasterFace(); };
+        document.getElementById('gridDown').onclick = () => { gridOffY += gridStep; document.getElementById('gridOffY').value = gridOffY; drawMasterFace(); };
+        document.getElementById('gridIn').onclick = () => { gridScale = Math.min(2.5, gridScale + 0.05); document.getElementById('gridScale').value = gridScale; drawMasterFace(); };
+        document.getElementById('gridOut').onclick = () => { gridScale = Math.max(0.3, gridScale - 0.05); document.getElementById('gridScale').value = gridScale; drawMasterFace(); };
+
+        const chatInput = document.getElementById('chatInput');
+        document.getElementById('simulateBtn').onclick = () => {
+            const text = chatInput.value;
+            const emotions = parseEmotionsFromText(text);
+            if (emotions.length) { applyEmotionBatch(emotions, 1.0); chatInput.value = ''; }
+        };
+        document.getElementById('undoLastBtn').onclick = undoLastBatch;
+        chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('simulateBtn').click(); });
+
+        const historyDiv = document.createElement('div');
+        historyDiv.id = 'historyLog';
+        historyDiv.className = 'history-log';
+        document.querySelector('.panel-left').appendChild(historyDiv);
+
+        const defaultImg = new Image();
+        defaultImg.onload = () => {
+            addFaceCard(defaultImg);
+            applyImageToAllZones(defaultImg);
+        };
+        defaultImg.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"%3E%3Ccircle cx="100" cy="100" r="90" fill="%23d4a88c"/%3E%3Ccircle cx="70" cy="80" r="10" fill="%23333"/%3E%3Ccircle cx="130" cy="80" r="10" fill="%23333"/%3E%3Cpath d="M70 130 Q100 150 130 130" stroke="%23844" stroke-width="4" fill="none"/%3E%3C/svg%3E';
+    }
+</script>
+</body>
+</html>

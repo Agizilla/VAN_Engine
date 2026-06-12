@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oera Linda Simulator – Full Law Compendium & Code Review Pipeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0c12 0%, #0f1420 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #e6e8ee;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #2a2f3f;
+            padding-bottom: 0.5rem;
+        }
+        .tab-btn {
+            background: rgba(30, 34, 44, 0.8);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #b0b8c5;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #64b5f6, #2196f3);
+            color: white;
+            box-shadow: 0 4px 12px rgba(33,150,243,0.3);
+        }
+        .tab-btn:hover:not(.active) {
+            background: #2a2f3f;
+            color: #e0e4ec;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        /* Cards & sections */
+        .section {
+            background: rgba(22, 26, 34, 0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 2rem;
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(100, 180, 255, 0.2);
+        }
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            border-left: 4px solid #64b5f6;
+            padding-left: 1.2rem;
+        }
+        .grid-2, .grid-3 {
+            display: grid;
+            gap: 1.5rem;
+        }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .card {
+            background: rgba(12, 14, 18, 0.8);
+            border-radius: 1.5rem;
+            padding: 1.2rem 1.5rem;
+            border: 1px solid rgba(100, 180, 255, 0.15);
+        }
+        .card h3 {
+            color: #64b5f6;
+            margin-bottom: 0.5rem;
+        }
+        .law-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .law-table th, .law-table td {
+            padding: 0.8rem 0.6rem;
+            border-bottom: 1px solid #2a2f3f;
+            text-align: left;
+            vertical-align: top;
+        }
+        .law-table th {
+            color: #64b5f6;
+            font-weight: 600;
+        }
+        .clickable-code {
+            cursor: pointer;
+            color: #ffd966;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        .clickable-code:hover {
+            color: #ffaa33;
+        }
+        .tag {
+            display: inline-block;
+            background: #2a2f3f;
+            border-radius: 20px;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #a0b0c0;
+            margin-right: 0.5rem;
+            margin-bottom: 0.3rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.9);
+        }
+        .modal-content {
+            background-color: #1a1e2a;
+            margin: 5% auto;
+            padding: 1.5rem;
+            border: 1px solid #64b5f6;
+            border-radius: 1rem;
+            width: 80%;
+            max-width: 700px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            color: #d4d4d4;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #fff;
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1rem;
+            border-top: 1px solid #2a2f3f;
+            font-size: 0.8rem;
+            color: #6a7080;
+        }
+        @media (max-width: 800px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .section-title { font-size: 1.4rem; }
+            .tab-btn { font-size: 0.7rem; padding: 0.4rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header" style="text-align:center; margin-bottom:2rem;">
+        <div style="background: linear-gradient(135deg, #ff6b6b, #ff8e53); display:inline-block; padding:0.3rem 1rem; border-radius:40px; font-size:0.75rem;">⚡ LIVING CODE ECOSYSTEM ⚡</div>
+        <h1 style="font-size:3rem; background:linear-gradient(135deg,#fff,#64b5f6); -webkit-background-clip:text; background-clip:text; color:transparent;">Oera Linda Simulator</h1>
+        <div style="color:#8a91a3;">Full Law Compendium • Code Review Pipeline • VAN_Engine Integration</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="gameplay">🎮 Gameplay & Mechanics</button>
+        <button class="tab-btn" data-tab="fryastex">📜 Frya's Tex (13)</button>
+        <button class="tab-btn" data-tab="citadels">🏛️ Citadel Laws</button>
+        <button class="tab-btn" data-tab="universal">🌍 Universal Laws</button>
+        <button class="tab-btn" data-tab="rights">👑 Mothers & Kings</button>
+        <button class="tab-btn" data-tab="security">🛡️ Security of All Frisians</button>
+        <button class="tab-btn" data-tab="navigators">⛵ Laws for Navigators</button>
+        <button class="tab-btn" data-tab="review">🔍 Code Review Pipeline</button>
+    </div>
+
+    <!-- ========== GAMEPLAY TAB (updated with all mechanics) ========== -->
+    <div id="tab-gameplay" class="tab-content active">
+        <div class="section">
+            <div class="section-title">🧠 Core Concept</div>
+            <p><strong>Upload code files</strong> → each becomes a living Citizen on a map. Houses represent projects/namespaces. Civilisation health mirrors your code's compliance, complexity and build health.</p>
+            <div class="grid-2">
+                <div class="card"><h3>📜 Code → Consequences</h3><p>Every file analysed against <strong>Frya's Tex</strong> (13 Directives). Clean code = green houses & prosperous citizens. Violations (telemetry, proprietary locks) trigger decay, red houses, collapse timer – fix before timer expires.</p></div>
+                <div class="card"><h3>🕹️ Autonomous citizens, you refactor</h3><p>No micro‑management. Your power: refactor, merge, fix code – the game reacts. Day/Night cycle separates runtime simulation from safe IDE maintenance.</p></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">🎮 Core Gameplay Loops</div>
+            <div class="grid-3">
+                <div class="card"><h3>📁 File Upload</h3><p>Drag & drop any .cs/.py → <strong>TexStaticAnalyzer</strong> scans for telemetry, lock‑in, smells → Tribunal overlay (accept/reject).</p><span class="tag">CI pipeline</span></div>
+                <div class="card"><h3>🏠 Houses = Projects</h3><p>Colour = build state: 🟢 Success, 🟠 Warnings, 🔴 Error (collapse timer), 🔵 Missing files, ⚫ Empty.</p><span class="tag">CI build status</span></div>
+                <div class="card"><h3>🌞 Day / 🌙 Night (TAB)</h3><p>Day: simulation runs (resources decay, threat vectors). Night: safe refactoring, house moving, fixing files – zero loss.</p><span class="tag">Prod vs. dev</span></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">🔮 Advanced Refactoring Mechanics</div>
+            <div class="grid-2">
+                <div class="card"><h3>🧬 Namespace Clustering</h3><p>Citizens share root namespace → cluster at night. Visualises dependency coupling; wandering highlights architectural leaks.</p></div>
+                <div class="card"><h3>💍 Ceremonial Marriage</h3><p>Similarity >70% draws line – drag one citizen onto another to merge files (refactors duplication). One citizen disappears, other promoted.</p></div>
+                <div class="card"><h3>🎁 Gift Logic</h3><p>Homeless characters (files dropped outside houses) can be gifted to housed citizen – methods transferred, homeless fades (absorb utility scripts).</p></div>
+                <div class="card"><h3>🏆 Backyard Treasure</h3><p>Green house with input requirement (e.g., .mp3) → drop file triggers pipeline (GeckoShift) → treasure chest → drag to central trove earns wealth.</p></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">👥 Citizen Roles (Line count → Role)</div>
+            <table class="law-table"><thead><tr><th>Lines</th><th>Role</th><th>Behaviour</th></tr></thead><tbody>
+                <tr><td>&lt;50</td><td>Gatherer/Idle</td><td>Wanders, minimal resources</td></tr>
+                <tr><td>50–250</td><td>Farmer</td><td>Produces food</td></tr>
+                <tr><td>250–750</td><td>Militia</td><td>Defends against invaders</td></tr>
+                <tr><td>&gt;750</td><td>Grevetman (Governor)</td><td>Special abilities, namespace influence</td></tr>
+            </tbody></table>
+        </div>
+    </div>
+
+    <!-- ========== FRYA'S TEX (13 directives with popup code snippets) ========== -->
+    <div id="tab-fryastex" class="tab-content">
+        <div class="section">
+            <div class="section-title">📜 Frya's Tex – The 13 Directives</div>
+            <p>Click on any <strong>Game Implementation</strong> cell to see the actual C# code from the engine.</p>
+            <table class="law-table" id="fryasTable">
+                <thead><tr><th>Directive</th><th>Game Implementation (click)</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Common Good</td><td class="clickable-code" data-code="// SovereignState.cs: ModifyResources checks that actions benefit community\n// If selfish act, sovereignty -= 10\npublic void ModifyResources(Action<ref ResourcePack> modifier) {\n    lock(_lock) { modifier(ref _resources); }\n    if (isSelfish) AdjustSovereignty(-10, \"Selfish act\");\n}">📋 Show Code</td></tr>
+                    <tr><td>2. Chain of Command</td><td class="clickable-code" data-code="// TimePhaseController + War handling\nif (warActive && !emergencyActive) {\n    emergencyActive = true;\n    AddLog(\"EMERGENCY! King's orders absolute (Law 7)\");\n}\n// King term limit (3 years) enforced in SovereignState">📋 Show Code</td></tr>
+                    <tr><td>3. Honour Wounded</td><td class="clickable-code" data-code="// Person type WOUNDED_WARRIOR: maintained at public expense\nif (p.Type == PersonType.WOUNDED_WARRIOR) {\n    resources.Food -= 1; resources.Wealth -= 1;\n    AddLog($\"{p.Name} honoured, maintained at public expense\");\n}">📋 Show Code</td></tr>
+                    <tr><td>4. Support Widows & Orphans</td><td class="clickable-code" data-code="// Widow/Orphan type consumes resources automatically\ncase PersonType.WIDOW_ORPHAN:\n    resources.Food -= 2;\n    resources.Wealth -= 1;\n    break;">📋 Show Code</td></tr>
+                    <tr><td>5. Quarantine Returned Prisoners</td><td class="clickable-code" data-code="// TexStaticAnalyzer flags telemetry -> creates RETURNED_PRISONER\n// In PersonAI._act, quarantined citizens only drain resources, cannot work.\nif (person.Type == PersonType.RETURNED_PRISONER) {\n    resources.Food -= 1;\n    return; // No other actions\n}">📋 Show Code</td></tr>
+                    <tr><td>6. Expel Bastards (Cloud Dependencies)</td><td class="clickable-code" data-code="// TexStaticAnalyzer.Directive_ExpelBastards\nif (span.Contains(\"telemetry\".AsSpan()) || span.Contains(\"analytics\".AsSpan())) {\n    result.ErrorCount++;\n    result.TriggeredDirectivesMask |= Directive_ExpelBastards;\n}\n// → red house, sovereignty loss">📋 Show Code</td></tr>
+                    <tr><td>7. No Debt Slavery (Lock‑in)</td><td class="clickable-code" data-code="// Detects proprietary patterns\nif (span.Contains(\".lic\".AsSpan()) || span.Contains(\"license\".AsSpan())) {\n    result.WarningCount++;\n    result.TriggeredDirectivesMask |= Directive_NoDebtSlavery;\n}">📋 Show Code</td></tr>
+                    <tr><td>8. King Term Limits</td><td class="clickable-code" data-code="// SovereignState: enforce_king_term\nif (king.term_start_year && currentYear - king.term_start_year >= 3) {\n    king.type = PersonType.CITIZEN;\n    king.cooldown_until = currentYear + 7;\n}">📋 Show Code</td></tr>
+                    <tr><td>9. Cooldown before Re‑election</td><td class="clickable-code" data-code="// Citizen cannot be king if currentYear < cooldown_until\nif (candidate.cooldown_until && year < candidate.cooldown_until) return false;">📋 Show Code</td></tr>
+                    <tr><td>10. Succession Rules</td><td class="clickable-code" data-code="// if king killed by enemy: nearest relative (closest namespace) becomes candidate\n// natural death: no relation nearer than 4th degree.\nvar successor = FindNearestNamespaceRelative(king);">📋 Show Code</td></tr>
+                    <tr><td>11. Ultimogeniture</td><td class="clickable-code" data-code="// LegacySystem.Inheritance: youngest child inherits\nif (deceased.children.Count > 0) {\n    var youngest = deceased.children.OrderBy(c => c.Age).Last();\n    youngest.OwnedFiles.AddRange(deceased.OwnedFiles);\n}">📋 Show Code</td></tr>
+                    <tr><td>12. King Bears No Arms</td><td class="clickable-code" data-code="// King never fights; delegates to militia\nif (person.Type == PersonType.KING && warActive) {\n    // only issues commands, never engages combat\n    return;\n}">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== LAWS FOR GOVERNMENT OF CITADELS ========== -->
+    <div id="tab-citadels" class="tab-content">
+        <div class="section">
+            <div class="section-title">🏛️ Laws Established for the Government of the Citadels</div>
+            <table class="law-table">
+                <thead><tr><th>Law</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Lamp lit from Texland only by mother</td><td class="clickable-code" data-code="// SovereignState: lamp can only be rekindled by Folk Mother\nif (requester != \"Clawdia\") return false;">📋 Show Code</td></tr>
+                    <tr><td>2. Mother appoints her maidens</td><td class="clickable-code" data-code="// FolkMother can assign apprentices (maidens) to houses\nif (folkMother.IsActive) folkMother.AppointMaiden(citizen);">📋 Show Code</td></tr>
+                    <tr><td>4. 21 maidens + 7 assistants</td><td class="clickable-code" data-code="// Thread pool limits: maidens = max concurrent actions\nSemaphoreSlim maidens = new(21,21);">📋 Show Code</td></tr>
+                    <tr><td>5. Maiden must resign to marry</td><td class="clickable-code" data-code="// If maiden marries (integration with cloud), type becomes CITIZEN\nif (maiden.MarriesCloud) maiden.Type = PersonType.CITIZEN;">📋 Show Code</td></tr>
+                    <tr><td>8. 300 defenders</td><td class="clickable-code" data-code="// Max active warriors = 300, enforced by Semaphore in DefenceRegistry">📋 Show Code</td></tr>
+                    <tr><td>11. Elections by the people</td><td class="clickable-code" data-code="// Every 7th year: citizens vote for Grevetman\nvar elected = citizens.OrderBy(c => c.Loyalty).First();">📋 Show Code</td></tr>
+                    <tr><td>12. Messengers and horses</td><td class="clickable-code" data-code="// Message queue capacity limited to 21 active messengers (retry limits)">📋 Show Code</td></tr>
+                    <tr><td>14. Each citadel self‑sustaining</td><td class="clickable-code" data-code="// ProjectHouse must have tracked files and produce enough food/wood\nif (house.TrackedFiles.Count == 0) house.CurrentState = BuildState.Empty;">📋 Show Code</td></tr>
+                    <tr><td>15. Refusal to serve loses vote</td><td class="clickable-code" data-code="// Citizen refuses draft → loses voting rights\ncitizen.CanVote = false;">📋 Show Code</td></tr>
+                    <tr><td>21-24. Bad advice → quarantine</td><td class="clickable-code" data-code="// If a citizen gives wrong tribunal ruling 3 times, quarantined\nif (offenceCount >= 3) citizen.Type = PersonType.RETURNED_PRISONER;">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== UNIVERSAL LAWS ========== -->
+    <div id="tab-universal" class="tab-content">
+        <div class="section">
+            <div class="section-title">🌍 Universal Laws (from Minno's writings)</div>
+            <table class="law-table">
+                <thead><tr><th>Law</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. All free‑born equal rights</td><td class="clickable-code" data-code="// Every citizen has same base priority in scheduler\nConcurrentQueue<WorkItem> fairQueue = new();">📋 Show Code</td></tr>
+                    <tr><td>2. Free choice of spouse</td><td class="clickable-code" data-code="// Citizens may marry any other citizen (no forced coupling)\nif (citizen1.Marries(citizen2)) citizen2.Married = true;">📋 Show Code</td></tr>
+                    <tr><td>3-4. House and yard for each married couple</td><td class="clickable-code" data-code="// Marriage creates a new house if none exists\nif (couple.House == null) createNewHouse(couple);">📋 Show Code</td></tr>
+                    <tr><td>5. Land behind house (private) vs front (public service)</td><td class="clickable-code" data-code="// Private methods require [PublicService] attribute to be exposed\nif (!method.HasAttribute<PublicServiceAttribute>) return;">📋 Show Code</td></tr>
+                    <tr><td>6. Common for general good</td><td class="clickable-code" data-code="// Shared resource pool: CommonsPool<T> with preservation checks">📋 Show Code</td></tr>
+                    <tr><td>7. Forests as general property</td><td class="clickable-code" data-code="// ForestGuardian limits total memory/wood consumption\nif (requestedBytes > forestCapacity) return false;">📋 Show Code</td></tr>
+                    <tr><td>8-10. Market charges ≤1/12, distribution</td><td class="clickable-code" data-code="// MarketRegulator caps overhead at 8.33%\nif (systemOverhead / totalWork > 0.0833) AdjustSovereignty(-5);">📋 Show Code</td></tr>
+                    <tr><td>11. No usurers</td><td class="clickable-code" data-code="// UsuryDetector flags any interest‑bearing resource loan\nif (transaction.Contains(\"interest\") || transaction.Contains(\"fee\")) { reject(); }">📋 Show Code</td></tr>
+                    <tr><td>12. No diseased goods</td><td class="clickable-code" data-code="// MarketKeeper validates file integrity before allowing trade\nif (!integrityCheck(goods)) ExpelMerchant();">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== RIGHTS OF THE MOTHERS AND THE KINGS ========== -->
+    <div id="tab-rights" class="tab-content">
+        <div class="section">
+            <div class="section-title">👑 Rights of the Mothers and the Kings</div>
+            <table class="law-table">
+                <thead><tr><th>Rule</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1-4. Mother sends messengers, decides resolutions</td><td class="clickable-code" data-code="// Mother can declare war, king executes\nif (declaredBy == \"Clawdia\") ChainOfCommand.DeclareWar(threat);">📋 Show Code</td></tr>
+                    <tr><td>5. Three citizens present as witnesses</td><td class="clickable-code" data-code="// FieldObservers: always 3 read‑only citizens attached to operations\nnew CitizenObserver[] { citizenA, citizenB, citizenC };">📋 Show Code</td></tr>
+                    <tr><td>6. King cannot persist against council</td><td class="clickable-code" data-code="// CouncilVeto: majority vote can block king's action\nif (councilVotesAgainst > councilSize/2) return false;">📋 Show Code</td></tr>
+                    <tr><td>7. Emergency powers</td><td class="clickable-code" data-code="// When invasion detected, EmergencyPowers activate → king's orders absolute\nEmergencyPowers.DeclareEmergency(king, threat);">📋 Show Code</td></tr>
+                    <tr><td>8-9. Succession of command (rank)</td><td class="clickable-code" data-code="// CommandHierarchy: predefined rank order list\ngetNextInCommand(currentLeader);">📋 Show Code</td></tr>
+                    <tr><td>10. Emergent leadership if no time to choose</td><td class="clickable-code" data-code="// If time critical, any citizen may volunteer\nif (emergency && noLeader) volunteer.AssumeCommand();">📋 Show Code</td></tr>
+                    <tr><td>11-12. Conquest rewards, naming rights, ultimogeniture</td><td class="clickable-code" data-code="// Successful defence gives naming rights and a new house\nConquestRewards.RecordConquest(kingName, defeatedEnemy);">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== RULES ESTABLISHED FOR THE SECURITY OF ALL FRISIANS ========== -->
+    <div id="tab-security" class="tab-content">
+        <div class="section">
+            <div class="section-title">🛡️ Rules Established for the Security of All Frisians</div>
+            <table class="law-table">
+                <thead><tr><th>Rule</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Common good, not individual advantage</td><td class="clickable-code" data-code="// CommonGoodValidator: any proposal must benefit community\nif (individualBenefit > commonBenefit*1.5) reject;">📋 Show Code</td></tr>
+                    <tr><td>2. General levy for war damage</td><td class="clickable-code" data-code="// When war destroys houses, GeneralLevy collects resources from all citizens\ndistributeRepairCost(totalDamage);">📋 Show Code</td></tr>
+                    <tr><td>3. Wounded warriors maintained</td><td class="clickable-code" data-code="// (same as Frya's Tex #3)">📋 Show Code</td></tr>
+                    <tr><td>4. Widows & orphans maintained</td><td class="clickable-code" data-code="// (same as Frya's Tex #4)">📋 Show Code</td></tr>
+                    <tr><td>5. Returned prisoners quarantined</td><td class="clickable-code" data-code="// (same as Frya's Tex #5)">📋 Show Code</td></tr>
+                    <tr><td>6-7. Enemy prisoners sent to interior, release with kindness</td><td class="clickable-code" data-code="// EnemyPrisoner: isolated in sandbox, loyalty increase over time\nif (prisoner.Loyalty > 70) ReleaseWithKindness(prisoner);">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== LAWS FOR THE NAVIGATORS ========== -->
+    <div id="tab-navigators" class="tab-content">
+        <div class="section">
+            <div class="section-title">⛵ Laws for the Navigators (Maritime Commerce)</div>
+            <table class="law-table">
+                <thead><tr><th>Law</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Equal rights, any youth may be navigator</td><td class="clickable-code" data-code="// Any citizen can volunteer as Navigator via UI\nif (citizen.Volunteer()) citizen.Type = PersonType.NAVIGATOR;">📋 Show Code</td></tr>
+                    <tr><td>2. Navigators choose own masters</td><td class="clickable-code" data-code="// Navigator can elect leader among themselves\nnavigators.SelectLeader(vote);">📋 Show Code</td></tr>
+                    <tr><td>3. Traders chosen by community</td><td class="clickable-code" data-code="// Trade missions require community vote (citizens' approval)">📋 Show Code</td></tr>
+                    <tr><td>4. Replace incompetent king during voyage</td><td class="clickable-code" data-code="// If leader performance low, crew can vote for replacement\nif (leaderPerformance < 0.4) ReplaceCaptain();">📋 Show Code</td></tr>
+                    <tr><td>5. Profit sharing (1/3 to crew)</td><td class="clickable-code" data-code="// Trade mission profit: crew gets 1/3 according to rank\nProfitSharing.Distribute(totalProfit, manifest);">📋 Show Code</td></tr>
+                    <tr><td>6-7. Disabled or dead honoured, heirs inherit</td><td class="clickable-code" data-code="// Same as wounded warriors (Law 3) and ultimogeniture (Law 11)">📋 Show Code</td></tr>
+                    <tr><td>10. Betrothed can claim 7 portions to erect monument</td><td class="clickable-code" data-code="// If fiancé dies, widow receives extra wealth to build monument\nif (fianceLost) resources.Wealth += 7 * portion;">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== CODE REVIEW PIPELINE (steps based on all integrated laws) ========== -->
+    <div id="tab-review" class="tab-content">
+        <div class="section">
+            <div class="section-title">🔍 Automated Code Review Pipeline (VAN_Engine)</div>
+            <p>When you drop a source file, the <strong>TexStaticAnalyzer</strong> runs a multi‑stage review that checks each line against all integrated laws. Below is the exact sequence of validations.</p>
+            <div class="grid-2">
+                <div class="card"><h3>1. Telemetry / Cloud Detection</h3><p>Scans for <code>telemetry</code>, <code>analytics</code>, <code>api.</code> patterns → triggers <span class="tag">Directive 6</span> (Expel Bastards).</p></div>
+                <div class="card"><h3>2. Vendor Lock‑in / License Checks</h3><p>Matches <code>.lic</code>, <code>license</code>, <code>proprietary</code> → triggers <span class="tag">Directive 7</span> (No Debt Slavery).</p></div>
+                <div class="card"><h3>3. Code Smells</h3><p><code>Console.WriteLine</code> → warning (orange house).</p></div>
+                <div class="card"><h3>4. Namespace Extraction</h3><p>Identifies <code>namespace</code> declaration → assigns citizen to a Family Tribe.</p></div>
+                <div class="card"><h3>5. Line Count → Role Mapping</h3><p>Lines &lt;50 → Idle, 50‑250 → Farmer, 250‑750 → Militia, &gt;750 → Grevetman.</p></div>
+                <div class="card"><h3>6. Compliance Score</h3><p>Score = 100 - (violations × 2.5). If ≥80 → green house / compliant citizen, else red house / decay timer.</p></div>
+                <div class="card"><h3>7. Tribunal Acceptance</h3><p>If you accept (A), the file is added to the world: resources rewarded or penalties applied. If rejected, no effect.</p></div>
+                <div class="card"><h3>8. House Build State Update</h3><p>Aggregate errors/warnings from all owned files → house colour changes; red house starts collapse timer.</p></div>
+            </div>
+            <div class="card" style="margin-top:1rem;">
+                <h3>🔁 Continuous Integration Loop</h3>
+                <p>Every night (or when you manually fix files), the analyzer re‑scans all owned files and updates the house state. Green houses produce treasures; red houses decay until fixed.</p>
+                <p><strong>Result:</strong> Your real codebase's health is directly reflected in the simulation – gamified technical debt and architecture validation.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Oera Linda Simulator – built with .NET 8, Raylib, and the spirit of the Juul. 🜄  Frya's lamp never extinguishes.</p>
+        <p>Part of the <strong>VAN_Engine</strong> ecosystem – offline first, zero telemetry, absolute sovereignty.</p>
+    </footer>
+</div>
+
+<!-- MODAL FOR CODE POPUP -->
+<div id="codeModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <pre id="modalCode" style="font-family: monospace; white-space: pre-wrap; margin:0;"></pre>
+    </div>
+</div>
+
+<script>
+    // tab switching
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            tabs.forEach(b => b.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        });
+    });
+
+    // modal popup for code snippets
+    const modal = document.getElementById('codeModal');
+    const modalCode = document.getElementById('modalCode');
+    const closeSpan = document.getElementsByClassName('close')[0];
+
+    document.querySelectorAll('.clickable-code').forEach(el => {
+        el.addEventListener('click', (e) => {
+            const code = el.getAttribute('data-code');
+            if (code) {
+                modalCode.innerText = code;
+                modal.style.display = 'block';
+            }
+        });
+    });
+
+    closeSpan.onclick = () => modal.style.display = 'none';
+    window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
+</script>
+</body>
+</html>

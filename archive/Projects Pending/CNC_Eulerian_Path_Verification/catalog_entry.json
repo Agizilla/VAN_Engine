@@ -1,0 +1,36 @@
+{
+  "projects": [
+    {
+      "languageModel": "Python",
+      "exportData": "2026-06-07",
+      "project": {
+        "name": "CNC Eulerian Path Verification",
+        "fileName": "cnc_verification.py",
+        "skillCategory": "CNC/Geometry",
+        "description": "Checks graph connectivity, Eulerian path existence, and step tolerance for CNC landmark toolpaths.",
+        "isLatest": true,
+        "isFull": true,
+        "nrLines": 145,
+        "files": [
+          {
+            "filename": "cnc_verification.py",
+            "text": "import numpy as np\nimport pandas as pd\nfrom scipy.spatial import cKDTree\nimport networkx as nx\n\ndef load_landmarks_from_csv(csv_path, x_col='X', y_col='Y', z_col='Z', label_col='Label'):\n    df = pd.read_csv(csv_path)\n    coords = df[[x_col, y_col, z_col]].values\n    labels = df[label_col].values\n    return labels, coords\n\ndef build_graph_from_proximity(coords, k_neighbors=4, max_dist=0.15):\n    tree = cKDTree(coords)\n    edges = set()\n    for i, coord in enumerate(coords):\n        distances, indices = tree.query(coord, k=k_neighbors+1)\n        for j, dist in zip(indices[1:], distances[1:]):\n            if dist <= max_dist:\n                u, v = sorted((i, j))\n                edges.add((u, v))\n    return list(edges)\n\ndef check_connectivity(n_nodes, edges):\n    G = nx.Graph()\n    G.add_nodes_from(range(n_nodes))\n    G.add_edges_from(edges)\n    components = list(nx.connected_components(G))\n    if len(components) == 1:\n        print(\"\u2713 Graph fully connected\")\n        return True, G\n    else:\n        print(f\"\u2717 {len(components)} components\")\n        return False, G\n\ndef check_eulerian_path_possible(G):\n    degrees = dict(G.degree())\n    odd = [n for n, d in degrees.items() if d % 2 == 1]\n    if len(odd) == 0:\n        print(\"\u2713 Eulerian circuit exists\")\n        return True, \"circuit\"\n    elif len(odd) == 2:\n        print(f\"\u2713 Eulerian path exists ({odd[0]} \u2192 {odd[1]})\")\n        return True, \"path\"\n    else:\n        print(f\"\u2717 {len(odd)} odd-degree vertices\")\n        return False, None\n\ndef check_path_continuity(seq, coords, tol=0.05):\n    violations = []\n    for i in range(len(seq)-1):\n        d = np.linalg.norm(coords[seq[i]] - coords[seq[i+1]])\n        if d > tol:\n            violations.append((seq[i], seq[i+1], d))\n            print(f\"\u2717 {seq[i]}\u2192{seq[i+1]} : {d:.4f} > {tol}\")\n    return len(violations) == 0\n\nif __name__ == \"__main__\":\n    pass\n"
+          },
+          {
+            "filename": "requirements.txt",
+            "text": "numpy\npandas\nscipy\nnetworkx"
+          }
+        ],
+        "binaryFiles": [],
+        "fileDescriptions": [
+          "Main Python script for CNC Eulerian path verification",
+          "Python dependencies"
+        ]
+      }
+    }
+  ],
+  "additionalFileInfo": [
+    "Replace 'landmarks.csv' and toolpath_sequence with actual data before running.",
+    "Tolerance is ±0.05 mm as per CNC spec."
+  ]
+}

@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAN Engine – Face Landmark Dual Canvas</title>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        body {
+            background: #09090d;
+            color: #dbe2ef;
+            font-family: 'Inter', system-ui, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h2 {
+            color: #ffaa33;
+            margin-bottom: 2px;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(255, 170, 51, 0.2);
+            font-size: 1.1rem;
+        }
+        .subtitle {
+            font-size: 0.75rem;
+            color: #888aa0;
+            margin-bottom: 12px;
+        }
+        .workspace {
+            display: flex;
+            gap: 12px;
+            max-width: 1600px;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* -- Asset Panel (left) -- */
+        .asset-panel {
+            width: 140px;
+            min-width: 140px;
+            background: #12121a;
+            border: 1px solid #232433;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+        .asset-panel h3 {
+            font-size: 0.7rem;
+            color: #ffaa33;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .asset-item {
+            background: #1a1a26;
+            border: 1px solid #2a2a3a;
+            border-radius: 8px;
+            padding: 6px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .asset-item:hover { border-color: #ffaa33; background: #22223a; }
+        .asset-item.carrying { border-color: #55ff55; box-shadow: 0 0 12px rgba(85,255,85,0.3); }
+        .asset-item canvas { width: 36px; height: 36px; border-radius: 4px; background: #0a0a12; image-rendering: pixelated; flex-shrink: 0; }
+        .asset-meta { font-size: 0.6rem; line-height: 1.3; color: #a0a2b8; }
+        .asset-meta strong { color: #dbe2ef; }
+
+        /* -- Center Canvas Row -- */
+        .center-col { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+        .canvas-row { display: flex; gap: 10px; flex: 1; min-height: 0; }
+        .canvas-col { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+
+        .toolbar {
+            background: #12121a;
+            border: 1px solid #232433;
+            border-radius: 10px;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 0.7rem;
+        }
+        .toolbar label { color: #a0a2b8; display: flex; align-items: center; gap: 4px; }
+        .toolbar select, .toolbar input[type="number"] {
+            background: #1a1a2a; border: 1px solid #333444; border-radius: 4px;
+            color: #dbe2ef; padding: 2px 5px; font-size: 0.65rem; width: 70px;
+        }
+        .toolbar input[type="number"] { width: 45px; }
+        .toolbar .btn-sm {
+            background: #2a2a3a; border: 1px solid #4a4a5a; color: #dbe2ef;
+            padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 0.65rem;
+        }
+        .toolbar .btn-sm.active { background: #ffaa33; color: #09090d; border-color: #ffaa33; }
+        .toolbar .btn-sm.landmark { background: #3366ff; border-color: #5588ff; }
+        .toolbar .btn-sm.landmark.active { background: #55ff55; color: #09090d; border-color: #55ff55; }
+        .toolbar .canvas-label { color: #ffaa33; font-weight: 600; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+
+        .canvas-container {
+            position: relative;
+            background: #111116;
+            border: 2px solid #333444;
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 350px;
+            flex: 1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+        .canvas-container.drop-target { border-color: #55ff55; box-shadow: 0 0 20px rgba(85,255,85,0.2); }
+        canvas { display: block; image-rendering: pixelated; position: absolute; top: 0; left: 0; }
+
+        /* -- Right control panel -- */
+        .control-panel {
+            width: 200px;
+            min-width: 200px;
+            background: #12121a;
+            border: 1px solid #232433;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .btn {
+            background: #ffaa33; color: #09090d; border: none; padding: 8px 12px;
+            font-weight: bold; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.8rem;
+        }
+        .btn:hover { background: #ffbb55; box-shadow: 0 0 12px rgba(255,170,51,0.4); }
+        .btn-heal { background: #55ff55; color: #09090d; }
+        .btn-heal:hover { background: #77ff77; box-shadow: 0 0 12px rgba(85,255,85,0.4); }
+        .btn-heal:disabled { background: #223322; color: #557755; cursor: not-allowed; box-shadow: none; }
+        .btn-secondary { background: #232433; color: #dbe2ef; border: 1px solid #333444; }
+        .btn-secondary:hover { background: #2d2e40; }
+        .status-box {
+            background: #181824; border-left: 4px solid #ffaa33;
+            padding: 8px; border-radius: 4px; font-size: 0.75rem; line-height: 1.3;
+        }
+        .hotkeys {
+            font-size: 0.7rem; color: #a0a2b8; background: #0c0c12;
+            padding: 6px; border-radius: 6px; border: 1px solid #1c1d2a;
+        }
+        .hotkeys ul { margin: 3px 0 0 0; padding-left: 14px; font-size: 0.65rem; }
+        #fileInput, #fileInputTarget { display: none; }
+
+        .tracker-box {
+            border-left-color: #55ff55;
+            font-family: monospace;
+            font-size: 0.7rem;
+        }
+        .tracker-box strong { color: #55ff55; }
+        .tracker-box div { margin-top: 3px; color: #88ff88; }
+
+        /* Ghost overlay */
+        #ghost-overlay {
+            position: fixed; pointer-events: none; z-index: 9999;
+            border: 2px dashed rgba(85,255,85,0.6); border-radius: 50%;
+            display: none; background: rgba(85,255,85,0.05);
+        }
+        #ghost-count {
+            position: fixed; pointer-events: none; z-index: 10000;
+            background: #09090d; color: #55ff55; font-size: 0.7rem;
+            padding: 2px 6px; border-radius: 8px; border: 1px solid #55ff55;
+            display: none; white-space: nowrap;
+        }
+        .drop-zone-highlight { outline: 2px dashed rgba(85,255,85,0.4); outline-offset: -2px; }
+    </style>
+</head>
+<body>
+
+    <h2>VAN Engine — Face Landmark Dual Canvas</h2>
+    <div class="subtitle">Orthogonal grid engine with 68-point face landmark snap &amp; cross-canvas transfer</div>
+
+    <div class="workspace">
+
+        <!-- LEFT: Asset Panel -->
+        <div class="asset-panel" id="assetPanel">
+            <h3>Captured Assets</h3>
+            <div id="assetList" style="display:flex;flex-direction:column;gap:4px;"></div>
+            <div style="font-size:0.6rem;color:#555;text-align:center;margin-top:4px;">Drag from here to any canvas</div>
+        </div>
+
+        <!-- CENTER: Dual Canvas Row -->
+        <div class="center-col">
+            <div class="canvas-row">
+
+                <!-- SOURCE Canvas -->
+                <div class="canvas-col">
+                    <div class="toolbar" id="srcToolbar">
+                        <span class="canvas-label">SOURCE</span>
+                        <label>Shape:
+                            <select class="selShape"><option value="square">Square</option><option value="circle">Circle</option></select>
+                        </label>
+                        <label>Drop:
+                            <select class="selDrop"><option value="scatter">Scatter</option><option value="exact">Exact Grid</option></select>
+                        </label>
+                        <label>R: <input type="number" class="dropRadius" value="40" min="4" max="500"></label>
+                        <button class="btn-sm upload-btn">Upload</button>
+                        <button class="btn-sm landmark-btn">Landmarks</button>
+                        <span class="carryStatus" style="color:#55ff55;font-size:0.65rem;"></span>
+                    </div>
+                    <div class="canvas-container" id="srcContainer">
+                        <canvas id="srcCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- TARGET Canvas -->
+                <div class="canvas-col">
+                    <div class="toolbar" id="tgtToolbar">
+                        <span class="canvas-label">TARGET</span>
+                        <label>Shape:
+                            <select class="selShape"><option value="square">Square</option><option value="circle">Circle</option></select>
+                        </label>
+                        <label>Drop:
+                            <select class="selDrop"><option value="scatter">Scatter</option><option value="exact">Exact Grid</option></select>
+                        </label>
+                        <label>R: <input type="number" class="dropRadius" value="40" min="4" max="500"></label>
+                        <button class="btn-sm upload-btn">Upload</button>
+                        <button class="btn-sm landmark-btn">Landmarks</button>
+                        <span class="carryStatus" style="color:#55ff55;font-size:0.65rem;"></span>
+                    </div>
+                    <div class="canvas-container" id="tgtContainer">
+                        <canvas id="tgtCanvas"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT: Control Panel -->
+        <div class="control-panel">
+            <div class="status-box">
+                <strong>Engine State:</strong><br><span id="engineStatus">Awaiting image upload...</span>
+            </div>
+
+            <div class="hotkeys">
+                <strong>Control Map:</strong>
+                <ul id="controlInstructions">
+                    <li>Upload image, detect landmarks.</li>
+                    <li>Drag selection to capture asset.</li>
+                    <li>Drop on either canvas (snaps to landmarks).</li>
+                    <li>Ctrl+C: Copy selection.</li>
+                    <li>Ctrl+V: Paste (auto-selects for moving).</li>
+                    <li>Drag selection across canvases to transfer.</li>
+                    <li>Shift+Up/Down: scale asset.</li>
+                    <li>Ctrl+0: reset zoom.</li>
+                    <li>Right-click: restore pixels.</li>
+                </ul>
+            </div>
+
+            <button class="btn btn-heal" id="globalHealBtn" disabled>Heal All Voids</button>
+
+            <div class="status-box tracker-box">
+                <strong>Source Tracker:</strong>
+                <div id="srcTracker">[Empty]</div>
+            </div>
+            <div class="status-box tracker-box">
+                <strong>Target Tracker:</strong>
+                <div id="tgtTracker">[Empty]</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ghost overlay -->
+    <div id="ghost-overlay"></div>
+    <div id="ghost-count"></div>
+
+<script>
+    // ================================================================
+    // 1. SHARED STATE
+    // ================================================================
+    const assetStore = [];
+    let carryingAssetId = null;
+    let activeCanvas = null; // which CanvasApp is currently active
+    const apps = {};
+
+    // Clipboard for copy/paste pixel blocks
+    let clipboard = null; // { imageData, width, height, shape, x, y, sourceCanvas }
+
+    // Cross-canvas drag state
+    let crossCanvasDrag = null; // { sourceApp, selection: {x,y,w,h,shape}, imageData }
+
+    // Ghost overlay helpers (global since they follow mouse across canvases)
+    const ghostEl = document.getElementById('ghost-overlay');
+    const ghostCount = document.getElementById('ghost-count');
+
+    function showGhost(e, zoom, count) {
+        const radius = parseInt(document.querySelector('.dropRadius')?.value || 40) * zoom;
+        ghostEl.style.display = 'block';
+        ghostEl.style.width = (radius * 2) + 'px';
+        ghostEl.style.height = (radius * 2) + 'px';
+        ghostEl.style.left = (e.clientX - radius) + 'px';
+        ghostEl.style.top = (e.clientY - radius) + 'px';
+        ghostCount.style.display = 'block';
+        ghostCount.textContent = '\u25CF ' + count + ' pixels  z:' + zoom.toFixed(1) + 'x';
+        ghostCount.style.left = (e.clientX + 14) + 'px';
+        ghostCount.style.top = (e.clientY - 10) + 'px';
+    }
+
+    function hideGhost() {
+        ghostEl.style.display = 'none';
+        ghostCount.style.display = 'none';
+    }
+
+    // ================================================================
+    // 2. FACE LANDMARK DETECTION (face-api.js)
+    // ================================================================
+    let faceModelsLoaded = false;
+    async function ensureFaceModels() {
+        if (faceModelsLoaded) return;
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        try {
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            faceModelsLoaded = true;
+            document.getElementById('engineStatus').textContent = 'Face models loaded.';
+        } catch (e) {
+            document.getElementById('engineStatus').textContent = 'Failed to load face models: ' + e.message;
+        }
+    }
+
+    async function detectFaceLandmarks(canvas, ctx) {
+        if (!faceModelsLoaded) await ensureFaceModels();
+        if (!faceModelsLoaded) return null;
+        try {
+            const detections = await faceapi.detectAllFaces(canvas).withFaceLandmarks();
+            if (!detections || detections.length === 0) return null;
+            const landmarks = detections[0].landmarks.positions.map(p => ({ x: Math.round(p.x), y: Math.round(p.y) }));
+            return landmarks;
+        } catch (e) {
+            document.getElementById('engineStatus').textContent = 'Landmark detection error: ' + e.message;
+            return null;
+        }
+    }
+
+    function drawLandmarks(ctx, landmarks, canvasW, canvasH) {
+        if (!landmarks) return;
+        const imgData = ctx.getImageData(0, 0, canvasW, canvasH);
+        const data = imgData.data;
+        for (const p of landmarks) {
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 2.5) continue;
+                    const sx = p.x + dx, sy = p.y + dy;
+                    if (sx < 0 || sx >= canvasW || sy < 0 || sy >= canvasH) continue;
+                    const idx = (sy * canvasW + sx) * 4;
+                    // Cyan dot
+                    data[idx] = 0; data[idx + 1] = 255; data[idx + 2] = 255; data[idx + 3] = 255;
+                }
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    }
+
+    function nearestLandmark(landmarks, x, y) {
+        if (!landmarks || landmarks.length === 0) return null;
+        let best = null, bestDist = Infinity;
+        for (const p of landmarks) {
+            const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+            if (d < bestDist) { bestDist = d; best = p; }
+        }
+        return best;
+    }
+
+    // ================================================================
+    // 3. CANVAS APP FACTORY
+    // ================================================================
+    function createCanvasApp(canvasId, containerId, stateKey) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const container = document.getElementById(containerId);
+        const toolbar = container.parentElement.querySelector('.toolbar');
+        const statusEl = document.getElementById('engineStatus');
+        const trackerEl = document.getElementById(stateKey + 'Tracker');
+
+        // DOM refs scoped to this canvas's toolbar
+        const selShape = toolbar.querySelector('.selShape');
+        const selDrop = toolbar.querySelector('.selDrop');
+        const dropRadius = toolbar.querySelector('.dropRadius');
+        const carryStatus = toolbar.querySelector('.carryStatus');
+        const uploadBtn = toolbar.querySelector('.upload-btn');
+        const landmarkBtn = toolbar.querySelector('.landmark-btn');
+
+        // --- State ---
+        let originalImage = null;
+        let baseImgData = null;
+        let liveImgData = null;
+        let assetLayer = null;
+        let appMode = 'IDLE';
+        let startX = 0, startY = 0, endX = 0, endY = 0;
+        let isDrawing = false;
+        let voidTrails = [];
+        let zoom = 1, panX = 0, panY = 0;
+        let landmarks = null; // 68 [{x,y}]
+        let snapEnabled = true;
+
+        // --- Coordinate helpers ---
+        function getCanvasPos(e) {
+            const r = canvas.getBoundingClientRect();
+            return { x: Math.floor((e.clientX - r.left) / zoom), y: Math.floor((e.clientY - r.top) / zoom) };
+        }
+        function applyTransform() {
+            canvas.style.transformOrigin = '0 0';
+            canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+        }
+
+        // --- Tracking display ---
+        function updateTrackingDisplay() {
+            if (!assetLayer) { trackerEl.textContent = '[Empty]'; return; }
+            trackerEl.textContent = 'Coord: (' + assetLayer.x + ',' + assetLayer.y + ')' +
+                '\nDim: ' + assetLayer.renderW + 'x' + assetLayer.renderH + 'px' +
+                '\nSeed: ' + assetLayer.seedW + 'x' + assetLayer.seedH + 'px' +
+                '\nSpacing: ' + assetLayer.spacingFactor + 'x' +
+                '\nZoom: ' + zoom.toFixed(1) + 'x' +
+                '\nLandmarks: ' + (landmarks ? landmarks.length : 0);
+        }
+
+        // --- Drawing helpers ---
+        function clearDataBlock(d, bx, by, bw, bh) {
+            const data = d.data, w = d.width;
+            for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) data[(y * w + x) * 4 + 3] = 0;
+        }
+
+        function healVoidDataBlock(d, b) {
+            const data = d.data, iw = d.width;
+            for (let y = Math.max(0, b.y); y < Math.min(canvas.height, b.y + b.h); y++) for (let x = Math.max(0, b.x); x < Math.min(canvas.width, b.x + b.w); x++) {
+                const srcX = Math.max(0, Math.min(canvas.width - 1, x < b.x + b.w / 2 ? b.x - 1 : b.x + b.w));
+                const ti = (y * iw + x) * 4, si = (y * iw + srcX) * 4;
+                data[ti] = data[si]; data[ti + 1] = data[si + 1]; data[ti + 2] = data[si + 2]; data[ti + 3] = 255;
+            }
+        }
+
+        function autoHealVoids() {
+            if (voidTrails.length === 0) return;
+            const fd = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            voidTrails.forEach(v => healVoidDataBlock(fd, v));
+            ctx.putImageData(fd, 0, 0);
+            liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            voidTrails = [];
+            statusEl.textContent = stateKey.toUpperCase() + ' seam healing complete.';
+        }
+
+        function pushBackgroundPixels(dx, dy) {
+            let sx = assetLayer.x, sy = assetLayer.y, w = assetLayer.renderW, h = assetLayer.renderH;
+            if (dx > 0) { sx = assetLayer.x + w - 1; w = 1; }
+            else if (dx < 0) { sx = assetLayer.x; w = 1; }
+            if (dy > 0) { sy = assetLayer.y + h - 1; h = 1; }
+            else if (dy < 0) { sy = assetLayer.y; h = 1; }
+            const sl = ctx.getImageData(sx + dx, sy + dy, w, h);
+            ctx.putImageData(sl, sx + dx * 2, sy + dy * 2);
+            liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+
+        function recordTrailingVoid(dx, dy) {
+            if (dx > 0) voidTrails.push({ x: assetLayer.x - 1, y: assetLayer.y, w: 1, h: assetLayer.renderH });
+            if (dx < 0) voidTrails.push({ x: assetLayer.x + assetLayer.renderW, y: assetLayer.y, w: 1, h: assetLayer.renderH });
+            if (dy > 0) voidTrails.push({ x: assetLayer.x, y: assetLayer.y - 1, w: assetLayer.renderW, h: 1 });
+            if (dy < 0) voidTrails.push({ x: assetLayer.x, y: assetLayer.y + assetLayer.renderH, w: assetLayer.renderW, h: 1 });
+        }
+
+        // --- Asset transforms ---
+        function generateStretchedBlock() {
+            const sW = assetLayer.seedW, sH = assetLayer.seedH, step = assetLayer.spacingFactor;
+            const rW = sW + (sW - 1) * (step - 1), rH = sH + (sH - 1) * (step - 1);
+            assetLayer.renderW = rW; assetLayer.renderH = rH;
+            const out = ctx.createImageData(rW, rH), od = out.data, sd = assetLayer.seedPixels.data;
+            for (let i = 3; i < od.length; i += 4) od[i] = 0;
+            for (let y = 0; y < sH; y++) for (let x = 0; x < sW; x++) {
+                const si = (y * sW + x) * 4, di = (y * step * rW + x * step) * 4;
+                od[di] = sd[si]; od[di + 1] = sd[si + 1]; od[di + 2] = sd[si + 2]; od[di + 3] = sd[si + 3];
+            }
+            return out;
+        }
+
+        function blowUp() {
+            const sW = assetLayer.seedW, sH = assetLayer.seedH, sd = assetLayer.seedPixels.data;
+            const nW = sW + 2, nH = sH + 2;
+            const ns = ctx.createImageData(nW, nH), nd = ns.data;
+            for (let y = 0; y < sH; y++) for (let x = 0; x < sW; x++) {
+                const si = (y * sW + x) * 4, di = ((y + 1) * nW + (x + 1)) * 4;
+                nd[di] = sd[si]; nd[di + 1] = sd[si + 1]; nd[di + 2] = sd[si + 2]; nd[di + 3] = sd[si + 3];
+            }
+            const pushEdge = (sx, sy, dx, dy) => { const si = (sy * sW + sx) * 4, di = (dy * nW + dx) * 4; nd[di] = sd[si]; nd[di + 1] = sd[si + 1]; nd[di + 2] = sd[si + 2]; nd[di + 3] = 255; };
+            for (let x = 0; x < sW; x++) { pushEdge(x, 0, x + 1, 0); pushEdge(x, sH - 1, x + 1, nH - 1); }
+            for (let y = 0; y < sH; y++) { pushEdge(0, y, 0, y + 1); pushEdge(sW - 1, y, nW - 1, y + 1); }
+            pushEdge(0, 0, 0, 0); pushEdge(sW - 1, 0, nW - 1, 0); pushEdge(0, sH - 1, 0, nH - 1); pushEdge(sW - 1, sH - 1, nW - 1, nH - 1);
+            assetLayer.seedW = nW; assetLayer.seedH = nH; assetLayer.seedPixels = ns;
+            statusEl.textContent = stateKey.toUpperCase() + ' scaled up: ' + sW + 'x' + sH + ' \u2192 ' + nW + 'x' + nH;
+        }
+
+        function shrink() {
+            const sW = assetLayer.seedW, sH = assetLayer.seedH;
+            if (sW <= 2 || sH <= 2) { alert('Cannot shrink: dimensions ' + sW + 'x' + sH + ' too small.'); return; }
+            const nW = sW - 2, nH = sH - 2, sd = assetLayer.seedPixels.data;
+            const ns = ctx.createImageData(nW, nH), nd = ns.data;
+            for (let y = 0; y < nH; y++) for (let x = 0; x < nW; x++) {
+                const si = ((y + 1) * sW + (x + 1)) * 4, di = (y * nW + x) * 4;
+                nd[di] = sd[si]; nd[di + 1] = sd[si + 1]; nd[di + 2] = sd[si + 2]; nd[di + 3] = sd[si + 3];
+            }
+            assetLayer.seedW = nW; assetLayer.seedH = nH; assetLayer.seedPixels = ns;
+            statusEl.textContent = stateKey.toUpperCase() + ' scaled down: ' + sW + 'x' + sH + ' \u2192 ' + nW + 'x' + nH;
+        }
+
+        function executeMirrorFlip() {
+            const sW = assetLayer.seedW, sH = assetLayer.seedH, sd = assetLayer.seedPixels.data;
+            const fs = ctx.createImageData(sW, sH), fd = fs.data;
+            for (let y = 0; y < sH; y++) for (let x = 0; x < sW; x++) {
+                const si = (y * sW + x) * 4, di = (y * sW + (sW - 1 - x)) * 4;
+                fd[di] = sd[si]; fd[di + 1] = sd[si + 1]; fd[di + 2] = sd[si + 2]; fd[di + 3] = sd[si + 3];
+            }
+            assetLayer.seedPixels.data.set(fd);
+            statusEl.textContent = stateKey.toUpperCase() + ' flipped horizontally.';
+        }
+
+        function rotate90() {
+            const sW = assetLayer.seedW, sH = assetLayer.seedH, sd = assetLayer.seedPixels.data;
+            const ns = ctx.createImageData(sH, sW), nd = ns.data;
+            for (let y = 0; y < sH; y++) for (let x = 0; x < sW; x++) {
+                const si = (y * sW + x) * 4, di = (x * sH + (sH - 1 - y)) * 4;
+                nd[di] = sd[si]; nd[di + 1] = sd[si + 1]; nd[di + 2] = sd[si + 2]; nd[di + 3] = sd[si + 3];
+            }
+            assetLayer.seedW = sH; assetLayer.seedH = sW; assetLayer.seedPixels = ns;
+            statusEl.textContent = stateKey.toUpperCase() + ' rotated 90\u00b0 CW.';
+        }
+
+        function rotateBy(angleDeg) {
+            const sW = assetLayer.seedW, sH = assetLayer.seedH, sd = assetLayer.seedPixels.data;
+            const ns = ctx.createImageData(sW, sH), nd = ns.data;
+            const cx = (sW - 1) / 2, cy = (sH - 1) / 2, rad = angleDeg * Math.PI / 180, c = Math.cos(rad), s = Math.sin(rad);
+            let gaps = 0;
+            for (let oy = 0; oy < sH; oy++) for (let ox = 0; ox < sW; ox++) {
+                const rx = ox - cx, ry = oy - cy;
+                const sx = c * rx + s * ry + cx, sy = -s * rx + c * ry + cy;
+                const si = Math.round(sx), sj = Math.round(sy);
+                if (si >= 0 && si < sW && sj >= 0 && sj < sH) {
+                    const sii = (sj * sW + si) * 4, di = (oy * sW + ox) * 4;
+                    nd[di] = sd[sii]; nd[di + 1] = sd[sii + 1]; nd[di + 2] = sd[sii + 2]; nd[di + 3] = sd[sii + 3];
+                } else gaps++;
+            }
+            assetLayer.seedPixels.data.set(nd);
+            statusEl.textContent = stateKey.toUpperCase() + ' rotated ' + angleDeg + '\u00b0' + (gaps ? ' (' + gaps + ' edge gaps)' : '');
+        }
+
+        // --- Asset capture ---
+        function isolateAssetBlocks(x, y, width, height, shape) {
+            const block = ctx.getImageData(x, y, width, height);
+            const srcData = block.data;
+            const pixels = [];
+            let minOx = width, maxOx = 0, minOy = height, maxOy = 0;
+            const cx = width / 2, cy = height / 2;
+            const r = Math.min(width, height) / 2;
+
+            for (let row = 0; row < height; row++) {
+                for (let col = 0; col < width; col++) {
+                    const idx = (row * width + col) * 4;
+                    const rv = srcData[idx], gv = srcData[idx + 1], bv = srcData[idx + 2], av = srcData[idx + 3];
+                    if (av < 128) continue;
+                    if (shape === 'circle') {
+                        const dx = col - cx, dy = row - cy;
+                        if (dx * dx + dy * dy > r * r) continue;
+                    }
+                    pixels.push({ r: rv, g: gv, b: bv, a: av, ox: col, oy: row });
+                    if (col < minOx) minOx = col;
+                    if (col > maxOx) maxOx = col;
+                    if (row < minOy) minOy = row;
+                    if (row > maxOy) maxOy = row;
+                }
+            }
+
+            if (pixels.length === 0) {
+                ctx.putImageData(liveImgData, 0, 0);
+                appMode = 'READY';
+                statusEl.textContent = stateKey.toUpperCase() + ': No opaque pixels found in selection.';
+                return;
+            }
+
+            const fullBlock = ctx.createImageData(width, height);
+            fullBlock.data.set(block.data);
+
+            const thumb = document.createElement('canvas');
+            thumb.width = 36; thumb.height = 36;
+            const tctx = thumb.getContext('2d');
+            tctx.drawImage(canvas, x, y, width, height, 0, 0, 36, 36);
+
+            const asset = {
+                id: Date.now() + Math.random(),
+                thumb: thumb,
+                pixelList: pixels,
+                count: pixels.length,
+                width: width,
+                height: height,
+                origX: x,
+                origY: y,
+                fullBlock: fullBlock,
+                shape: shape,
+                sourceCanvas: stateKey
+            };
+
+            assetStore.push(asset);
+            clearDataBlock(liveImgData, x, y, width, height);
+            voidTrails.push({ x, y, w: width, h: height });
+
+            statusEl.textContent = stateKey.toUpperCase() + ' captured ' + pixels.length + ' px. Drag from panel to place.';
+            appMode = 'MOVING';
+            renderAssetPanel();
+            ctx.putImageData(liveImgData, 0, 0);
+
+            const seedCanvas = document.createElement('canvas');
+            seedCanvas.width = width; seedCanvas.height = height;
+            seedCanvas.getContext('2d').putImageData(block, 0, 0);
+            const sd = seedCanvas.getContext('2d').getImageData(0, 0, width, height);
+            assetLayer = {
+                x, y, renderW: width, renderH: height,
+                seedW: width, seedH: height,
+                seedPixels: sd, spacingFactor: 1
+            };
+            renderFrame(0, 0);
+            updateTrackingDisplay();
+        }
+
+        // --- Render frame ---
+        function renderFrame(dx, dy) {
+            if (appMode !== 'MOVING' || !assetLayer) return;
+            if (dx !== 0 || dy !== 0) {
+                pushBackgroundPixels(dx, dy);
+                recordTrailingVoid(dx, dy);
+            }
+            ctx.putImageData(liveImgData, 0, 0);
+            ctx.fillStyle = '#1c1c24';
+            voidTrails.forEach(t => ctx.fillRect(t.x, t.y, t.w, t.h));
+            const out = generateStretchedBlock();
+            ctx.putImageData(out, assetLayer.x, assetLayer.y);
+            updateTrackingDisplay();
+        }
+
+        // --- Place asset (accepts from any canvas) ---
+        function placeAsset(assetId, targetX, targetY) {
+            const asset = assetStore.find(a => a.id === assetId);
+            if (!asset) return;
+
+            const unique = false;
+            const dropMode = selDrop.value;
+            const radius = parseInt(dropRadius.value);
+
+            // Snap to nearest landmark if enabled and landmarks exist
+            let snapX = targetX, snapY = targetY;
+            if (snapEnabled && landmarks && landmarks.length > 0) {
+                const nearest = nearestLandmark(landmarks, targetX, targetY);
+                if (nearest) { snapX = nearest.x; snapY = nearest.y; }
+            }
+
+            if (dropMode === 'exact') {
+                const dx = snapX - Math.floor(asset.width / 2);
+                const dy = snapY - Math.floor(asset.height / 2);
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imgData.data;
+                const block = asset.fullBlock || asset.pixelList;
+                if (block && block.data) {
+                    for (let row = 0; row < asset.height; row++) for (let col = 0; col < asset.width; col++) {
+                        const si = (row * asset.width + col) * 4;
+                        const px = dx + col, py = dy + row;
+                        if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+                        if (block.data[si + 3] < 128) continue;
+                        const di = (py * canvas.width + px) * 4;
+                        data[di] = block.data[si]; data[di + 1] = block.data[si + 1];
+                        data[di + 2] = block.data[si + 2]; data[di + 3] = 255;
+                    }
+                } else {
+                    for (const p of asset.pixelList) {
+                        const px = dx + p.ox, py = dy + p.oy;
+                        if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+                        const di = (py * canvas.width + px) * 4;
+                        data[di] = p.r; data[di + 1] = p.g; data[di + 2] = p.b; data[di + 3] = 255;
+                    }
+                }
+                ctx.putImageData(imgData, 0, 0);
+                liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                statusEl.textContent = stateKey.toUpperCase() + ' placed asset at (' + snapX + ',' + snapY + ')' + (snapX !== targetX ? ' (snapped)' : '');
+            } else {
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imgData.data;
+                const pixels = [...asset.pixelList];
+                for (let i = pixels.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pixels[i], pixels[j]] = [pixels[j], pixels[i]];
+                }
+                let placed = 0;
+                for (const p of pixels) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * radius;
+                    const px = Math.round(snapX + Math.cos(angle) * dist);
+                    const py = Math.round(snapY + Math.sin(angle) * dist);
+                    if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+                    const idx = (py * canvas.width + px) * 4;
+                    if (data[idx + 3] > 128) continue;
+                    data[idx] = p.r; data[idx + 1] = p.g; data[idx + 2] = p.b; data[idx + 3] = 255;
+                    placed++;
+                }
+                ctx.putImageData(imgData, 0, 0);
+                liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                statusEl.textContent = stateKey.toUpperCase() + ' scattered ' + placed + ' pixels at r=' + radius + (snapX !== targetX ? ' (snapped)' : '');
+            }
+
+            carryingAssetId = null;
+            carryStatus.textContent = '';
+            hideGhost();
+            container.classList.remove('drop-target');
+            renderAssetPanel();
+        }
+
+        // --- Copy/Paste pixel blocks ---
+        function copySelection() {
+            if (appMode !== 'SELECTING') return false;
+            const shape = selShape.value;
+            let x, y, w, h;
+            if (shape === 'circle') {
+                const cx = (startX + endX) / 2, cy = (startY + endY) / 2;
+                const r = Math.max(Math.abs(endX - startX), Math.abs(endY - startY)) / 2;
+                if (r < 4) return false;
+                x = Math.floor(cx - r); y = Math.floor(cy - r);
+                w = Math.ceil(r * 2); h = Math.ceil(r * 2);
+            } else {
+                x = Math.min(startX, endX); y = Math.min(startY, endY);
+                w = Math.abs(endX - startX); h = Math.abs(endY - startY);
+                if (w < 6 || h < 6) return false;
+            }
+            // Clamp to canvas bounds
+            x = Math.max(0, Math.min(x, canvas.width - 1));
+            y = Math.max(0, Math.min(y, canvas.height - 1));
+            w = Math.min(w, canvas.width - x);
+            h = Math.min(h, canvas.height - y);
+            const imageData = ctx.getImageData(x, y, w, h);
+            clipboard = {
+                imageData: imageData,
+                width: w,
+                height: h,
+                shape: shape,
+                x: x,
+                y: y,
+                sourceCanvas: stateKey
+            };
+            statusEl.textContent = stateKey.toUpperCase() + ' copied ' + w + 'x' + h + ' ' + shape + ' to clipboard.';
+            return true;
+        }
+
+        function pasteClipboard(targetX, targetY) {
+            if (!clipboard) return false;
+            const { imageData, width, height, shape, sourceCanvas } = clipboard;
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const clipData = imageData.data;
+
+            // Snap to landmarks if enabled
+            let snapX = targetX, snapY = targetY;
+            if (snapEnabled && landmarks && landmarks.length > 0) {
+                const nearest = nearestLandmark(landmarks, targetX, targetY);
+                if (nearest) { snapX = nearest.x; snapY = nearest.y; }
+            }
+
+            const dx = snapX - Math.floor(width / 2);
+            const dy = snapY - Math.floor(height / 2);
+
+            if (shape === 'circle') {
+                const cx = width / 2, cy = height / 2;
+                const r = Math.min(width, height) / 2;
+                for (let row = 0; row < height; row++) {
+                    for (let col = 0; col < width; col++) {
+                        const dcol = col - cx, drow = row - cy;
+                        if (dcol * dcol + drow * drow > r * r) continue;
+                        const si = (row * width + col) * 4;
+                        const px = dx + col, py = dy + row;
+                        if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+                        if (clipData[si + 3] < 128) continue;
+                        const di = (py * canvas.width + px) * 4;
+                        data[di] = clipData[si]; data[di + 1] = clipData[si + 1];
+                        data[di + 2] = clipData[si + 2]; data[di + 3] = 255;
+                    }
+                }
+            } else {
+                for (let row = 0; row < height; row++) for (let col = 0; col < width; col++) {
+                    const si = (row * width + col) * 4;
+                    const px = dx + col, py = dy + row;
+                    if (px < 0 || px >= canvas.width || py < 0 || py >= canvas.height) continue;
+                    if (clipData[si + 3] < 128) continue;
+                    const di = (py * canvas.width + px) * 4;
+                    data[di] = clipData[si]; data[di + 1] = clipData[si + 1];
+                    data[di + 2] = clipData[si + 2]; data[di + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(data, 0, 0);
+            liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // Create assetLayer for immediate movement
+            const seedCanvas = document.createElement('canvas');
+            seedCanvas.width = width; seedCanvas.height = height;
+            seedCanvas.getContext('2d').putImageData(imageData, 0, 0);
+            const sd = seedCanvas.getContext('2d').getImageData(0, 0, width, height);
+            assetLayer = {
+                x: dx, y: dy, renderW: width, renderH: height,
+                seedW: width, seedH: height,
+                seedPixels: sd, spacingFactor: 1
+            };
+            appMode = 'MOVING';
+            renderFrame(0, 0);
+            updateTrackingDisplay();
+            statusEl.textContent = stateKey.toUpperCase() + ' pasted ' + width + 'x' + height + ' at (' + snapX + ',' + snapY + ') — use arrows to move.';
+            return true;
+        }
+
+        // --- Cross-canvas drag handlers ---
+        function startCrossCanvasDrag(selection, imageData) {
+            crossCanvasDrag = {
+                sourceApp: stateKey,
+                selection: selection,
+                imageData: imageData
+            };
+            container.classList.add('drop-target');
+            statusEl.textContent = 'Dragging from ' + sourceCanvas.toUpperCase() + ' — drop on target canvas.';
+        }
+
+        function endCrossCanvasDrag(targetApp, dropX, dropY) {
+            if (!crossCanvasDrag) return false;
+            const { imageData, selection } = crossCanvasDrag;
+            const data = targetApp.ctx.getImageData(0, 0, targetApp.canvas.width, targetApp.canvas.height);
+            const clipData = imageData.data;
+            const width = selection.w, height = selection.h, shape = selection.shape;
+
+            // Snap to target's landmarks
+            let snapX = dropX, snapY = dropY;
+            if (targetApp.snapEnabled && targetApp.landmarks && targetApp.landmarks.length > 0) {
+                const nearest = nearestLandmark(targetApp.landmarks, dropX, dropY);
+                if (nearest) { snapX = nearest.x; snapY = nearest.y; }
+            }
+
+            const dx = snapX - Math.floor(width / 2);
+            const dy = snapY - Math.floor(height / 2);
+
+            if (shape === 'circle') {
+                const cx = width / 2, cy = height / 2;
+                const r = Math.min(width, height) / 2;
+                for (let row = 0; row < height; row++) {
+                    for (let col = 0; col < width; col++) {
+                        const dcol = col - cx, drow = row - cy;
+                        if (dcol * dcol + drow * drow > r * r) continue;
+                        const si = (row * width + col) * 4;
+                        const px = dx + col, py = dy + row;
+                        if (px < 0 || px >= targetApp.canvas.width || py < 0 || py >= targetApp.canvas.height) continue;
+                        if (clipData[si + 3] < 128) continue;
+                        const di = (py * targetApp.canvas.width + px) * 4;
+                        data[di] = clipData[si]; data[di + 1] = clipData[si + 1];
+                        data[di + 2] = clipData[si + 2]; data[di + 3] = 255;
+                    }
+                }
+            } else {
+                for (let row = 0; row < height; row++) for (let col = 0; col < width; col++) {
+                    const si = (row * width + col) * 4;
+                    const px = dx + col, py = dy + row;
+                    if (px < 0 || px >= targetApp.canvas.width || py < 0 || py >= targetApp.canvas.height) continue;
+                    if (clipData[si + 3] < 128) continue;
+                    const di = (py * targetApp.canvas.width + px) * 4;
+                    data[di] = clipData[si]; data[di + 1] = clipData[si + 1];
+                    data[di + 2] = clipData[si + 2]; data[di + 3] = 255;
+                }
+            }
+
+            targetApp.ctx.putImageData(data, 0, 0);
+            targetApp.liveImgData = targetApp.ctx.getImageData(0, 0, targetApp.canvas.width, targetApp.canvas.height);
+
+            // Create assetLayer on target for immediate movement
+            const seedCanvas = document.createElement('canvas');
+            seedCanvas.width = width; seedCanvas.height = height;
+            seedCanvas.getContext('2d').putImageData(imageData, 0, 0);
+            const sd = seedCanvas.getContext('2d').getImageData(0, 0, width, height);
+            targetApp.assetLayer = {
+                x: dx, y: dy, renderW: width, renderH: height,
+                seedW: width, seedH: height,
+                seedPixels: sd, spacingFactor: 1
+            };
+            targetApp.appMode = 'MOVING';
+            targetApp.renderFrame(0, 0);
+            targetApp.updateTrackingDisplay();
+
+            crossCanvasDrag = null;
+            container.classList.remove('drop-target');
+            statusEl.textContent = stateKey.toUpperCase() + ' dropped on ' + targetApp.stateKey.toUpperCase() + ' at (' + snapX + ',' + snapY + ').';
+            return true;
+        }
+
+        // ================================================================
+        // EVENT LISTENERS
+        // ================================================================
+
+        // Upload
+        uploadBtn.addEventListener('click', () => {
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = 'image/*';
+            inp.onchange = function(ev) {
+                const file = ev.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const maxDim = 500;
+                        let w = img.width, h = img.height;
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                        }
+                        canvas.width = w; canvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        baseImgData = ctx.getImageData(0, 0, w, h);
+                        liveImgData = ctx.getImageData(0, 0, w, h);
+                        landmarks = null;
+                        appMode = 'READY';
+                        statusEl.textContent = stateKey.toUpperCase() + ' ready.';
+                        trackerEl.textContent = '[Loaded ' + w + 'x' + h + ']';
+                        voidTrails = []; assetLayer = null;
+                        document.getElementById('globalHealBtn').disabled = false;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+            inp.click();
+        });
+
+        // Landmark detection
+        landmarkBtn.addEventListener('click', async () => {
+            if (!baseImgData) { statusEl.textContent = 'Upload an image first.'; return; }
+            await ensureFaceModels();
+            if (!faceModelsLoaded) { statusEl.textContent = 'Face models not loaded.'; return; }
+            const result = await detectFaceLandmarks(canvas, ctx);
+            if (!result) { statusEl.textContent = stateKey.toUpperCase() + ': No face detected.'; return; }
+            landmarks = result;
+            // Draw landmarks onto liveImgData
+            drawLandmarks(ctx, landmarks, canvas.width, canvas.height);
+            liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            statusEl.textContent = stateKey.toUpperCase() + ': ' + landmarks.length + ' landmarks detected.';
+            landmarkBtn.textContent = 'Landmarks (' + landmarks.length + ')';
+            updateTrackingDisplay();
+        });
+
+        // Mousedown: selection & carry
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            activeCanvas = stateKey;
+            const { x: mx, y: my } = getCanvasPos(e);
+
+            // If carrying an asset from panel, place it
+            if (carryingAssetId !== null) {
+                placeAsset(carryingAssetId, mx, my);
+                return;
+            }
+
+            // If cross-canvas drag is active and we're on a different canvas, complete the drop
+            if (crossCanvasDrag && crossCanvasDrag.sourceApp !== stateKey) {
+                const targetApp = apps[stateKey];
+                if (targetApp) endCrossCanvasDrag(targetApp, mx, my);
+                return;
+            }
+
+            // MOVING mode: re-selection check
+            if (appMode === 'MOVING' && assetLayer) {
+                if (mx >= assetLayer.x && mx < assetLayer.x + assetLayer.renderW &&
+                    my >= assetLayer.y && my < assetLayer.y + assetLayer.renderH) return;
+                if (assetLayer) autoHealVoids();
+                appMode = 'READY';
+                ctx.putImageData(liveImgData, 0, 0);
+            }
+
+            if (appMode !== 'READY') return;
+            startX = mx; startY = my;
+            isDrawing = true;
+            appMode = 'SELECTING';
+        });
+
+        // Mousemove: selection rect + ghost
+        canvas.addEventListener('mousemove', (e) => {
+            const { x: mx, y: my } = getCanvasPos(e);
+
+            if (isDrawing) {
+                endX = mx; endY = my;
+                ctx.putImageData(liveImgData, 0, 0);
+                const shape = selShape.value;
+                const x = Math.min(startX, endX), y = Math.min(startY, endY);
+                const w = Math.abs(endX - startX), h = Math.abs(endY - startY);
+                ctx.strokeStyle = '#ffaa33'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+                if (shape === 'circle') {
+                    const cx = (startX + endX) / 2, cy = (startY + endY) / 2;
+                    const r = Math.max(w, h) / 2;
+                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+                } else {
+                    ctx.strokeRect(x, y, w, h);
+                }
+            }
+
+            if (carryingAssetId !== null) {
+                // ghost handled globally
+            }
+        });
+
+        // Mouseup: capture selection
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            ctx.setLineDash([]);
+
+            const shape = selShape.value;
+            let x, y, w, h;
+            if (shape === 'circle') {
+                const cx = (startX + endX) / 2, cy = (startY + endY) / 2;
+                const r = Math.max(Math.abs(endX - startX), Math.abs(endY - startY)) / 2;
+                if (r < 4) { ctx.putImageData(liveImgData, 0, 0); appMode = 'READY'; return; }
+                x = Math.floor(cx - r); y = Math.floor(cy - r);
+                w = Math.ceil(r * 2); h = Math.ceil(r * 2);
+            } else {
+                x = Math.min(startX, endX); y = Math.min(startY, endY);
+                w = Math.abs(endX - startX); h = Math.abs(endY - startY);
+                if (w < 6 || h < 6) { ctx.putImageData(liveImgData, 0, 0); appMode = 'READY'; return; }
+            }
+
+            // Capture the selection for potential cross-canvas drag
+            const selection = { x, y, w, h, shape };
+            const imageData = ctx.getImageData(x, y, w, h);
+
+            // Check if mouse is over a different canvas
+            const mouseX = e.clientX, mouseY = e.clientY;
+            for (const key of ['src', 'tgt']) {
+                if (key === stateKey) continue;
+                const otherApp = apps[key];
+                const r = otherApp.canvas.getBoundingClientRect();
+                if (mouseX >= r.left && mouseX <= r.right && mouseY >= r.top && mouseY <= r.bottom) {
+                    // Drop on other canvas
+                    endCrossCanvasDrag(otherApp,
+                        Math.floor((mouseX - r.left) / otherApp.getZoom()),
+                        Math.floor((mouseY - r.top) / otherApp.getZoom()));
+                    return;
+                }
+            }
+
+            // Normal capture on same canvas
+            isolateAssetBlocks(x, y, w, h, shape);
+        });
+
+        // Zoom (wheel)
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            activeCanvas = stateKey;
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            const oldZoom = zoom;
+            const delta = e.deltaY > 0 ? -0.12 : 0.12;
+            zoom = Math.max(0.2, Math.min(5, zoom + delta));
+            panX = mx - (mx - panX) * (zoom / oldZoom);
+            panY = my - (my - panY) * (zoom / oldZoom);
+            applyTransform();
+            updateTrackingDisplay();
+        });
+
+        // Pan (middle-click drag)
+        let panning = false, panStartX = 0, panStartY = 0, panStartPanX = 0, panStartPanY = 0;
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { panning = true; panStartX = e.clientX; panStartY = e.clientY; panStartPanX = panX; panStartPanY = panY; e.preventDefault(); }
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!panning) return;
+            panX = panStartPanX + (e.clientX - panStartX);
+            panY = panStartPanY + (e.clientY - panStartY);
+            applyTransform();
+        });
+        window.addEventListener('mouseup', (e) => { if (e.button === 1) panning = false; });
+
+        // Right-click restore
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            activeCanvas = stateKey;
+            if (!baseImgData) return;
+            const { x: mx, y: my } = getCanvasPos(e);
+            const r = parseInt(dropRadius.value);
+            const shape = selShape.value;
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const base = baseImgData;
+            let restored = 0;
+
+            if (shape === 'circle') {
+                for (let y = my - r; y <= my + r; y++) for (let x = mx - r; x <= mx + r; x++) {
+                    const dx = x - mx, dy = y - my;
+                    if (dx * dx + dy * dy > r * r) continue;
+                    if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+                    const di = (y * canvas.width + x) * 4, si = (y * base.width + x) * 4;
+                    imgData.data[di] = base.data[si]; imgData.data[di + 1] = base.data[si + 1];
+                    imgData.data[di + 2] = base.data[si + 2]; imgData.data[di + 3] = base.data[si + 3];
+                    restored++;
+                }
+            } else {
+                for (let y = my - r; y <= my + r; y++) for (let x = mx - r; x <= mx + r; x++) {
+                    if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+                    const di = (y * canvas.width + x) * 4, si = (y * base.width + x) * 4;
+                    imgData.data[di] = base.data[si]; imgData.data[di + 1] = base.data[si + 1];
+                    imgData.data[di + 2] = base.data[si + 2]; imgData.data[di + 3] = base.data[si + 3];
+                    restored++;
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            statusEl.textContent = stateKey.toUpperCase() + ' restored ' + restored + ' pixels at (' + mx + ',' + my + ') r=' + r + '.';
+        });
+
+        // --- Keyboard transforms (only fires when this canvas is active) ---
+        window.addEventListener('keydown', (e) => {
+            if (activeCanvas !== stateKey) return;
+
+            // Ctrl+C: Copy selection
+            if (e.ctrlKey && e.key === 'c') {
+                if (copySelection()) e.preventDefault();
+                return;
+            }
+
+            // Ctrl+V: Paste clipboard
+            if (e.ctrlKey && e.key === 'v') {
+                // Paste at canvas center if no specific position
+                const rect = canvas.getBoundingClientRect();
+                const centerX = Math.floor(canvas.width / 2);
+                const centerY = Math.floor(canvas.height / 2);
+                if (pasteClipboard(centerX, centerY)) e.preventDefault();
+                return;
+            }
+
+            // Ctrl+0: reset zoom
+            if (e.ctrlKey && e.key === '0') {
+                zoom = 1; panX = 0; panY = 0;
+                applyTransform();
+                updateTrackingDisplay();
+                statusEl.textContent = stateKey.toUpperCase() + ' zoom reset.';
+                e.preventDefault();
+                return;
+            }
+
+            if (appMode !== 'MOVING' || !assetLayer) return;
+            let dx = 0, dy = 0, intercepted = false;
+            if (e.ctrlKey && e.shiftKey) {
+                if (e.key === 'ArrowRight') { rotateBy(1); intercepted = true; }
+                else if (e.key === 'ArrowLeft') { rotateBy(-1); intercepted = true; }
+            } else if (e.shiftKey) {
+                switch (e.key) {
+                    case 'ArrowUp': blowUp(); intercepted = true; break;
+                    case 'ArrowDown': shrink(); intercepted = true; break;
+                    case 'ArrowLeft': executeMirrorFlip(); intercepted = true; break;
+                    case 'ArrowRight': rotate90(); intercepted = true; break;
+                }
+            } else {
+                switch (e.key) {
+                    case 'ArrowUp': dy = -1; intercepted = true; break;
+                    case 'ArrowDown': dy = 1; intercepted = true; break;
+                    case 'ArrowLeft': dx = -1; intercepted = true; break;
+                    case 'ArrowRight': dx = 1; intercepted = true; break;
+                }
+            }
+            if (intercepted) {
+                e.preventDefault();
+                if (dx !== 0 || dy !== 0) { assetLayer.x += dx; assetLayer.y += dy; renderFrame(dx, dy); }
+                else renderFrame(0, 0);
+            }
+        });
+
+        // ================================================================
+        // RETURN PUBLIC API
+        // ================================================================
+        return {
+            canvas, ctx, stateKey,
+            getAssetLayer: () => assetLayer,
+            setAssetLayer: (al) => { assetLayer = al; },
+            getAppMode: () => appMode,
+            setAppMode: (m) => { appMode = m; },
+            getZoom: () => zoom,
+            getPan: () => ({ panX, panY }),
+            setTransform: (z, px, py) => { zoom = z; panX = px; panY = py; applyTransform(); updateTrackingDisplay(); },
+            getVoidTrails: () => voidTrails,
+            clearVoidTrails: () => { voidTrails = []; },
+            getLiveImgData: () => liveImgData,
+            setLiveImgData: (d) => { liveImgData = d; },
+            renderFrame: renderFrame,
+            autoHealVoids: autoHealVoids,
+            updateTrackingDisplay: updateTrackingDisplay,
+            getLandmarks: () => landmarks,
+            snapEnabled: true,
+            get landmarks() { return landmarks; },
+            set landmarks(v) { landmarks = v; },
+            hasBaseImage: () => baseImgData !== null,
+            reset: function() {
+                if (!baseImgData && !originalImage) return;
+                if (originalImage) {
+                    canvas.width = originalImage.width; canvas.height = originalImage.height;
+                    ctx.drawImage(originalImage, 0, 0);
+                } else {
+                    ctx.putImageData(baseImgData, 0, 0);
+                }
+                baseImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                liveImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                assetLayer = null; voidTrails = []; landmarks = null;
+                appMode = 'READY';
+                trackerEl.textContent = '[Reset]';
+            },
+            isReady: () => appMode === 'READY' || appMode === 'MOVING' || appMode === 'IDLE',
+            get canvasW() { return canvas.width; },
+            get canvasH() { return canvas.height; }
+        };
+    }
+
+    // ================================================================
+    // 4. CREATE DUAL CANVAS APPS
+    // ================================================================
+    const srcApp = createCanvasApp('srcCanvas', 'srcContainer', 'src');
+    const tgtApp = createCanvasApp('tgtCanvas', 'tgtContainer', 'tgt');
+    apps.src = srcApp;
+    apps.tgt = tgtApp;
+
+    // ================================================================
+    // 5. GLOBAL ASSET PANEL RENDER
+    // ================================================================
+    function renderAssetPanel() {
+        const assetListEl = document.getElementById('assetList');
+        assetListEl.innerHTML = '';
+        for (let i = 0; i < assetStore.length; i++) {
+            const a = assetStore[i];
+            const div = document.createElement('div');
+            div.className = 'asset-item' + (carryingAssetId === a.id ? ' carrying' : '');
+            div.draggable = false;
+
+            const thumbClone = document.createElement('canvas');
+            thumbClone.width = 36; thumbClone.height = 36;
+            thumbClone.getContext('2d').drawImage(a.thumb, 0, 0);
+            div.appendChild(thumbClone);
+
+            const meta = document.createElement('div');
+            meta.className = 'asset-meta';
+            meta.innerHTML = '<strong>' + a.count + '</strong> px<br>' + a.width + '\u00d7' + a.height;
+            div.appendChild(meta);
+
+            div.addEventListener('mousedown', (ev) => {
+                ev.stopPropagation();
+                carryingAssetId = a.id;
+                document.querySelectorAll('.carryStatus').forEach(el => el.textContent = 'Carrying ' + a.count + ' px');
+                document.querySelectorAll('.canvas-container').forEach(el => el.classList.add('drop-target'));
+                renderAssetPanel();
+            });
+
+            assetListEl.appendChild(div);
+        }
+    }
+
+    // ================================================================
+    // 6. GLOBAL EVENT HANDLERS
+    // ================================================================
+
+    // Escape to cancel carry
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (carryingAssetId !== null) {
+                carryingAssetId = null;
+                document.querySelectorAll('.carryStatus').forEach(el => el.textContent = '');
+                document.querySelectorAll('.canvas-container').forEach(el => el.classList.remove('drop-target'));
+                hideGhost();
+                renderAssetPanel();
+            }
+            if (crossCanvasDrag !== null) {
+                crossCanvasDrag = null;
+                document.querySelectorAll('.canvas-container').forEach(el => el.classList.remove('drop-target'));
+                document.getElementById('engineStatus').textContent = 'Cross-canvas drag cancelled.';
+            }
+        }
+    });
+
+    // Global mousemove for ghost (works across canvases)
+    document.addEventListener('mousemove', (e) => {
+        if (carryingAssetId !== null) {
+            const asset = assetStore.find(a => a.id === carryingAssetId);
+            if (!asset) return;
+            // Detect which canvas the cursor is over
+            let z = 1;
+            for (const key of ['src', 'tgt']) {
+                const app = apps[key];
+                const r = app.canvas.getBoundingClientRect();
+                if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+                    z = app.getZoom();
+                    break;
+                }
+            }
+            showGhost(e, z, asset.count);
+        }
+    });
+
+    // Global mouseup to clear ghost if lost
+    document.addEventListener('mouseup', () => {
+        if (carryingAssetId !== null && !document.querySelector('.drop-target')) {
+            // Still carrying, ghost stays
+        }
+    });
+
+    // Heal all voids on both canvases
+    document.getElementById('globalHealBtn').addEventListener('click', () => {
+        srcApp.autoHealVoids();
+        tgtApp.autoHealVoids();
+        document.getElementById('engineStatus').textContent = 'All voids healed.';
+    });
+</script>
+</body>
+</html>

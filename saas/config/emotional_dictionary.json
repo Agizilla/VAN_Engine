@@ -1,0 +1,109 @@
+{
+  "version": "1.0",
+  "description": "Facial expression primitives for LLM-to-LLM and LLM-to-human conversation. Each emotion defines delta offsets (scaleX, scaleY per zone row 0-5, col 0-1). Default neutral = 1.0.",
+  "emotions": {
+    "Calculation": {
+      "aliases": ["Analyzing", "Strategic"],
+      "description": "Narrowed eyes, slight head tilt simulation, tight lips.",
+      "deltas": {
+        "row2": {"col0": {"y": 0.75}, "col1": {"y": 0.75}},
+        "row4": {"col0": {"x": 0.85}, "col1": {"x": 0.85}},
+        "row1": {"col0": {"y": 0.9}, "col1": {"y": 0.9}}
+      }
+    },
+    "Surprise": {
+      "deltas": {
+        "row2": {"col0": {"y": 1.5}, "col1": {"y": 1.5}},
+        "row4": {"col0": {"y": 1.4}, "col1": {"y": 1.4}}
+      }
+    },
+    "Anger": {
+      "deltas": {
+        "row1": {"col0": {"y": 0.7}, "col1": {"y": 0.7}},
+        "row5": {"col0": {"y": 0.8, "x": 0.85}, "col1": {"y": 0.8, "x": 0.85}}
+      }
+    },
+    "Tension": {
+      "deltas": {
+        "row5": {"col0": {"x": 0.75}, "col1": {"x": 0.75}},
+        "row2": {"col0": {"y": 0.85}, "col1": {"y": 0.85}}
+      }
+    },
+    "Contempt": {
+      "description": "Asymmetric – only right mouth zone.",
+      "deltas": {
+        "row4": {"col1": {"y": 1.3, "x": 1.1}}
+      }
+    },
+    "RighteousIndignation": {
+      "deltas": {
+        "row2": {"col0": {"y": 1.3}, "col1": {"y": 1.1}},
+        "row1": {"col0": {"y": 0.8}, "col1": {"y": 0.8}},
+        "row5": {"col0": {"x": 1.15}, "col1": {"x": 1.15}}
+      }
+    },
+    "SmugSatisfaction": {
+      "deltas": {
+        "row4": {"col1": {"y": 1.25}},
+        "row0": {"col0": {"y": 1.05}, "col1": {"y": 1.05}}
+      }
+    },
+    "Panic": {
+      "deltas": {
+        "row2": {"col0": {"y": 1.5}, "col1": {"y": 1.5}},
+        "row4": {"col0": {"y": 1.4}, "col1": {"y": 1.4}},
+        "row1": {"col0": {"y": 1.2}, "col1": {"y": 1.2}}
+      }
+    },
+    "Triumph": {
+      "deltas": {
+        "row2": {"col0": {"y": 1.3}, "col1": {"y": 1.3}},
+        "row4": {"col0": {"y": 1.2, "x": 1.15}, "col1": {"y": 1.2, "x": 1.15}},
+        "row3": {"col0": {"y": 1.1}, "col1": {"y": 1.1}}
+      }
+    },
+    "Stonewall": {
+      "deltas": {
+        "row5": {"col0": {"x": 0.9}, "col1": {"x": 0.9}},
+        "row2": {"col0": {"y": 0.95}, "col1": {"y": 0.95}}
+      }
+    },
+    "Curiosity": {
+      "deltas": {
+        "row1": {"col0": {"y": 1.05}, "col1": {"y": 1.05}},
+        "row2": {"col0": {"y": 1.1}, "col1": {"y": 1.1}}
+      }
+    },
+    "Doubt": {
+      "deltas": {
+        "row1": {"col0": {"y": 0.85}, "col1": {"y": 0.9}},
+        "row4": {"col0": {"x": 0.95}, "col1": {"x": 0.95}}
+      }
+    },
+    "Exhaustion": {
+      "deltas": {
+        "row0": {"col0": {"y": 0.95}, "col1": {"y": 0.95}},
+        "row2": {"col0": {"y": 0.85}, "col1": {"y": 0.85}},
+        "row5": {"col0": {"y": 0.9}, "col1": {"y": 0.9}}
+      }
+    },
+    "Mischief": {
+      "deltas": {
+        "row1": {"col1": {"y": 1.1}},
+        "row4": {"col1": {"y": 1.15, "x": 1.05}},
+        "row2": {"col0": {"y": 0.95}, "col1": {"y": 1.05}}
+      }
+    }
+  },
+  "special_tags": {
+    "Speak": "Used to verbalize uncertainty, humility, or analogical reasoning.",
+    "Think": "Private reasoning visible to the user – an inner monologue tag.",
+    "Intent": "Raw directional vector of the next action."
+  },
+  "usage_notes": [
+    "Tag alone is enough. No need to write 'I feel surprised' – just [Surprise].",
+    "Combine tags in sequence for compound expressions: [Calculation] then [Contempt].",
+    "Use [Speak] to explicitly mark uncertain or analogical statements.",
+    "To request elaboration from the LLM, user can say: 'Explain your [Calculation] tag.'"
+  ]
+}

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>GechoShift.AudioPlayer</RootNamespace>
+    <AssemblyName>GechoShift.AudioPlayer</AssemblyName>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- Disable icon requirement if app.ico is absent -->
+    <ApplicationIcon Condition="!Exists('app.ico')"></ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Platforms>x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GechoShift.Contracts\GechoShift.Contracts.csproj" />
+    <ProjectReference Include="..\GechoShift.Core\GechoShift.Core.csproj" />
+    <ProjectReference Include="..\GechoShift.Infrastructure\GechoShift.Infrastructure.csproj" />
+    <ProjectReference Include="..\GechoShift.Vlc\GechoShift.Vlc.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp"              Version="3.9.0" />
+    <PackageReference Include="LibVLCSharp.WinForms"     Version="3.9.0" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows"  Version="3.0.21" />
+    <PackageReference Include="NAudio"                   Version="2.2.1" />
+  </ItemGroup>
+</Project>

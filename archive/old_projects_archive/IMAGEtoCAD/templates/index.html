@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueprint to DXF Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #2a2a4a;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #00ff88;
+        }
+
+        .header .badge {
+            background: #2a2a4a;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .upload-zone {
+            border: 2px dashed #2a2a4a;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #1a1a2e;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #00ff88;
+            background: #1a2a1e;
+        }
+
+        .upload-zone svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            fill: #4a4a6a;
+        }
+
+        .upload-zone h3 {
+            color: #888;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone p {
+            color: #555;
+            font-size: 0.85rem;
+        }
+
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+
+        .workspace {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .workspace.active {
+            display: grid;
+        }
+
+        .panel {
+            background: #1a1a2e;
+            border-radius: 12px;
+            border: 1px solid #2a2a4a;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 0.75rem 1rem;
+            background: #16213e;
+            border-bottom: 1px solid #2a2a4a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h3 {
+            font-size: 0.9rem;
+            color: #00ff88;
+        }
+
+        .panel-header .info {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .panel-content {
+            padding: 1rem;
+            min-height: 400px;
+            max-height: 600px;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #12121f;
+        }
+
+        .panel-content img {
+            max-width: 100%;
+            max-height: 580px;
+            object-fit: contain;
+        }
+
+        .panel-content svg {
+            max-width: 100%;
+            max-height: 580px;
+        }
+
+        .controls {
+            background: #1a1a2e;
+            border-radius: 12px;
+            border: 1px solid #2a2a4a;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .controls h3 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 0.4rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            background: #12121f;
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #00ff88;
+            color: #0f0f1a;
+        }
+
+        .btn-primary:hover {
+            background: #00cc6a;
+        }
+
+        .btn-primary:disabled {
+            background: #2a4a3a;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #2a2a4a;
+            color: #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #3a3a5a;
+        }
+
+        .status-bar {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .status-bar.info {
+            display: block;
+            background: #1a2a3e;
+            border: 1px solid #2a4a6a;
+            color: #4ecdc4;
+        }
+
+        .status-bar.success {
+            display: block;
+            background: #1a2a1e;
+            border: 1px solid #2a4a2a;
+            color: #00ff88;
+        }
+
+        .status-bar.error {
+            display: block;
+            background: #2a1a1e;
+            border: 1px solid #4a2a2a;
+            color: #ff6b6b;
+        }
+
+        .view-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #12121f;
+            border-radius: 8px;
+            border: 1px solid #2a2a4a;
+        }
+
+        .view-info h4 {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 0.5rem;
+        }
+
+        .view-tag {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            background: #2a2a4a;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin: 0.2rem;
+            color: #aaa;
+        }
+
+        .view-tag.calibrated {
+            background: #1a3a2a;
+            color: #00ff88;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #2a2a4a;
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .scale-display {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .scale-item {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .scale-item span {
+            color: #ffd93d;
+            font-weight: 500;
+        }
+
+        .calibrator-panel {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #12121f;
+            border-radius: 8px;
+            border: 1px solid #2a2a4a;
+            display: none;
+        }
+
+        .calibrator-panel.active {
+            display: block;
+        }
+
+        .calibrator-panel h4 {
+            color: #00ff88;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .calibrator-panel p {
+            color: #888;
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .calibrator-inputs {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .calibrator-inputs input {
+            width: 100px;
+            padding: 0.5rem;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+        }
+
+        .calibrator-inputs select {
+            padding: 0.5rem;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+        }
+
+        .ruler-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            z-index: 10;
+        }
+
+        .ruler-line {
+            position: absolute;
+            height: 2px;
+            background: #00ff88;
+            transform-origin: left center;
+            pointer-events: none;
+            z-index: 11;
+        }
+
+        .ruler-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #00ff88;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 12;
+        }
+
+        .ruler-label {
+            position: absolute;
+            background: #1a1a2e;
+            color: #00ff88;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 13;
+            white-space: nowrap;
+        }
+
+        .preview-container {
+            position: relative;
+        }
+
+        .layer-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.6rem;
+            background: #2a2a4a;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin: 0.2rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .layer-toggle:hover {
+            background: #3a3a5a;
+        }
+
+        .layer-toggle input {
+            accent-color: #00ff88;
+        }
+
+        .layer-toggle .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: #12121f;
+            border-radius: 6px;
+        }
+
+        .editor-toolbar button {
+            padding: 0.3rem 0.6rem;
+            background: #2a2a4a;
+            border: 1px solid #3a3a5a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .editor-toolbar button.active {
+            background: #1a3a2a;
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .editor-toolbar button:hover {
+            background: #3a3a5a;
+        }
+
+        .entity-highlight {
+            outline: 2px solid #ffd93d;
+            outline-offset: 2px;
+        }
+
+        .progress-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 26, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .progress-overlay.active {
+            display: flex;
+        }
+
+        .progress-panel {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 500px;
+            max-width: 90vw;
+        }
+
+        .progress-panel h3 {
+            color: #00ff88;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .progress-bar-track {
+            width: 100%;
+            height: 8px;
+            background: #2a2a4a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #4ecdc4);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-stages {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .progress-stage {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            background: #12121f;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .progress-stage.active {
+            background: #1a2a1e;
+            border-left: 3px solid #00ff88;
+        }
+
+        .progress-stage.complete {
+            background: #12121f;
+            opacity: 0.6;
+        }
+
+        .progress-stage .stage-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+
+        .progress-stage.pending .stage-icon {
+            background: #2a2a4a;
+            color: #888;
+        }
+
+        .progress-stage.active .stage-icon {
+            background: #00ff88;
+            color: #1a1a2e;
+            animation: pulse 1s ease infinite;
+        }
+
+        .progress-stage.complete .stage-icon {
+            background: #00ff88;
+            color: #1a1a2e;
+        }
+
+        .progress-stage .stage-label {
+            flex: 1;
+            color: #e0e0e0;
+        }
+
+        .progress-stage .stage-time {
+            color: #888;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+
+        .progress-verbose {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #0a0a14;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #888;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .progress-verbose .log-line {
+            margin-bottom: 0.25rem;
+        }
+
+        .progress-verbose .log-line .ts {
+            color: #555;
+        }
+
+        .progress-verbose .log-line .msg {
+            color: #aaa;
+        }
+
+        .progress-verbose .log-line .msg.info {
+            color: #4ecdc4;
+        }
+
+        .progress-verbose .log-line .msg.done {
+            color: #00ff88;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 900px) {
+            .workspace.active {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Blueprint to DXF Converter</h1>
+        <span class="badge">v1.0.0</span>
+        <a href="/viewer" style="margin-left:auto;color:#00ff88;font-size:0.85rem;text-decoration:none;">DXF Viewer →</a>
+    </div>
+
+    <div class="container">
+        <div class="progress-overlay" id="progressOverlay">
+            <div class="progress-panel">
+                <h3>Processing Blueprint</h3>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="progressBarFill"></div>
+                </div>
+                <div class="progress-stages" id="progressStages"></div>
+                <div class="progress-verbose" id="progressVerbose"></div>
+            </div>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            <h3>Drop blueprint image here or click to upload</h3>
+            <p>Supports PNG, JPG, BMP, TIFF</p>
+            <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.bmp,.tiff,.tif">
+        </div>
+
+        <div class="workspace" id="workspace">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Original Blueprint</h3>
+                    <span class="info" id="imageInfo"></span>
+                </div>
+                <div class="panel-content">
+                    <img id="originalImage" alt="Uploaded blueprint">
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Vector Preview</h3>
+                    <span class="info" id="previewInfo"></span>
+                </div>
+                <div class="editor-toolbar" id="editorToolbar" style="display:none;">
+                    <button id="deleteModeBtn" title="Click entities to delete them">Delete Mode</button>
+                    <button id="clearHighlightsBtn" title="Clear all highlights">Clear</button>
+                    <span id="editorStatus" style="color:#888;font-size:0.8rem;align-self:center;margin-left:auto;"></span>
+                </div>
+                <div class="panel-content preview-container" id="previewContainer">
+                    <div id="previewSvg"></div>
+                    <div id="rulerOverlay" class="ruler-overlay" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="view-info" id="viewInfo" style="display: none;">
+            <h4>Detected Views</h4>
+            <div id="viewTags"></div>
+            <div class="scale-display" id="scaleDisplay"></div>
+        </div>
+
+        <div class="view-info" id="layerToggles" style="display: none;">
+            <h4>Layer Visibility</h4>
+            <div id="layerToggleList"></div>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <h3>Export Settings</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="outputFolder">Destination Folder</label>
+                    <input type="text" id="outputFolder" placeholder="C:\Users\User\Documents\DXF_Output">
+                </div>
+                <div class="form-group">
+                    <label for="filename">Filename (optional)</label>
+                    <input type="text" id="filename" placeholder="auto-generated">
+                </div>
+            </div>
+            <div class="form-row" style="margin-top:0.75rem;">
+                <div class="form-group">
+                    <label for="manualScale">Manual Scale Override (px/unit, 0=auto)</label>
+                    <input type="number" id="manualScale" placeholder="auto-detected" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="scaleUnit">Unit</label>
+                    <select id="scaleUnit" style="width:100%;padding:0.6rem 0.8rem;background:#12121f;border:1px solid #2a2a4a;border-radius:6px;color:#e0e0e0;font-size:0.9rem;">
+                        <option value="mm">Millimeters</option>
+                        <option value="in">Inches</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" id="calibrateBtn" style="align-self:flex-end;">
+                    Calibrate Scale
+                </button>
+                <button class="btn btn-primary" id="saveBtn" disabled>
+                    Approve & Save DXF
+                </button>
+                <button class="btn btn-secondary" id="resetBtn">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <div class="calibrator-panel" id="calibratorPanel">
+            <h4>Visual Scale Calibrator</h4>
+            <p>Click two points on the preview that represent a known distance.</p>
+            <div id="rulerStatus" style="color:#888;font-size:0.8rem;margin-bottom:0.5rem;">
+                Click point 1 on the preview...
+            </div>
+            <div class="calibrator-inputs">
+                <label>Known distance:</label>
+                <input type="number" id="knownDistance" placeholder="e.g. 50" min="0" step="0.01">
+                <select id="knownUnit">
+                    <option value="mm">mm</option>
+                    <option value="in">in</option>
+                </select>
+                <button class="btn btn-primary" id="applyScaleBtn" disabled>Apply Scale</button>
+                <button class="btn btn-secondary" id="cancelCalibrateBtn">Cancel</button>
+            </div>
+        </div>
+
+        <div class="controls" id="previewControls" style="display: none;">
+            <h3>High-Definition Print Preview</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="previewFormat">Format</label>
+                    <select id="previewFormat" style="width:100%;padding:0.6rem 0.8rem;background:#12121f;border:1px solid #2a2a4a;border-radius:6px;color:#e0e0e0;font-size:0.9rem;">
+                        <option value="png">PNG (lossless)</option>
+                        <option value="jpeg">JPEG (smaller file)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="previewDPI">Resolution (DPI)</label>
+                    <select id="previewDPI" style="width:100%;padding:0.6rem 0.8rem;background:#12121f;border:1px solid #2a2a4a;border-radius:6px;color:#e0e0e0;font-size:0.9rem;">
+                        <option value="300">300 DPI (standard print)</option>
+                        <option value="450">450 DPI (high quality)</option>
+                        <option value="600">600 DPI (maximum)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="previewBtn" disabled>
+                    Generate HD Preview
+                </button>
+            </div>
+            <div class="status-bar" id="previewStatus"></div>
+            <div id="previewResult" style="display:none;margin-top:1rem;">
+                <img id="previewImage" alt="HD Preview" style="max-width:100%;border-radius:8px;border:1px solid #2a2a4a;">
+                <div style="margin-top:0.5rem;">
+                    <a id="previewDownload" class="btn btn-secondary" download>Download HD Image</a>
+                </div>
+            </div>
+            <div class="status-bar" id="statusBar"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const workspace = document.getElementById('workspace');
+        const originalImage = document.getElementById('originalImage');
+        const previewSvg = document.getElementById('previewSvg');
+        const viewInfo = document.getElementById('viewInfo');
+        const viewTags = document.getElementById('viewTags');
+        const scaleDisplay = document.getElementById('scaleDisplay');
+        const controls = document.getElementById('controls');
+        const previewControls = document.getElementById('previewControls');
+        const saveBtn = document.getElementById('saveBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusBar = document.getElementById('statusBar');
+        const previewStatus = document.getElementById('previewStatus');
+        const previewResult = document.getElementById('previewResult');
+        const previewImage = document.getElementById('previewImage');
+        const previewDownload = document.getElementById('previewDownload');
+        const imageInfo = document.getElementById('imageInfo');
+        const previewInfo = document.getElementById('previewInfo');
+        const layerToggles = document.getElementById('layerToggles');
+        const layerToggleList = document.getElementById('layerToggleList');
+        const calibrateBtn = document.getElementById('calibrateBtn');
+        const calibratorPanel = document.getElementById('calibratorPanel');
+        const rulerOverlay = document.getElementById('rulerOverlay');
+        const rulerStatus = document.getElementById('rulerStatus');
+        const knownDistance = document.getElementById('knownDistance');
+        const knownUnit = document.getElementById('knownUnit');
+        const applyScaleBtn = document.getElementById('applyScaleBtn');
+        const cancelCalibrateBtn = document.getElementById('cancelCalibrateBtn');
+        const editorToolbar = document.getElementById('editorToolbar');
+        const deleteModeBtn = document.getElementById('deleteModeBtn');
+        const clearHighlightsBtn = document.getElementById('clearHighlightsBtn');
+        const editorStatus = document.getElementById('editorStatus');
+        const progressOverlay = document.getElementById('progressOverlay');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const progressStages = document.getElementById('progressStages');
+        const progressVerbose = document.getElementById('progressVerbose');
+
+        let currentSessionId = null;
+        let originalFileName = '';
+        let calibrating = false;
+        let rulerPoints = [];
+        let deleteMode = false;
+        let deletedEntities = [];
+
+        const DEFAULT_OUTPUT_FOLDER = 'C:\\Users\\User\\Documents\\ALL-PROJECTS\\PROJECTS\\IMAGEtoCAD\\outputs';
+
+        (function initOutputFolder() {
+            const saved = localStorage.getItem('imagetocad_output_folder');
+            document.getElementById('outputFolder').value = saved || DEFAULT_OUTPUT_FOLDER;
+            document.getElementById('outputFolder').addEventListener('change', (e) => {
+                localStorage.setItem('imagetocad_output_folder', e.target.value);
+            });
+        })();
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            originalFileName = file.name;
+            setStatus('info', '<span class="spinner"></span>Processing blueprint...');
+
+            showProgressOverlay();
+
+            const sessionId = crypto.randomUUID();
+            currentSessionId = sessionId;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('session_id', sessionId);
+
+            connectProgressStream(sessionId);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.detail || 'Upload failed'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                pollForResult(sessionId, file);
+            })
+            .catch(err => {
+                setStatus('error', `Error: ${err.message}`);
+                hideProgressOverlay();
+            });
+        }
+
+        function pollForResult(sessionId, file, attempts = 0) {
+            if (attempts > 600) {
+                setStatus('error', 'Processing timed out after 60 seconds.');
+                hideProgressOverlay();
+                return;
+            }
+
+            fetch(`/upload-status/${sessionId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'complete') {
+                        renderResult(data, file);
+                    } else if (data.status === 'processing') {
+                        setTimeout(() => pollForResult(sessionId, file, attempts + 1), 100);
+                    } else {
+                        setStatus('error', 'Unknown processing status.');
+                        hideProgressOverlay();
+                    }
+                })
+                .catch(err => {
+                    setTimeout(() => pollForResult(sessionId, file, attempts + 1), 200);
+                });
+        }
+
+        function renderResult(data, file) {
+            hideProgressOverlay();
+
+            originalImage.src = URL.createObjectURL(file);
+            imageInfo.textContent = `${data.image_width} x ${data.image_height} px`;
+
+            previewSvg.innerHTML = '';
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(data.preview_svg, 'image/svg+xml');
+            const parseError = svgDoc.querySelector('parsererror');
+            if (parseError) {
+                previewSvg.textContent = 'Preview rendering error.';
+            } else {
+                const imported = document.importNode(svgDoc.documentElement, true);
+                previewSvg.appendChild(imported);
+            }
+            previewInfo.textContent = `${data.view_count} views detected`;
+
+            viewTags.innerHTML = '';
+            const views = data.views || [];
+            views.forEach(view => {
+                const tag = document.createElement('span');
+                tag.className = `view-tag ${view.calibrated ? 'calibrated' : ''}`;
+                tag.textContent = `${view.label} (${view.lines} lines, ${view.circles} circles)`;
+                viewTags.appendChild(tag);
+            });
+
+            scaleDisplay.innerHTML = `
+                <div class="scale-item">Scale: <span>${data.scale_factor.toFixed(2)} px/${data.scale_unit}</span></div>
+                <div class="scale-item">Unit: <span>${data.scale_unit}</span></div>
+                <div class="scale-item">Primary: <span>${data.primary_view || 'N/A'}</span></div>
+            `;
+
+            initLayerToggles();
+
+            workspace.classList.add('active');
+            viewInfo.style.display = 'block';
+            editorToolbar.style.display = 'flex';
+            controls.style.display = 'block';
+            previewControls.style.display = 'block';
+            saveBtn.disabled = false;
+
+            setStatus('success', `Processed successfully. ${data.view_count} views detected. Scale: ${data.scale_factor.toFixed(2)} px/${data.scale_unit}`);
+        }
+
+        const PIPELINE_STAGES = [
+            { id: 'preprocess', label: 'Preprocessing', desc: 'Grayscale, denoise, adaptive threshold' },
+            { id: 'detect', label: 'Feature Detection', desc: 'Hough lines, circle detection, contour analysis' },
+            { id: 'segment', label: 'View Segmentation', desc: 'Separating views by whitespace gaps' },
+            { id: 'ocr', label: 'OCR Extraction', desc: 'Reading dimension text from image' },
+            { id: 'calibrate', label: 'Scale Calibration', desc: 'Computing pixel-to-unit ratio' },
+            { id: 'merge', label: 'Geometry Merging', desc: 'Merging collinear lines, fitting arcs' },
+        ];
+
+        function showProgressOverlay() {
+            progressOverlay.classList.add('active');
+            progressBarFill.style.width = '0%';
+            progressVerbose.innerHTML = '';
+            renderStageList();
+        }
+
+        function hideProgressOverlay() {
+            progressOverlay.classList.remove('active');
+        }
+
+        function renderStageList() {
+            progressStages.innerHTML = '';
+            PIPELINE_STAGES.forEach((stage, i) => {
+                const div = document.createElement('div');
+                div.className = 'progress-stage pending';
+                div.id = `stage-${stage.id}`;
+                div.innerHTML = `
+                    <span class="stage-icon">${i + 1}</span>
+                    <span class="stage-label">${stage.label}<br><small style="color:#666">${stage.desc}</small></span>
+                    <span class="stage-time" id="stage-time-${stage.id}"></span>
+                `;
+                progressStages.appendChild(div);
+            });
+        }
+
+        function updateStage(stageId, status, elapsedMs) {
+            const el = document.getElementById(`stage-${stageId}`);
+            const timeEl = document.getElementById(`stage-time-${stageId}`);
+            if (!el) return;
+
+            if (status === 'start') {
+                el.className = 'progress-stage active';
+                if (timeEl) timeEl.textContent = 'running...';
+                addVerboseLine(`[${stageId}] Starting: ${PIPELINE_STAGES.find(s => s.id === stageId)?.desc || ''}`, 'info');
+            } else if (status === 'complete') {
+                el.className = 'progress-stage complete';
+                if (timeEl) timeEl.textContent = `${elapsedMs}ms`;
+                addVerboseLine(`[${stageId}] Complete in ${elapsedMs}ms`, 'done');
+            }
+
+            const completedCount = document.querySelectorAll('.progress-stage.complete').length;
+            const pct = Math.round((completedCount / PIPELINE_STAGES.length) * 100);
+            progressBarFill.style.width = `${pct}%`;
+        }
+
+        function addVerboseLine(text, type = '') {
+            const now = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            line.innerHTML = `<span class="ts">[${now}]</span> <span class="msg ${type}">${text}</span>`;
+            progressVerbose.appendChild(line);
+            progressVerbose.scrollTop = progressVerbose.scrollHeight;
+        }
+
+        function connectProgressStream(sessionId) {
+            const evtSource = new EventSource(`/progress/${sessionId}`);
+            evtSource.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.stage === 'error') {
+                    setStatus('error', `Processing error: ${data.error || 'Unknown'}`);
+                    hideProgressOverlay();
+                    evtSource.close();
+                    return;
+                }
+                if (data.stage && data.stage !== 'done') {
+                    updateStage(data.stage, data.status, data.elapsed_ms);
+                }
+                if (data.stage === 'done') {
+                    evtSource.close();
+                }
+            };
+            evtSource.onerror = () => {
+                evtSource.close();
+            };
+        }
+
+        saveBtn.addEventListener('click', () => {
+            const outputFolder = document.getElementById('outputFolder').value.trim();
+            const filename = document.getElementById('filename').value.trim();
+            const manualScale = parseFloat(document.getElementById('manualScale').value) || 0;
+            const scaleUnit = document.getElementById('scaleUnit').value;
+
+            if (!outputFolder) {
+                setStatus('error', 'Please specify a destination folder.');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner"></span>Saving...';
+
+            const formData = new FormData();
+            formData.append('session_id', currentSessionId);
+            formData.append('output_folder', outputFolder);
+            if (filename) {
+                formData.append('filename', filename);
+            }
+            if (manualScale > 0) {
+                formData.append('manual_scale', manualScale.toString());
+                formData.append('scale_unit', scaleUnit);
+            }
+
+            fetch('/approve-save', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.detail || 'Save failed'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                setStatus('success', `DXF saved to: ${data.saved_path} (${data.total_entities} entities)`);
+                previewBtn.disabled = false;
+            })
+            .catch(err => {
+                setStatus('error', `Save failed: ${err.message}`);
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Approve & Save DXF';
+            });
+        });
+
+        previewBtn.addEventListener('click', () => {
+            const format = document.getElementById('previewFormat').value;
+            const dpi = document.getElementById('previewDPI').value;
+
+            previewBtn.disabled = true;
+            previewBtn.innerHTML = '<span class="spinner"></span>Rendering at ' + dpi + ' DPI...';
+            previewStatus.className = 'status-bar info';
+            previewStatus.innerHTML = '<span class="spinner"></span>Generating high-resolution preview...';
+            previewResult.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('session_id', currentSessionId);
+            formData.append('image_format', format);
+            formData.append('dpi', dpi);
+
+            fetch('/generate-preview', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.detail || 'Preview failed'); });
+                }
+                const width = res.headers.get('X-Preview-Width') || '?';
+                const height = res.headers.get('X-Preview-Height') || '?';
+                const entities = res.headers.get('X-Preview-Entities') || '?';
+                previewStatus.className = 'status-bar success';
+                previewStatus.textContent = `Preview rendered: ${width} x ${height}px, ${entities} entities`;
+
+                return res.blob().then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    previewImage.src = url;
+                    previewDownload.href = url;
+                    const ext = format === 'jpeg' ? 'jpg' : 'png';
+                    previewDownload.download = `${originalFileName || 'blueprint'}_preview.${ext}`;
+                    previewResult.style.display = 'block';
+                });
+            })
+            .catch(err => {
+                previewStatus.className = 'status-bar error';
+                previewStatus.textContent = `Preview failed: ${err.message}`;
+            })
+            .finally(() => {
+                previewBtn.disabled = false;
+                previewBtn.textContent = 'Generate HD Preview';
+            });
+        });
+
+        calibrateBtn.addEventListener('click', () => {
+            calibrating = true;
+            rulerPoints = [];
+            rulerOverlay.style.display = 'block';
+            calibratorPanel.classList.add('active');
+            rulerStatus.textContent = 'Click point 1 on the preview...';
+            applyScaleBtn.disabled = true;
+            knownDistance.value = '';
+            clearRulerVisuals();
+        });
+
+        cancelCalibrateBtn.addEventListener('click', () => {
+            calibrating = false;
+            rulerPoints = [];
+            rulerOverlay.style.display = 'none';
+            calibratorPanel.classList.remove('active');
+            clearRulerVisuals();
+        });
+
+        rulerOverlay.addEventListener('click', (e) => {
+            if (!calibrating) return;
+            const rect = rulerOverlay.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            rulerPoints.push({ x, y });
+
+            if (rulerPoints.length === 1) {
+                rulerStatus.textContent = `Point 1 set (${x.toFixed(0)}, ${y.toFixed(0)}). Click point 2...`;
+                drawRulerPoint(x, y, '1');
+            } else if (rulerPoints.length === 2) {
+                const dx = rulerPoints[1].x - rulerPoints[0].x;
+                const dy = rulerPoints[1].y - rulerPoints[0].y;
+                const pixelDist = Math.sqrt(dx * dx + dy * dy);
+                rulerStatus.textContent = `Pixel distance: ${pixelDist.toFixed(1)} px. Enter known distance below.`;
+                drawRulerPoint(rulerPoints[1].x, rulerPoints[1].y, '2');
+                drawRulerLine(rulerPoints[0], rulerPoints[1]);
+                applyScaleBtn.disabled = false;
+                knownDistance.focus();
+            }
+        });
+
+        applyScaleBtn.addEventListener('click', () => {
+            const dist = parseFloat(knownDistance.value);
+            if (!dist || dist <= 0) {
+                rulerStatus.textContent = 'Please enter a valid distance.';
+                return;
+            }
+            if (rulerPoints.length < 2) {
+                rulerStatus.textContent = 'Please click two points first.';
+                return;
+            }
+
+            const dx = rulerPoints[1].x - rulerPoints[0].x;
+            const dy = rulerPoints[1].y - rulerPoints[0].y;
+            const pixelDist = Math.sqrt(dx * dx + dy * dy);
+            const scale = pixelDist / dist;
+            const unit = knownUnit.value;
+
+            document.getElementById('manualScale').value = scale.toFixed(4);
+            document.getElementById('scaleUnit').value = unit;
+
+            rulerStatus.textContent = `Scale set: ${scale.toFixed(4)} px/${unit}`;
+            calibrating = false;
+            rulerOverlay.style.display = 'none';
+            calibratorPanel.classList.remove('active');
+            clearRulerVisuals();
+        });
+
+        function drawRulerPoint(x, y, label) {
+            const dot = document.createElement('div');
+            dot.className = 'ruler-point';
+            dot.style.left = x + 'px';
+            dot.style.top = y + 'px';
+            rulerOverlay.appendChild(dot);
+
+            const lbl = document.createElement('div');
+            lbl.className = 'ruler-label';
+            lbl.style.left = (x + 12) + 'px';
+            lbl.style.top = (y - 12) + 'px';
+            lbl.textContent = label;
+            rulerOverlay.appendChild(lbl);
+        }
+
+        function drawRulerLine(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            const line = document.createElement('div');
+            line.className = 'ruler-line';
+            line.style.left = p1.x + 'px';
+            line.style.top = p1.y + 'px';
+            line.style.width = length + 'px';
+            line.style.transform = `rotate(${angle}deg)`;
+            rulerOverlay.appendChild(line);
+
+            const dist = document.createElement('div');
+            dist.className = 'ruler-label';
+            dist.style.left = ((p1.x + p2.x) / 2 - 20) + 'px';
+            dist.style.top = ((p1.y + p2.y) / 2 - 20) + 'px';
+            dist.textContent = `${length.toFixed(0)} px`;
+            rulerOverlay.appendChild(dist);
+        }
+
+        function clearRulerVisuals() {
+            rulerOverlay.querySelectorAll('.ruler-point, .ruler-label, .ruler-line').forEach(el => el.remove());
+        }
+
+        deleteModeBtn.addEventListener('click', () => {
+            deleteMode = !deleteMode;
+            deleteModeBtn.classList.toggle('active', deleteMode);
+            editorStatus.textContent = deleteMode ? 'Click entities to delete' : '';
+            previewSvg.style.cursor = deleteMode ? 'pointer' : '';
+        });
+
+        clearHighlightsBtn.addEventListener('click', () => {
+            previewSvg.querySelectorAll('.entity-highlight').forEach(el => {
+                el.classList.remove('entity-highlight');
+            });
+        });
+
+        previewSvg.addEventListener('click', (e) => {
+            if (!deleteMode) return;
+            const target = e.target.closest('line, circle, path, text');
+            if (target) {
+                const layer = target.closest('g');
+                const layerId = layer ? layer.id : 'unknown';
+                deletedEntities.push({
+                    type: target.tagName,
+                    layer: layerId,
+                    index: Array.from(layer ? layer.children : []).indexOf(target),
+                });
+                target.remove();
+                editorStatus.textContent = `Deleted ${deletedEntities.length} entities`;
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            currentSessionId = null;
+            originalFileName = '';
+            calibrating = false;
+            rulerPoints = [];
+            deleteMode = false;
+            deletedEntities = [];
+            fileInput.value = '';
+            workspace.classList.remove('active');
+            viewInfo.style.display = 'none';
+            layerToggles.style.display = 'none';
+            editorToolbar.style.display = 'none';
+            controls.style.display = 'none';
+            previewControls.style.display = 'none';
+            previewResult.style.display = 'none';
+            previewSvg.innerHTML = '';
+            originalImage.src = '';
+            rulerOverlay.style.display = 'none';
+            calibratorPanel.classList.remove('active');
+            clearRulerVisuals();
+            const savedFolder = localStorage.getItem('imagetocad_output_folder');
+            document.getElementById('outputFolder').value = savedFolder || DEFAULT_OUTPUT_FOLDER;
+            document.getElementById('filename').value = '';
+            statusBar.className = 'status-bar';
+            statusBar.textContent = '';
+            previewStatus.className = 'status-bar';
+            previewStatus.textContent = '';
+        });
+
+        function setStatus(type, message) {
+            statusBar.className = `status-bar ${type}`;
+            statusBar.innerHTML = message;
+        }
+
+        const LAYER_CONFIGS = [
+            { id: 'layer-view-bounds', label: 'View Bounds', color: '#ffffff40' },
+            { id: 'layer-lines', label: 'Lines (01_CUT_OUTLINE)', color: '#00ff88' },
+            { id: 'layer-circles', label: 'Circles (03_DRILL_BORES)', color: '#ff6b6b' },
+            { id: 'layer-arcs', label: 'Arcs (01_CUT_OUTLINE)', color: '#ff9f43' },
+            { id: 'layer-text', label: 'Dimensions (95_DIMENSIONS)', color: '#ffd93d' },
+        ];
+
+        function initLayerToggles() {
+            layerToggles.style.display = 'block';
+            layerToggleList.innerHTML = '';
+            LAYER_CONFIGS.forEach(cfg => {
+                const label = document.createElement('label');
+                label.className = 'layer-toggle';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = true;
+                cb.dataset.layer = cfg.id;
+                cb.addEventListener('change', () => {
+                    const group = previewSvg.querySelector(`#${cfg.id}`);
+                    if (group) {
+                        group.style.display = cb.checked ? '' : 'none';
+                    }
+                });
+                const dot = document.createElement('span');
+                dot.className = 'dot';
+                dot.style.background = cfg.color;
+                label.appendChild(cb);
+                label.appendChild(dot);
+                label.appendChild(document.createTextNode(cfg.label));
+                layerToggleList.appendChild(label);
+            });
+        }
+    </script>
+</body>
+</html>

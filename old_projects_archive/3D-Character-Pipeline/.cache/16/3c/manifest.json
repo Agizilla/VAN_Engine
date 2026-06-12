@@ -1,9 +1,0 @@
-{
-  "face_path": "C:\\Users\\User\\Documents\\ALL-PROJECTS\\PROJECTS\\3D-Character-Pipeline\\workspace\\run_20260602_072100\\face_source.png",
-  "skin_path": "C:\\Users\\User\\Documents\\ALL-PROJECTS\\PROJECTS\\3D-Character-Pipeline\\workspace\\run_20260602_072100\\skin_data.json",
-  "uv_path": "C:\\Users\\User\\Documents\\ALL-PROJECTS\\PROJECTS\\3D-Character-Pipeline\\workspace\\run_20260602_072100\\uv_map.png",
-  "pose": "three_quarter",
-  "timestamp": "2026-06-02T07:21:04.724802",
-  "image_hash": "163cb7885672079cb727aad8617c4369",
-  "source_image": "C:\\Users\\User\\Documents\\ALL-PROJECTS\\PROJECTS\\3D-Character-Pipeline\\test.jpg"
-}

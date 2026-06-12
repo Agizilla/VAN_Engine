@@ -1,0 +1,277 @@
+/*
+ * DAZ Script Automation Asset
+ * Auto-generates 3D character from reference photos
+ *
+ * Run via: dazstudio.exe -script "path\to\daz_bridge.dsa"
+ */
+
+print("========================================");
+print("DAZ Bridge Automation Started");
+print("========================================");
+
+var workspaceDir = System.getEnvironmentVariable("DAZ_WORKSPACE");
+var outputDir = System.getEnvironmentVariable("DAZ_OUTPUT_DIR");
+
+if (!workspaceDir) {
+    print("ERROR: DAZ_WORKSPACE environment variable not set");
+    App.quit();
+}
+
+print("Workspace: " + workspaceDir);
+print("Output: " + outputDir);
+
+var faceTexturePath = workspaceDir + "/face_source.png";
+var skinDataPath = workspaceDir + "/skin_data.json";
+
+function readSkinData() {
+    var file = new DzFile(skinDataPath);
+    if (!file.exists()) {
+        print("WARNING: Skin data not found at " + skinDataPath);
+        return null;
+    }
+
+    file.open(DzFile.ReadOnly);
+    var content = file.readAll();
+    file.close();
+
+    try {
+        var data = JSON.parse(content);
+        print("Skin data loaded: RGB(" + data.rgb.r + ", " + data.rgb.g + ", " + data.rgb.b + ")");
+        return data;
+    } catch(e) {
+        print("ERROR parsing skin data: " + e);
+        return null;
+    }
+}
+
+function waitForSceneReady() {
+    var maxWait = 30;
+    var waited = 0;
+
+    while (Scene.getRootNode() === null && waited < maxWait) {
+        System.sleep(100);
+        waited++;
+    }
+
+    if (waited >= maxWait) {
+        print("ERROR: Scene not ready after " + maxWait + " seconds");
+        return false;
+    }
+
+    return true;
+}
+
+function clearScene() {
+    print("Clearing scene...");
+    var rootNode = Scene.getRootNode();
+    if (rootNode) {
+        var children = rootNode.getChildren();
+        for (var i = children.length - 1; i >= 0; i--) {
+            children[i].removeFromDatabase();
+        }
+    }
+}
+
+function findBaseModel() {
+    var figures = Scene.getFigures();
+    for (var i = 0; i < figures.length; i++) {
+        var name = figures[i].getName();
+        if (name.indexOf("Genesis 9") !== -1 || name.indexOf("Genesis9") !== -1) {
+            print("Found base model: " + name);
+            return figures[i];
+        }
+    }
+
+    if (figures.length > 0) {
+        print("Found figure: " + figures[0].getName());
+        return figures[0];
+    }
+
+    return null;
+}
+
+function loadBaseModel() {
+    print("Loading Genesis 9 base model...");
+
+    var basePath = "/People/Genesis 9/Base/Genesis 9.duf";
+
+    var asset = DzAsset.findAssetByFilePath(basePath);
+    if (!asset) {
+        print("WARNING: Genesis 9 not found via asset path, trying content library");
+
+        var contentManager = DzContentMgr.getMgr();
+        var results = contentManager.findFiles("Genesis 9", "duf");
+
+        if (results && results.length > 0) {
+            asset = results[0];
+            print("Found Genesis 9 at: " + asset.getFilePath());
+        }
+    }
+
+    if (asset) {
+        var figure = asset.load();
+        if (figure) {
+            print("Genesis 9 loaded successfully");
+            return figure;
+        }
+    }
+
+    print("WARNING: Genesis 9 not found, creating default figure");
+    var figure = Scene.createFigure();
+    return figure;
+}
+
+function applyFaceTransfer(faceTexturePath) {
+    print("Applying face transfer...");
+
+    var textureFile = new DzFile(faceTexturePath);
+    if (!textureFile.exists()) {
+        print("ERROR: Face texture not found at " + faceTexturePath);
+        return false;
+    }
+
+    var faceTransferAction = DzFaceTransferAction.create();
+    if (!faceTransferAction) {
+        print("WARNING: DzFaceTransferAction not available, using fallback method");
+
+        var figure = findBaseModel();
+        if (figure) {
+            var headMat = figure.getMaterial("Head");
+            if (headMat) {
+                var textureImage = DzImage.create(faceTexturePath);
+                var texture = DzTexture.create(textureImage);
+                headMat.setTexture(texture, "Diffuse");
+                print("Applied face texture to head material");
+            }
+        }
+        return true;
+    }
+
+    faceTransferAction.setSourceImage(faceTexturePath);
+    faceTransferAction.setTargetFigure(findBaseModel());
+    faceTransferAction.execute();
+
+    print("Face transfer completed");
+    return true;
+}
+
+function applySkinTone(skinData) {
+    if (!skinData) {
+        print("No skin data provided, skipping skin tone adjustment");
+        return false;
+    }
+
+    print("Applying skin tone: RGB(" + skinData.rgb.r + ", " + skinData.rgb.g + ", " + skinData.rgb.b + ")");
+
+    var figure = findBaseModel();
+    if (!figure) {
+        print("No figure found, cannot apply skin tone");
+        return false;
+    }
+
+    var r = skinData.rgb.r / 255.0;
+    var g = skinData.rgb.g / 255.0;
+    var b = skinData.rgb.b / 255.0;
+
+    var surfaces = ["Torso", "Arms", "Legs", "Chest", "Abdomen", "UpperArm", "LowerArm", "UpperLeg", "LowerLeg"];
+
+    var updatedCount = 0;
+
+    for (var i = 0; i < surfaces.length; i++) {
+        var surfaceName = surfaces[i];
+        var material = figure.getMaterial(surfaceName);
+
+        if (material) {
+            material.setColor(DzColor(r, g, b), "Diffuse Color");
+            material.setColor(DzColor(r, g, b), "Base Color");
+            material.setColor(DzColor(0.2, 0.18, 0.16), "Specular Color");
+
+            updatedCount++;
+            print("Updated surface: " + surfaceName);
+        }
+    }
+
+    print("Updated " + updatedCount + " material surfaces");
+    return true;
+}
+
+function exportCharacter() {
+    if (!outputDir) {
+        print("WARNING: Output directory not specified, skipping export");
+        return false;
+    }
+
+    var figure = findBaseModel();
+    if (!figure) {
+        print("No figure to export");
+        return false;
+    }
+
+    var dufPath = outputDir + "/generated_character.duf";
+    print("Exporting to: " + dufPath);
+
+    try {
+        Scene.setPrimarySelection(figure);
+
+        var exporter = DzFileIOSettings.create();
+        exporter.setSelectedNodesOnly(true);
+        exporter.setIncludeReferencedAssets(true);
+
+        var success = Scene.exportSubset(dufPath, exporter);
+
+        if (success) {
+            print("Export successful: " + dufPath);
+        } else {
+            print("Export failed");
+        }
+
+        return success;
+    } catch(e) {
+        print("Export error: " + e);
+        return false;
+    }
+}
+
+function main() {
+    print("\n========================================");
+    print("Starting DAZ Bridge Automation");
+    print("========================================\n");
+
+    if (!waitForSceneReady()) {
+        print("FATAL: Scene not ready, exiting");
+        App.quit();
+        return;
+    }
+
+    clearScene();
+
+    var figure = loadBaseModel();
+    if (!figure) {
+        print("FATAL: Could not load base model");
+        App.quit();
+        return;
+    }
+
+    var faceSuccess = applyFaceTransfer(faceTexturePath);
+    if (!faceSuccess) {
+        print("WARNING: Face transfer had issues, continuing...");
+    }
+
+    var skinData = readSkinData();
+    if (skinData) {
+        applySkinTone(skinData);
+    }
+
+    var exportSuccess = exportCharacter();
+
+    print("\n========================================");
+    print("DAZ Bridge Automation Completed");
+    print("Face Transfer: " + (faceSuccess ? "SUCCESS" : "WARNING"));
+    print("Skin Tone: " + (skinData ? "APPLIED" : "SKIPPED"));
+    print("Export: " + (exportSuccess ? "SUCCESS" : "FAILED"));
+    print("========================================\n");
+
+    App.quit();
+}
+
+main();

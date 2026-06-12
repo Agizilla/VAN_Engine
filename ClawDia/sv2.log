@@ -1,0 +1,4 @@
+INFO:     127.0.0.1:57857 - "GET /hooks/ui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65078 - "GET /hooks/ui/signal_filter HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65078 - "GET /hooks/signal_filter HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55331 - "POST /hooks/signal_filter HTTP/1.1" 200 OK

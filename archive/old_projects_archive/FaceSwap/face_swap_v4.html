@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Morphology Studio</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: #0b0e14; color: #ffffff; }
+        .sidebar { width: 400px; background: #121826; border-right: 1px solid #1f2937; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .viewport { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0b0e14; }
+        
+        canvas { max-width: 90%; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        .morph-header { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+        .morph-header h2 { margin: 0; font-size: 1.5rem; letter-spacing: 0.5px; }
+        
+        .control-group { margin-bottom: 25px; }
+        .label-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: #9ca3af; }
+        .val-badge { background: #1f2937; padding: 2px 8px; border-radius: 4px; color: #60a5fa; font-family: monospace; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; height: 6px; border-radius: 5px; background: #1f2937; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; border: 3px solid #121826; }
+
+        .synthesize-btn { background: #4f46e5; color: white; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; margin-top: auto; }
+        .synthesize-btn:hover { background: #4338ca; transform: translateY(-2px); }
+        
+        textarea { width: 100%; height: 80px; background: #0b0e14; border: 1px solid #1f2937; color: #60a5fa; font-family: monospace; font-size: 10px; margin-top: 10px; padding: 10px; border-radius: 8px; }
+        #status { color: #60a5fa; font-size: 12px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="morph-header">
+        <span style="font-size: 24px;">🎚️</span>
+        <h2>Morphology Controls</h2>
+    </div>
+
+    <div id="status">Waiting for image upload...</div>
+    <input type="file" id="imageUpload" accept="image/*" style="margin-bottom: 20px; font-size: 12px;">
+
+    <div class="control-group">
+        <div class="label-row"><span>Brow Elevation</span><span class="val-badge" id="v-brow">+0.00</span></div>
+        <input type="range" class="morph-slider" id="browElev" min="-50" max="50" value="0">
+    </div>
+
+    <div class="control-group">
+        <div class="label-row"><span>Ocular Scale</span><span class="val-badge" id="v-eye">+0.00</span></div>
+        <input type="range" class="morph-slider" id="eyeScale" min="-20" max="20" value="0">
+    </div>
+
+    <div class="control-group">
+        <div class="label-row"><span>Jawline Definition</span><span class="val-badge" id="v-jaw">+0.00</span></div>
+        <input type="range" class="morph-slider" id="jawDef" min="-30" max="30" value="0">
+    </div>
+
+    <div class="control-group">
+        <div class="label-row"><span>Forehead Height</span><span class="val-badge" id="v-fore">+0.00</span></div>
+        <input type="range" class="morph-slider" id="foreHeight" min="-40" max="40" value="0">
+    </div>
+
+    <label style="font-size: 12px; color: #4b5563;">Raw Facial Data</label>
+    <textarea id="dataBox" readonly></textarea>
+
+    <button class="synthesize-btn" id="updateBtn">
+        <span>🔄</span> Synthesize New Face
+    </button>
+</div>
+
+<div class="viewport">
+    <canvas id="mainCanvas"></canvas>
+</div>
+
+<script>
+$(document).ready(function() {
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    let originalPoints = [];
+    let currentPoints = [];
+    let imgElement = null;
+
+    // Initialize Models
+    async function init() {
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        $('#status').text('AI Models Active. Ready for input.');
+    }
+
+    $('#imageUpload').on('change', async function(e) {
+        const file = e.target.files[0];
+        imgElement = await faceapi.bufferToImage(file);
+        canvas.width = imgElement.width;
+        canvas.height = imgElement.height;
+        
+        const detection = await faceapi.detectSingleFace(imgElement, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+        if (detection) {
+            originalPoints = detection.landmarks.positions.map(p => ({ x: p.x, y: p.y }));
+            currentPoints = JSON.parse(JSON.stringify(originalPoints));
+            render();
+            syncData();
+            $('#status').text('Analysis Complete.');
+        }
+    });
+
+    function syncData() {
+        $('#dataBox').val(JSON.stringify(currentPoints));
+    }
+
+    function render() {
+        if (!imgElement) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imgElement, 0, 0);
+
+        // Visualize Landmarks
+        ctx.fillStyle = "#60a5fa";
+        currentPoints.forEach(pt => {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 2, 0, 2 * Math.PI);
+            ctx.fill();
+        });
+    }
+
+    // Morphology Logic: Map sliders to Point Groups
+    // Indices: Brows (17-26), Eyes (36-47), Jaw (0-16)
+    function applyMorphology() {
+        const b = parseInt($('#browElev').val());
+        const e = parseInt($('#eyeScale').val());
+        const j = parseInt($('#jawDef').val());
+        const f = parseInt($('#foreHeight').val());
+
+        currentPoints = originalPoints.map((pt, i) => {
+            let newY = pt.y;
+            let newX = pt.x;
+
+            if (i >= 17 && i <= 26) newY += b; // Brows
+            if (i >= 36 && i <= 47) newY -= e; // Eyes (Scale effect)
+            if (i >= 0 && i <= 16) newY += j;  // Jawline
+            if (i >= 17 && i <= 26) newY += f; // Forehead (shifting brows/hairline)
+
+            return { x: newX, y: newY };
+        });
+
+        // Update labels
+        $('#v-brow').text((b/100).toFixed(2));
+        $('#v-eye').text((e/100).toFixed(2));
+        $('#v-jaw').text((j/100).toFixed(2));
+        $('#v-fore').text((f/100).toFixed(2));
+    }
+
+    // Trigger on "Mouse Up" / Change
+    $('.morph-slider').on('change', function() {
+        applyMorphology();
+        render();
+        syncData();
+    });
+
+    // Real-time visual feedback while sliding (optional, but smoother)
+    $('.morph-slider').on('input', function() {
+        applyMorphology();
+        render();
+    });
+
+    $('#updateBtn').on('click', function() {
+        render(); // "Synthesize" redraws final state
+        $('#status').text('Morphology applied successfully.');
+    });
+
+    init();
+});
+</script>
+</body>
+</html>

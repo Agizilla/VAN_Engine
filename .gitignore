@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -70,6 +70,7 @@ samples/
 *.dat
 *.traineddata
 *.wasm
+*.zip
 
 # StyleTTS2 (cloned external)
 StyleTTS2/
@@ -90,8 +91,8 @@ artifacts/
 *.err
 
 # Server runtime
-ClawDia/sv2.log
-ClawDia/sv2.err
+saas/sv2.log
+saas/sv2.err
 
-# Python loader cache
-ClawDia/loader_errors.log
+# CLI history
+.opencode/

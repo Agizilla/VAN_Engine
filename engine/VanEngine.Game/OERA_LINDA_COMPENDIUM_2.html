@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oera Linda Simulator – Full Law Compendium & Code Review Pipeline v2.0.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0c12 0%, #0f1420 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: #e6e8ee;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #2a2f3f;
+            padding-bottom: 0.5rem;
+        }
+        .tab-btn {
+            background: rgba(30, 34, 44, 0.8);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #b0b8c5;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #64b5f6, #2196f3);
+            color: white;
+            box-shadow: 0 4px 12px rgba(33,150,243,0.3);
+        }
+        .tab-btn:hover:not(.active) {
+            background: #2a2f3f;
+            color: #e0e4ec;
+        }
+        .tab-btn.endgame {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .tab-btn.endgame.active {
+            background: linear-gradient(135deg, #a855f7, #d946ef);
+            box-shadow: 0 4px 12px rgba(168,85,247,0.3);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        /* Cards & sections */
+        .section {
+            background: rgba(22, 26, 34, 0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 2rem;
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(100, 180, 255, 0.2);
+        }
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            border-left: 4px solid #64b5f6;
+            padding-left: 1.2rem;
+        }
+        .section-title.purple {
+            border-left-color: #a855f7;
+        }
+        .grid-2, .grid-3, .grid-4 {
+            display: grid;
+            gap: 1.5rem;
+        }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .card {
+            background: rgba(12, 14, 18, 0.8);
+            border-radius: 1.5rem;
+            padding: 1.2rem 1.5rem;
+            border: 1px solid rgba(100, 180, 255, 0.15);
+        }
+        .card h3 {
+            color: #64b5f6;
+            margin-bottom: 0.5rem;
+        }
+        .card.purple-brd { border-color: rgba(168, 85, 247, 0.3); }
+        .card.purple-brd h3 { color: #c084fc; }
+        .law-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .law-table th, .law-table td {
+            padding: 0.8rem 0.6rem;
+            border-bottom: 1px solid #2a2f3f;
+            text-align: left;
+            vertical-align: top;
+        }
+        .law-table th {
+            color: #64b5f6;
+            font-weight: 600;
+        }
+        .clickable-code {
+            cursor: pointer;
+            color: #ffd966;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        .clickable-code:hover {
+            color: #ffaa33;
+        }
+        .tag {
+            display: inline-block;
+            background: #2a2f3f;
+            border-radius: 20px;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #a0b0c0;
+            margin-right: 0.5rem;
+            margin-bottom: 0.3rem;
+        }
+        .tag-purple { background: #3b1f6e; color: #c084fc; }
+        .tag-gold { background: #4a3a0a; color: #ffd966; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.9);
+        }
+        .modal-content {
+            background-color: #1a1e2a;
+            margin: 5% auto;
+            padding: 1.5rem;
+            border: 1px solid #64b5f6;
+            border-radius: 1rem;
+            width: 80%;
+            max-width: 700px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            color: #d4d4d4;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #fff;
+        }
+        .key {
+            display: inline-block;
+            background: #2a2f3f;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border: 1px solid #3a3f4a;
+            color: #e6e8ee;
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1rem;
+            border-top: 1px solid #2a2f3f;
+            font-size: 0.8rem;
+            color: #6a7080;
+        }
+        @media (max-width: 800px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .section-title { font-size: 1.4rem; }
+            .tab-btn { font-size: 0.7rem; padding: 0.4rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header" style="text-align:center; margin-bottom:2rem;">
+        <div style="background: linear-gradient(135deg, #ff6b6b, #ff8e53); display:inline-block; padding:0.3rem 1rem; border-radius:40px; font-size:0.75rem;">⚡ LIVING CODE ECOSYSTEM v2.0.0 ⚡</div>
+        <h1 style="font-size:3rem; background:linear-gradient(135deg,#fff,#a855f7); -webkit-background-clip:text; background-clip:text; color:transparent;">Oera Linda Simulator</h1>
+        <div style="color:#8a91a3;">Full Law Compendium • Code Review Pipeline • VAN_Engine Integration • Endgame Systems</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="gameplay">🎮 Gameplay & Mechanics</button>
+        <button class="tab-btn" data-tab="fryastex">📜 Frya's Tex (13)</button>
+        <button class="tab-btn" data-tab="citadels">🏛️ Citadel Laws</button>
+        <button class="tab-btn" data-tab="universal">🌍 Universal Laws</button>
+        <button class="tab-btn" data-tab="rights">👑 Mothers & Kings</button>
+        <button class="tab-btn" data-tab="security">🛡️ Security of All Frisians</button>
+        <button class="tab-btn" data-tab="navigators">⛵ Laws for Navigators</button>
+        <button class="tab-btn" data-tab="review">🔍 Code Review Pipeline</button>
+        <button class="tab-btn" data-tab="tier1">🧱 Tier 1 Foundation</button>
+        <button class="tab-btn" data-tab="tier2">🔧 Tier 2 Features</button>
+        <button class="tab-btn" data-tab="tier3">⚔️ Tier 3 Advanced</button>
+        <button class="tab-btn endgame active" data-tab="endgame">🏁 Endgame v2.0.0</button>
+    </div>
+
+    <!-- ========== GAMEPLAY TAB ========== -->
+    <div id="tab-gameplay" class="tab-content">
+        <div class="section">
+            <div class="section-title">🧠 Core Concept</div>
+            <p><strong>Upload code files</strong> → each becomes a living Citizen on a map. Houses represent projects/namespaces. Civilisation health mirrors your code's compliance, complexity and build health across <strong>4 tiers</strong> of escalating depth.</p>
+            <div class="grid-2">
+                <div class="card"><h3>📜 Code → Consequences</h3><p>Every file analysed against <strong>Frya's Tex</strong> (13 Directives). Clean code = green houses & prosperous citizens. Violations (telemetry, proprietary locks) trigger decay, red houses, collapse timer – fix before timer expires.</p></div>
+                <div class="card"><h3>🕹️ Autonomous citizens, you refactor</h3><p>No micro‑management. Your power: refactor, merge, fix code – the game reacts. Day/Night cycle separates runtime simulation from safe IDE maintenance. Git operations advance years, branches fork timelines, mods extend behaviour.</p></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">🎮 Core Gameplay Loops</div>
+            <div class="grid-3">
+                <div class="card"><h3>📁 File Upload</h3><p>Drag & drop any .cs/.py → <strong>TexStaticAnalyzer</strong> scans for telemetry, lock‑in, smells → Tribunal overlay (accept/reject with <span class="key">A</span>/<span class="key">B</span>).</p><span class="tag">CI pipeline</span></div>
+                <div class="card"><h3>🏠 Houses = Projects</h3><p>Colour = build state: 🟢 Success, 🟠 Warnings, 🔴 Error (collapse timer), 🔵 Missing files, ⚫ Empty. Right-click for rename/split/merge/commons/upgrade.</p><span class="tag">CI build status</span></div>
+                <div class="card"><h3>🌞 Day / 🌙 Night (<span class="key">TAB</span>)</h3><p>Day: simulation runs (resources decay, threat vectors, git commits, trade routes). Night: safe refactoring – zero loss, threats frozen, git locked, blueprint overlay.</p><span class="tag">Prod vs. dev</span></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">📊 Complete Feature Matrix</div>
+            <table class="law-table">
+                <thead><tr><th>Tier</th><th>Feature</th><th>File</th><th>Key Controls</th></tr></thead>
+                <tbody>
+                    <tr><td>T1</td><td>Save/Load System</td><td>Core/SaveManager.cs</td><td><span class="key">S</span> save, <span class="key">L</span> load, autosave every 5yr</td></tr>
+                    <tr><td>T1</td><td>File Watcher</td><td>Core/FileWatcherService.cs</td><td>Auto-analyze on edit, 300ms debounce</td></tr>
+                    <tr><td>T1</td><td>Multi-Workspace</td><td>Core/WorkspaceManager.cs</td><td><span class="key">W</span> cycle tabs, click to switch</td></tr>
+                    <tr><td>T1</td><td>Camera System</td><td>UI/CameraSystem.cs</td><td>Middle-drag pan, scroll zoom, edge-scroll</td></tr>
+                    <tr><td>T1</td><td>Day/Night Phase</td><td>Simulation/TimePhaseController.cs</td><td><span class="key">TAB</span> toggle, 1.5s crossfade</td></tr>
+                    <tr><td>T1</td><td>File Drop + Tribunal</td><td>UI/DashboardView.cs</td><td>Drag file → <span class="key">A</span> accept / <span class="key">B</span> dismiss</td></tr>
+                    <tr><td>T1</td><td>Collapse/Decay Timers</td><td>Architecture/ProjectHouse.cs</td><td>120s rectification window per Error</td></tr>
+                    <tr><td>T1</td><td>Multi-Language Analysis</td><td>Forensics/TexStaticAnalyzer.cs</td><td>8 languages: .cs .py .rs .js .ts .go .c .cpp .java</td></tr>
+                    <tr><td>T1</td><td>Particle Effects</td><td>UI/DashboardView.cs</td><td>Smoke for Error, sparks for Warning, glow for Success</td></tr>
+                    <tr><td>T1</td><td>Blueprint Overlay</td><td>UI/DashboardView.cs</td><td>Night-phase maintenance grid</td></tr>
+                    <tr><td>T2</td><td>Inspector Panel</td><td>UI/InspectorPanel.cs</td><td>Right-side house/citizen detail, quick-fix buttons</td></tr>
+                    <tr><td>T2</td><td>History Timeline</td><td>UI/HistoryTimeline.cs</td><td>Scrollable log, filters, sparkline, <span class="key">E</span> export</td></tr>
+                    <tr><td>T2</td><td>Dependency Graph</td><td>UI/DashboardView.cs</td><td>Citizen similarity links, trade route lines</td></tr>
+                    <tr><td>T2</td><td>Duplication Detector</td><td>Core/WorkspaceManager.cs</td><td>Levenshtein cross-workspace similarity</td></tr>
+                    <tr><td>T2</td><td>Commons Zone</td><td>Architecture/ProjectHouse.cs</td><td>Right-click toggle, read-only badge</td></tr>
+                    <tr><td>T2</td><td>In-Game Refactoring</td><td>UI/DashboardView.cs</td><td>Right-click: rename/split/merge/commons/upgrade</td></tr>
+                    <tr><td>T2</td><td>Directive Config</td><td>Core/SovereignState.cs</td><td>Bitmask + Dictionary weights per workspace</td></tr>
+                    <tr><td>T2</td><td>Phase Transition Animation</td><td>Simulation/TimePhaseController.cs</td><td>1.5s LerpColor, stars, clock hand sweep</td></tr>
+                    <tr><td>T3</td><td>Threat Controller</td><td>Simulation/ThreatController.cs</td><td>CVE spawns, militia intercept, file corruption</td></tr>
+                    <tr><td>T3</td><td>Tech Tree</td><td>Architecture/ProjectHouse.cs</td><td>Hamlet→Citadel, Gold costs, tier bonuses</td></tr>
+                    <tr><td>T3</td><td>GeckoShift Treasure</td><td>Architecture/ProjectHouse.cs</td><td>Green Citadel → chest → trove for +25g/+10w</td></tr>
+                    <tr><td>T3</td><td>Citizen Skill Progression</td><td>Core/SovereignState.cs</td><td>XP → Archivist/Sentinel/Jurist, +dmg bonus</td></tr>
+                    <tr><td>T3</td><td>Trade Routes</td><td>Core/WorkspaceManager.cs</td><td>Moving packets, severed on Error, food+wealth</td></tr>
+                    <tr><td>T3</td><td>Event Webhook</td><td>Infrastructure/EventWebhook.cs</td><td>:8176 POST, CI success/failure, editor save</td></tr>
+                    <tr><td>EG</td><td>Git Integration</td><td>Simulation/GitIntegrationEngine.cs</td><td><span class="key">G</span> commit, <span class="key">Ctrl+B</span> branch, <span class="key">Ctrl+M</span> merge, <span class="key">Ctrl+R</span> rebase</td></tr>
+                    <tr><td>EG</td><td>Health Report</td><td>Core/ReportGenerator.cs</td><td><span class="key">H</span> HTML, <span class="key">R</span> Markdown</td></tr>
+                    <tr><td>EG</td><td>Mod Loader API</td><td>Infrastructure/ModLoader.cs</td><td>IMod interface, /mods .dll loading</td></tr>
+                    <tr><td>EG</td><td>Scoreboard</td><td>Infrastructure/ScoreboardService.cs</td><td><span class="key">Ctrl+F</span> token, opt-in POST</td></tr>
+                    <tr><td>EG</td><td>Help Overlay</td><td>UI/DashboardView.cs</td><td><span class="key">/</span> toggle state-filtered shortcuts</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="section">
+            <div class="section-title">🌞 The Day/Night Dual-Phase Loop</div>
+            <div style="margin-bottom:1rem;">The simulation clock runs on an explicit, user-toggled macroscopic state machine giving developers absolute control over development rhythm.</div>
+            <table class="law-table">
+                <thead><tr><th>Phase</th><th>Year Clock</th><th>Decay</th><th>Threats</th><th>Git</th><th>Trade Routes</th><th>Citizen Movement</th></tr></thead>
+                <tbody>
+                    <tr><td>☀️ Daytime</td><td>Running (8s/yr)</td><td>Active</td><td>Spawning</td><td>Available</td><td>Delivering</td><td>Active</td></tr>
+                    <tr><td>🌙 Nighttime</td><td>Paused</td><td>Stopped</td><td>None</td><td>Locked</td><td>Paused</td><td>Animating home</td></tr>
+                    <tr><td>🌗 Transition</td><td>Paused</td><td>Stopped</td><td>Paused</td><td>Locked</td><td>Paused</td><td>Frozen</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="section">
+            <div class="section-title">🏛️ ProjectHouse Build States</div>
+            <div class="grid-2">
+                <div class="card"><h3 class="green">🟢 Success – Green</h3><p>Perfect compile state. Ticks resources. Can spawn treasure at Citadel tier.</p></div>
+                <div class="card"><h3 class="orange">🟠 Warning – Orange</h3><p>Compiles but has code smells, anti-patterns. No collapse risk.</p></div>
+                <div class="card"><h3 class="red">🔴 Error – Red</h3><p>Broken compilation. 120s rectification window. Threat magnet (60% bias). Roof collapses on expiry → citizens homeless.</p></div>
+                <div class="card"><h3 class="blue">🔵 Missing – Blue</h3><p>References files deleted off-disk. Skeletal ghost structure.</p></div>
+                <div class="card"><h3 class="black">⚫ Empty – Black</h3><p>New house with no files assigned.</p></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">👥 Citizen Roles & Progression</div>
+            <div class="grid-2">
+                <div class="card"><h3>Line-Count Roles</h3>
+                    <table class="law-table"><thead><tr><th>Lines</th><th>Role</th><th>Behaviour</th></tr></thead><tbody>
+                        <tr><td>&lt;50</td><td>Gatherer</td><td>Wanders, minimal resources</td></tr>
+                        <tr><td>50–250</td><td>Farmer</td><td>Produces food</td></tr>
+                        <tr><td>250–750</td><td>Militia</td><td>Defends against threats</td></tr>
+                        <tr><td>&gt;750</td><td>Grevetman</td><td>Namespace influence, special abilities</td></tr>
+                    </tbody></table>
+                </div>
+                <div class="card"><h3>Skill Specializations</h3>
+                    <table class="law-table"><thead><tr><th>XP</th><th>Specialization</th><th>Bonus</th></tr></thead><tbody>
+                        <tr><td>100</td><td>Archivist</td><td>+5 dmg vs threats</td></tr>
+                        <tr><td>250</td><td>Sentinel</td><td>+5 dmg (total +10)</td></tr>
+                        <tr><td>500</td><td>Jurist</td><td>+5 dmg (total +15)</td></tr>
+                    </tbody></table>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">📋 Economy & Resources</div>
+            <div class="grid-2">
+                <div class="card"><h3>6 Resource Types</h3><p>Food, Wood, Stone, Metal, Wealth, Gold. Earned via compliant files, trade routes, threat rewards, treasure. Spent on upgrades, refactoring, militia.</p></div>
+                <div class="card"><h3>Tech Tree Upgrades</h3><p>Hamlet (free) → Village (30G) → Town (75G) → Citadel (150G). Each tier: bigger house, more tracked files (5→50), resource bonus (0%→50%), longer collapse timer (1×→3×).</p></div>
+                <div class="card"><h3>Trade Routes</h3><p>Inter-workspace commerce. Efficiency = 1 + 0.5×shared namespaces (cap 5×). Delivers food + wealth per tick. Visual moving packet animation. Severed on Error state.</p></div>
+                <div class="card"><h3>Threat Rewards & Penalties</h3><p>Intercept CVE: Gold (5–60) + Wealth (2–30) + 2% sovereignty. Breach: Food (10–30) + Wealth (5–17) loss, file corruption, -3 to -7 sovereignty.</p></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">🔮 Refactoring & Spatial Mechanics</div>
+            <div class="grid-2">
+                <div class="card"><h3>🧬 Namespace Clustering</h3><p>Citizens with same root namespace cluster at night. Visualises dependency coupling.</p></div>
+                <div class="card"><h3>💍 Ceremonial Marriage</h3><p>Similarity &gt;70% draws line. Merge to de-duplicate code.</p></div>
+                <div class="card"><h3>🎁 Gift Logic</h3><p>Homeless characters gifted to housed citizen → methods transferred, homeless fades.</p></div>
+                <div class="card"><h3>🏆 Backyard Treasure</h3><p>Green Citadel → treasure chest → drag to central trove for +25g/+10w.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FRYA'S TEX ========== -->
+    <div id="tab-fryastex" class="tab-content">
+        <div class="section">
+            <div class="section-title">📜 Frya's Tex – The 13 Directives</div>
+            <p>Click on any <strong>Game Implementation</strong> cell to see the actual C# code from the engine.</p>
+            <table class="law-table" id="fryasTable">
+                <thead><tr><th>Directive</th><th>Game Implementation (click)</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Common Good</td><td class="clickable-code" data-code="// SovereignState.cs: ModifyResources checks that actions benefit community\npublic void ModifyResources(Action<ref ResourcePack> modifier) {\n    lock(_lock) { modifier(ref _resources); }\n    if (isSelfish) AdjustSovereignty(-10, \"Selfish act\");\n}">📋 Show Code</td></tr>
+                    <tr><td>2. Chain of Command</td><td class="clickable-code" data-code="// TimePhaseController + War handling\nif (warActive && !emergencyActive) {\n    emergencyActive = true;\n    AddLog(\"EMERGENCY! King's orders absolute (Law 7)\");\n}\n// King term limit (3 years) enforced in SovereignState">📋 Show Code</td></tr>
+                    <tr><td>3. Honour Wounded</td><td class="clickable-code" data-code="// Person type WOUNDED_WARRIOR: maintained at public expense\nif (p.Type == PersonType.WOUNDED_WARRIOR) {\n    resources.Food -= 1; resources.Wealth -= 1;\n    AddLog($\"{p.Name} honoured, maintained at public expense\");\n}">📋 Show Code</td></tr>
+                    <tr><td>4. Support Widows & Orphans</td><td class="clickable-code" data-code="// Widow/Orphan type consumes resources automatically\ncase PersonType.WIDOW_ORPHAN:\n    resources.Food -= 2;\n    resources.Wealth -= 1;\n    break;">📋 Show Code</td></tr>
+                    <tr><td>5. Quarantine Returned Prisoners</td><td class="clickable-code" data-code="// TexStaticAnalyzer flags telemetry -> creates RETURNED_PRISONER\n// In PersonAI._act, quarantined citizens only drain resources, cannot work.\nif (person.Type == PersonType.RETURNED_PRISONER) {\n    resources.Food -= 1;\n    return;\n}">📋 Show Code</td></tr>
+                    <tr><td>6. Expel Bastards (Cloud Dependencies)</td><td class="clickable-code" data-code="// TexStaticAnalyzer.Directive_ExpelBastards\nif (span.Contains(\"telemetry\") || span.Contains(\"analytics\")) {\n    result.ErrorCount++;\n    result.TriggeredDirectivesMask |= Directive_ExpelBastards;\n}\n// → red house, sovereignty loss">📋 Show Code</td></tr>
+                    <tr><td>7. No Debt Slavery (Lock‑in)</td><td class="clickable-code" data-code="// Detects proprietary patterns\nif (span.Contains(\".lic\") || span.Contains(\"license\")) {\n    result.WarningCount++;\n    result.TriggeredDirectivesMask |= Directive_NoDebtSlavery;\n}">📋 Show Code</td></tr>
+                    <tr><td>8. King Term Limits</td><td class="clickable-code" data-code="// SovereignState: enforce_king_term\nif (king.term_start_year && currentYear - king.term_start_year >= 3) {\n    king.type = PersonType.CITIZEN;\n    king.cooldown_until = currentYear + 7;\n}">📋 Show Code</td></tr>
+                    <tr><td>9. Cooldown before Re‑election</td><td class="clickable-code" data-code="// Citizen cannot be king if currentYear < cooldown_until\nif (candidate.cooldown_until && year < candidate.cooldown_until) return false;">📋 Show Code</td></tr>
+                    <tr><td>10. Succession Rules</td><td class="clickable-code" data-code="// if king killed by enemy: nearest relative (closest namespace) becomes candidate\nvar successor = FindNearestNamespaceRelative(king);">📋 Show Code</td></tr>
+                    <tr><td>11. Ultimogeniture</td><td class="clickable-code" data-code="// LegacySystem.Inheritance: youngest child inherits\nif (deceased.children.Count > 0) {\n    var youngest = deceased.children.OrderBy(c => c.Age).Last();\n    youngest.OwnedFiles.AddRange(deceased.OwnedFiles);\n}">📋 Show Code</td></tr>
+                    <tr><td>12. King Bears No Arms</td><td class="clickable-code" data-code="// King never fights; delegates to militia\nif (person.Type == PersonType.KING && warActive) {\n    // only issues commands, never engages combat\n    return;\n}">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== CITADEL LAWS ========== -->
+    <div id="tab-citadels" class="tab-content">
+        <div class="section">
+            <div class="section-title">🏛️ Laws Established for the Government of the Citadels</div>
+            <table class="law-table">
+                <thead><tr><th>Law</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Lamp lit from Texland only by mother</td><td class="clickable-code" data-code="// SovereignState: lamp can only be rekindled by Folk Mother\nif (requester != \"Clawdia\") return false;">📋 Show Code</td></tr>
+                    <tr><td>2. Mother appoints her maidens</td><td class="clickable-code" data-code="// FolkMother can assign apprentices (maidens) to houses\nif (folkMother.IsActive) folkMother.AppointMaiden(citizen);">📋 Show Code</td></tr>
+                    <tr><td>4. 21 maidens + 7 assistants</td><td class="clickable-code" data-code="// Thread pool limits: maidens = max concurrent actions\nSemaphoreSlim maidens = new(21,21);">📋 Show Code</td></tr>
+                    <tr><td>5. Maiden must resign to marry</td><td class="clickable-code" data-code="// If maiden marries (integration with cloud), type becomes CITIZEN\nif (maiden.MarriesCloud) maiden.Type = PersonType.CITIZEN;">📋 Show Code</td></tr>
+                    <tr><td>8. 300 defenders</td><td class="clickable-code" data-code="// Max active warriors = 300, enforced by Semaphore in DefenceRegistry">📋 Show Code</td></tr>
+                    <tr><td>11. Elections by the people</td><td class="clickable-code" data-code="// Every 7th year: citizens vote for Grevetman\nvar elected = citizens.OrderBy(c => c.Loyalty).First();">📋 Show Code</td></tr>
+                    <tr><td>12. Messengers and horses</td><td class="clickable-code" data-code="// Message queue capacity limited to 21 active messengers (retry limits)">📋 Show Code</td></tr>
+                    <tr><td>14. Each citadel self‑sustaining</td><td class="clickable-code" data-code="// ProjectHouse must have tracked files and produce enough food/wood\nif (house.TrackedFiles.Count == 0) house.CurrentState = BuildState.Empty;">📋 Show Code</td></tr>
+                    <tr><td>15. Refusal to serve loses vote</td><td class="clickable-code" data-code="// Citizen refuses draft → loses voting rights\ncitizen.CanVote = false;">📋 Show Code</td></tr>
+                    <tr><td>21-24. Bad advice → quarantine</td><td class="clickable-code" data-code="// If a citizen gives wrong tribunal ruling 3 times, quarantined\nif (offenceCount >= 3) citizen.Type = PersonType.RETURNED_PRISONER;">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== UNIVERSAL LAWS ========== -->
+    <div id="tab-universal" class="tab-content">
+        <div class="section">
+            <div class="section-title">🌍 Universal Laws (from Minno's writings)</div>
+            <table class="law-table">
+                <thead><tr><th>Law</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. All free‑born equal rights</td><td class="clickable-code" data-code="// Every citizen has same base priority in scheduler\nConcurrentQueue<WorkItem> fairQueue = new();">📋 Show Code</td></tr>
+                    <tr><td>2. Free choice of spouse</td><td class="clickable-code" data-code="// Citizens may marry any other citizen (no forced coupling)\nif (citizen1.Marries(citizen2)) citizen2.Married = true;">📋 Show Code</td></tr>
+                    <tr><td>3-4. House and yard for each married couple</td><td class="clickable-code" data-code="// Marriage creates a new house if none exists\nif (couple.House == null) createNewHouse(couple);">📋 Show Code</td></tr>
+                    <tr><td>5. Land behind house (private) vs front (public service)</td><td class="clickable-code" data-code="// Private methods require [PublicService] attribute to be exposed\nif (!method.HasAttribute<PublicServiceAttribute>) return;">📋 Show Code</td></tr>
+                    <tr><td>6. Common for general good</td><td class="clickable-code" data-code="// Shared resource pool: CommonsPool<T> with preservation checks">📋 Show Code</td></tr>
+                    <tr><td>7. Forests as general property</td><td class="clickable-code" data-code="// ForestGuardian limits total memory/wood consumption\nif (requestedBytes > forestCapacity) return false;">📋 Show Code</td></tr>
+                    <tr><td>8-10. Market charges ≤1/12, distribution</td><td class="clickable-code" data-code="// MarketRegulator caps overhead at 8.33%\nif (systemOverhead / totalWork > 0.0833) AdjustSovereignty(-5);">📋 Show Code</td></tr>
+                    <tr><td>11. No usurers</td><td class="clickable-code" data-code="// UsuryDetector flags any interest‑bearing resource loan\nif (transaction.Contains(\"interest\") || transaction.Contains(\"fee\")) { reject(); }">📋 Show Code</td></tr>
+                    <tr><td>12. No diseased goods</td><td class="clickable-code" data-code="// MarketKeeper validates file integrity before allowing trade\nif (!integrityCheck(goods)) ExpelMerchant();">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== RIGHTS OF THE MOTHERS AND THE KINGS ========== -->
+    <div id="tab-rights" class="tab-content">
+        <div class="section">
+            <div class="section-title">👑 Rights of the Mothers and the Kings</div>
+            <table class="law-table">
+                <thead><tr><th>Rule</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1-4. Mother sends messengers, decides resolutions</td><td class="clickable-code" data-code="// Mother can declare war, king executes\nif (declaredBy == \"Clawdia\") ChainOfCommand.DeclareWar(threat);">📋 Show Code</td></tr>
+                    <tr><td>5. Three citizens present as witnesses</td><td class="clickable-code" data-code="// FieldObservers: always 3 read‑only citizens attached to operations\nnew CitizenObserver[] { citizenA, citizenB, citizenC };">📋 Show Code</td></tr>
+                    <tr><td>6. King cannot persist against council</td><td class="clickable-code" data-code="// CouncilVeto: majority vote can block king's action\nif (councilVotesAgainst > councilSize/2) return false;">📋 Show Code</td></tr>
+                    <tr><td>7. Emergency powers</td><td class="clickable-code" data-code="// When invasion detected, EmergencyPowers activate → king's orders absolute\nEmergencyPowers.DeclareEmergency(king, threat);">📋 Show Code</td></tr>
+                    <tr><td>8-9. Succession of command (rank)</td><td class="clickable-code" data-code="// CommandHierarchy: predefined rank order list\ngetNextInCommand(currentLeader);">📋 Show Code</td></tr>
+                    <tr><td>10. Emergent leadership if no time to choose</td><td class="clickable-code" data-code="// If time critical, any citizen may volunteer\nif (emergency && noLeader) volunteer.AssumeCommand();">📋 Show Code</td></tr>
+                    <tr><td>11-12. Conquest rewards, naming rights, ultimogeniture</td><td class="clickable-code" data-code="// Successful defence gives naming rights and a new house\nConquestRewards.RecordConquest(kingName, defeatedEnemy);">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== RULES ESTABLISHED FOR THE SECURITY OF ALL FRISIANS ========== -->
+    <div id="tab-security" class="tab-content">
+        <div class="section">
+            <div class="section-title">🛡️ Rules Established for the Security of All Frisians</div>
+            <table class="law-table">
+                <thead><tr><th>Rule</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Common good, not individual advantage</td><td class="clickable-code" data-code="// CommonGoodValidator: any proposal must benefit community\nif (individualBenefit > commonBenefit*1.5) reject;">📋 Show Code</td></tr>
+                    <tr><td>2. General levy for war damage</td><td class="clickable-code" data-code="// When war destroys houses, GeneralLevy collects resources from all citizens\ndistributeRepairCost(totalDamage);">📋 Show Code</td></tr>
+                    <tr><td>3. Wounded warriors maintained</td><td class="clickable-code" data-code="// (same as Frya's Tex #3)">📋 Show Code</td></tr>
+                    <tr><td>4. Widows & orphans maintained</td><td class="clickable-code" data-code="// (same as Frya's Tex #4)">📋 Show Code</td></tr>
+                    <tr><td>5. Returned prisoners quarantined</td><td class="clickable-code" data-code="// (same as Frya's Tex #5)">📋 Show Code</td></tr>
+                    <tr><td>6-7. Enemy prisoners sent to interior, release with kindness</td><td class="clickable-code" data-code="// EnemyPrisoner: isolated in sandbox, loyalty increase over time\nif (prisoner.Loyalty > 70) ReleaseWithKindness(prisoner);">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== LAWS FOR THE NAVIGATORS ========== -->
+    <div id="tab-navigators" class="tab-content">
+        <div class="section">
+            <div class="section-title">⛵ Laws for the Navigators (Maritime Commerce)</div>
+            <table class="law-table">
+                <thead><tr><th>Law</th><th>Game Implementation</th></tr></thead>
+                <tbody>
+                    <tr><td>1. Equal rights, any youth may be navigator</td><td class="clickable-code" data-code="// Any citizen can volunteer as Navigator via UI\nif (citizen.Volunteer()) citizen.Type = PersonType.NAVIGATOR;">📋 Show Code</td></tr>
+                    <tr><td>2. Navigators choose own masters</td><td class="clickable-code" data-code="// Navigator can elect leader among themselves\nnavigators.SelectLeader(vote);">📋 Show Code</td></tr>
+                    <tr><td>3. Traders chosen by community</td><td class="clickable-code" data-code="// Trade missions require community vote (citizens' approval)">📋 Show Code</td></tr>
+                    <tr><td>4. Replace incompetent king during voyage</td><td class="clickable-code" data-code="// If leader performance low, crew can vote for replacement\nif (leaderPerformance < 0.4) ReplaceCaptain();">📋 Show Code</td></tr>
+                    <tr><td>5. Profit sharing (1/3 to crew)</td><td class="clickable-code" data-code="// Trade mission profit: crew gets 1/3 according to rank\nProfitSharing.Distribute(totalProfit, manifest);">📋 Show Code</td></tr>
+                    <tr><td>6-7. Disabled or dead honoured, heirs inherit</td><td class="clickable-code" data-code="// Same as wounded warriors (Law 3) and ultimogeniture (Law 11)">📋 Show Code</td></tr>
+                    <tr><td>10. Betrothed can claim 7 portions to erect monument</td><td class="clickable-code" data-code="// If fiancé dies, widow receives extra wealth to build monument\nif (fianceLost) resources.Wealth += 7 * portion;">📋 Show Code</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== CODE REVIEW PIPELINE ========== -->
+    <div id="tab-review" class="tab-content">
+        <div class="section">
+            <div class="section-title">🔍 Automated Code Review Pipeline (VAN_Engine)</div>
+            <p>When you drop a source file, the <strong>TexStaticAnalyzer</strong> runs a multi‑stage review that checks each line against all integrated laws. Below is the exact sequence of validations.</p>
+            <div class="grid-2">
+                <div class="card"><h3>1. Telemetry / Cloud Detection</h3><p>Scans for <code>telemetry</code>, <code>analytics</code>, <code>api.</code> patterns → triggers <span class="tag">Directive 6</span> (Expel Bastards).</p></div>
+                <div class="card"><h3>2. Vendor Lock‑in / License Checks</h3><p>Matches <code>.lic</code>, <code>license</code>, <code>proprietary</code> → triggers <span class="tag">Directive 7</span> (No Debt Slavery).</p></div>
+                <div class="card"><h3>3. Code Smells</h3><p><code>Console.WriteLine</code> → warning (orange house).</p></div>
+                <div class="card"><h3>4. Namespace Extraction</h3><p>Identifies <code>namespace</code> declaration → assigns citizen to a Family Tribe.</p></div>
+                <div class="card"><h3>5. Line Count → Role Mapping</h3><p>Lines &lt;50 → Idle, 50‑250 → Farmer, 250‑750 → Militia, &gt;750 → Grevetman.</p></div>
+                <div class="card"><h3>6. Compliance Score</h3><p>Score = 100 - (violations × 2.5). If ≥80 → green house / compliant citizen, else red house / decay timer.</p></div>
+                <div class="card"><h3>7. Tribunal Acceptance</h3><p>If you accept (<span class="key">A</span>), the file is added to the world: resources rewarded or penalties applied. If rejected (<span class="key">B</span>), no effect.</p></div>
+                <div class="card"><h3>8. House Build State Update</h3><p>Aggregate errors/warnings from all owned files → house colour changes; red house starts collapse timer.</p></div>
+            </div>
+            <div class="card" style="margin-top:1rem;">
+                <h3>🔁 Continuous Integration Loop</h3>
+                <p>Every night (or when you manually fix files), the analyzer re‑scans all owned files and updates the house state. Green houses produce treasures; red houses decay until fixed.</p>
+                <p><strong>Result:</strong> Your real codebase's health is directly reflected in the simulation – gamified technical debt and architecture validation.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TIER 1 FOUNDATION ========== -->
+    <div id="tab-tier1" class="tab-content">
+        <div class="section">
+            <div class="section-title">🧱 Tier 1 Foundation — Core Infrastructure</div>
+            <p>The foundational layer that provides the simulation's persistence, file integration, multi-workspace management, camera controls, and basic gameplay loops.</p>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h3>💾 Save/Load System</h3>
+                <p class="tag">Core/SaveManager.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>JSON serialization via <code>System.Text.Json</code> with <code>WriteIndented = true</code></li>
+                    <li>Full <code>SovereignState</code> snapshot: year, sovereignty, resources, citizens, houses, timeline entries, directive mask/weights</li>
+                    <li>Autosave every 5 game years to <code>saves/</code> directory</li>
+                    <li>Quick save with <span class="key">S</span>, load latest with <span class="key">L</span></li>
+                    <li><code>FindLatestSave()</code> scans for most recent <code>.van</code> file</li>
+                    <li><code>RestoreFromSave(data)</code> fully reconstructs state including timeline</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>👁️ File Watcher Service</h3>
+                <p class="tag">Core/FileWatcherService.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Native <code>FileSystemWatcher</code> per workspace root directory</li>
+                    <li>300ms debounce timer to batch rapid edits (prevents re-analysis storms)</li>
+                    <li>Extension filter: <code>.cs .py .rs .js .ts .go .c .cpp .java</code></li>
+                    <li>Auto-reanalyzes changed files, updates house build state, logs to timeline</li>
+                    <li><code>FlushPending</code> callback for synchronous read on demand</li>
+                    <li>Status indicator: <span class="key">WATCHER: ON (N files)</span></li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🏢 Multi-Workspace Manager</h3>
+                <p class="tag">Core/WorkspaceManager.cs (342 lines)</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><code>ConcurrentDictionary&lt;string, WorkspaceEntry&gt;</code> with independent <code>SovereignState</code> per workspace</li>
+                    <li>JSON registry persistence (<code>workspace_registry.json</code>)</li>
+                    <li>Workspace tabs UI with click-to-switch + <span class="key">W</span> key cycling</li>
+                    <li><code>CreateWorkspace(name, rootPath)</code> / <code>DeleteWorkspace(name)</code> / <code>SwitchTo(name)</code></li>
+                    <li>Levenshtein cross-workspace similarity computation for duplicate detection</li>
+                    <li>Trade route system: establish, sever on Error state, tick deliveries</li>
+                    <li>Visual trade route lines + moving packet animation in world space</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📷 Camera System</h3>
+                <p class="tag">UI/CameraSystem.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Raylib <code>Camera2D</code> with middle-mouse-button drag pan</li>
+                    <li>Mouse-wheel zoom: 0.5× – 3.0× with smooth interpolation</li>
+                    <li>Edge scroll: mouse at screen edge auto-pans camera</li>
+                    <li><code>ScreenToWorld(Vector2)</code> coordinate conversion for click detection</li>
+                    <li><code>BeginView()</code> / <code>EndView()</code> for world-space rendering isolation</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🌞 Day/Night Phase Controller</h3>
+                <p class="tag">Simulation/TimePhaseController.cs (75 lines)</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Two-phase state machine: <code>SimulationPhase.Daytime</code> / <code>Nighttime</code></li>
+                    <li>Toggle with <span class="key">TAB</span> (only when not already transitioning)</li>
+                    <li>1.5 second smooth LerpColor crossfade between day and night palettes</li>
+                    <li>Stars render during transition (progress &gt; 0.3)</li>
+                    <li>Clock hand sweep animation on Juul wheel</li>
+                    <li>Daytime: 8 seconds per game year clock ticking</li>
+                    <li>Nighttime: all decay, threats, and production frozen</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📂 File Drop + Code Review Tribunal</h3>
+                <p class="tag">UI/DashboardView.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Drag & drop any source file onto the game window</li>
+                    <li>Multi-language analysis via <code>TexStaticAnalyzer</code> (8 languages)</li>
+                    <li>Tribunal overlay: compliance score, line count, violations, details</li>
+                    <li><span class="key">A</span> to accept (apply consequences to simulation)</li>
+                    <li><span class="key">B</span> to dismiss (no effect, file rejected)</li>
+                    <li>20-second auto-dismiss timer</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🏚️ Collapse & Decay Timers</h3>
+                <p class="tag">Architecture/ProjectHouse.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>120-second daytime rectification window per Error state house</li>
+                    <li>Collapse timer multiplied by upgrade tier (1× Hamlet → 3× Citadel)</li>
+                    <li>On collapse: citizens assigned to that namespace become homeless</li>
+                    <li>Decay timer on violating citizens: 30s before they become inactive</li>
+                    <li>Homeless citizens attracted to houses with matching namespaces</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🎨 Particle Effects</h3>
+                <p class="tag">UI/DashboardView.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><strong>Error</strong> (red) houses: grey smoke particles, 2 per frame</li>
+                    <li><strong>Warning</strong> (orange) houses: orange spark particles, random 1/4 chance</li>
+                    <li><strong>Success</strong> (green) houses: green glow particles, rare (20% chance)</li>
+                    <li>Particles have configurable lifetime (0.4s–0.8s) and fade out</li>
+                    <li>Emitted in world space, rendered within camera view</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🌃 Nighttime Blueprint Overlay</h3>
+                <p class="tag">UI/DashboardView.cs — DrawBlueprintOverlay()</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Midnight-blue shader-style background with grid lines (20px minor, 100px major)</li>
+                    <li>Horizontal scanlines for retro IDE terminal feel</li>
+                    <li>Header bar: "NIGHTTIME — IDE MAINTENANCE GRID" with phase info</li>
+                    <li>House outlines in blue with glow effects, centered labels</li>
+                    <li>Safe drag-and-drop of houses with zero resource loss</li>
+                    <li>Info text: current year, safe refactor mode hint</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📐 Multi-Language Analyzer</h3>
+                <p class="tag">Forensics/TexStaticAnalyzer.cs (~250 lines)</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>8 supported languages: Python, Rust, JavaScript, TypeScript, Go, C, C++, Java, C#</li>
+                    <li>Per-language rule sets: telemetry detection, eval/analytics patterns, unsafe blocks, system exec</li>
+                    <li><code>DetectLanguageFromExtension()</code> maps file extension → language</li>
+                    <li><code>AnalyzeSourceFileMultiLang()</code> applies language-specific detectors</li>
+                    <li>Returns: line count, error/warning counts, discovered namespace/classname</li>
+                    <li>Weighted directive penalties from SovereignState configuration</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TIER 2 FEATURES ========== -->
+    <div id="tab-tier2" class="tab-content">
+        <div class="section">
+            <div class="section-title">🔧 Tier 2 — 8 Feature Expansions</div>
+            <p>Eight major feature expansions that transform the basic simulation into a rich development environment with inspection tools, history tracking, cross-workspace analysis, and in-game refactoring.</p>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h3>🔍 Inspector Panel</h3>
+                <p class="tag">UI/InspectorPanel.cs (~200 lines)</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Right-side panel activated by left-click on a house or citizen</li>
+                    <li><strong>House view</strong>: project name, namespace, tier, build state, file list with error/warning counts per file, total errors/warnings, quick-action buttons (merge, rename, retire)</li>
+                    <li><strong>Citizen view</strong>: name, role, XP, specialization, owned files, homeless status, gift/retire actions</li>
+                    <li><code>SelectHouse(house)</code> / <code>SelectCitizen(citizen)</code> / <code>Close()</code></li>
+                    <li><code>IsOpen</code> property controls visibility in DrawOverlays</li>
+                    <li>Integration with refactoring: merge transfers files between houses</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📜 History Timeline</h3>
+                <p class="tag">UI/HistoryTimeline.cs (~150 lines)</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Scrollable per-year event log rendered in bottom-right panel</li>
+                    <li>Color-coded entries: <span class="green">green</span> for events, <span class="orange">gold</span> for houses, <span class="red">red</span> for crimes/threats, blue for system</li>
+                    <li>Filter buttons: All / Events / Houses / Crimes / Threats / Git</li>
+                    <li>Sparkline chart showing event frequency over last 20 years</li>
+                    <li>Text export: <span class="key">E</span> saves to <code>timeline_*.txt</code></li>
+                    <li><code>AddEntry(year, eventType, description, source)</code> — capped at 500 entries</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🔗 Cross-Workspace Dependency Graph</h3>
+                <p class="tag">UI/DashboardView.cs + Core/WorkspaceManager.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Citizen similarity links: semi-transparent white lines drawn between citizens with &gt;0% similarity</li>
+                    <li>Hovered links highlight in yellow with similarity percentage tooltip</li>
+                    <li>Trade route lines: colored lines between workspaces with moving packet circles</li>
+                    <li><code>ComputeCrossWorkspaceSimilarity()</code> — Levenshtein-based namespace comparison</li>
+                    <li>Red conflict arcs for duplicate namespaces across workspace boundaries</li>
+                    <li>All links drawn in world space, clipped to camera view</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📋 Overlap/Duplication Detector</h3>
+                <p class="tag">Core/WorkspaceManager.cs — ComputeCrossWorkspaceSimilarity()</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Namespace-level Levenshtein distance comparison across all workspace pairs</li>
+                    <li>Similarity score = 1.0 - (distance / max_length)</li>
+                    <li>Pairs result grouped by workspace pair, averaged over all namespace combinations</li>
+                    <li>High-similarity pairs flagged in radar view and dependency graph</li>
+                    <li>Duplication events logged to timeline when similarity exceeds threshold</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🏛️ Commons Zone</h3>
+                <p class="tag">Architecture/ProjectHouse.cs — IsCommons property</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><code>IsCommons</code> boolean flag on each ProjectHouse</li>
+                    <li>Visual badge: cyan-colored label and house outline when toggled on</li>
+                    <li>Right-click context menu: "Toggle Commons" (free action, -0W)</li>
+                    <li>Commons houses are read-only: no decay, no modification through standard refactoring</li>
+                    <li>Use case: shared library projects that shouldn't be refactored</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🛠️ In-Game Refactoring</h3>
+                <p class="tag">UI/DashboardView.cs — HandleContextMenuInput()</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Right-click a house or citizen to open context menu (right-side panel)</li>
+                    <li><strong>House actions</strong>: Rename (-20 Wealth), Split (-30 Wealth, divides files evenly), Merge (-10 Wealth, combines into target house), Toggle Commons (free), Upgrade tier (Gold cost)</li>
+                    <li><strong>Citizen actions</strong>: Gift files (transfer homeless to another citizen), Retire (remove from simulation)</li>
+                    <li>All actions log to timeline with resource costs</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>⚙️ Directive Configuration</h3>
+                <p class="tag">Core/SovereignState.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Per-workspace <code>uint directiveMask</code> bitmask (16 bits available)</li>
+                    <li><code>Dictionary&lt;string, double&gt; directiveWeights</code> for configurable penalty severity</li>
+                    <li>Default weights: telemetry_penalty=5.0, license_penalty=2.0, eval_penalty=8.0, unsafe_penalty=4.0</li>
+                    <li><code>GetDirectiveMask()</code> / <code>SetDirectiveBit(bit, enabled)</code> for toggle</li>
+                    <li><code>GetWeightedPenalty(patternType)</code> returns configured weight or 5.0 default</li>
+                    <li>Serialized in save files for persistence across sessions</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🌗 Phase Transition Animation</h3>
+                <p class="tag">Simulation/TimePhaseController.cs — UpdateTransition()</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>1.5-second smooth crossfade between day and night color palettes</li>
+                    <li><code>LerpColor(Color day, Color night)</code> interpolates each RGBA channel</li>
+                    <li>Stars render during transition (progress &gt; 30%) with twinkle effect</li>
+                    <li>Citizens animate toward their home house positions during night transition</li>
+                    <li>Clock hand sweeps 180° on the Juul wheel</li>
+                    <li>Transition locks all gameplay: no decay, threats, or production during fade</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TIER 3 ADVANCED ========== -->
+    <div id="tab-tier3" class="tab-content">
+        <div class="section">
+            <div class="section-title">⚔️ Tier 3 — 6 Advanced Systems</div>
+            <p>Six advanced systems that add combat, progression, economics, and external integration: CVE threat simulation, tech tree upgrades, GeckoShift treasure, citizen skill progression, inter-workspace trade routes, and CI event webhook.</p>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h3>🚨 CVE Threat Controller</h3>
+                <p class="tag">Simulation/ThreatController.cs (243 lines)</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Named CVE-style threats (CVE-2024-3094, CVE-2025-5678, etc.) spawn from screen edges</li>
+                    <li>4 severity tiers: Low (5 HP), Medium (12 HP), High (25 HP), Critical (50 HP)</li>
+                    <li>Spawn interval: starts at 12s, accelerates by 0.3s per spawn down to 4s floor</li>
+                    <li>Error-state houses are 60% likely targets (vs random otherwise)</li>
+                    <li>Militia intercept: left-click within 50px radius to deal damage</li>
+                    <li>Base damage: 10; specialist damage (Archivist/Sentinel/Jurist): 15</li>
+                    <li>Victory rewards: Gold (5–60) + Wealth (2–30) + 2% Sovereignty per tier</li>
+                    <li>Defeat penalties: Food (10–30) + Wealth (5–17) loss, 3–7 sovereignty loss, file corruption (+1 error per severity level)</li>
+                    <li>Visual: colored circles (green→yellow→orange→red), HP tooltip, target lines to houses</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🏗️ Tech Tree / House Upgrades</h3>
+                <p class="tag">Architecture/ProjectHouse.cs — UpgradeTier enum</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><strong>UpgradeTier</strong>: Hamlet=0, Village=1, Town=2, Citadel=3</li>
+                    <li>Gold costs: Hamlet→Village: 30G, Village→Town: 75G, Town→Citadel: 150G</li>
+                    <li>Bounding box: 120×90 → 150×110 → 180×130 → 220×160</li>
+                    <li>MaxTrackedFiles: 5 → 10 → 20 → 50</li>
+                    <li>PassiveResourceBonus: 0% → 10% → 25% → 50%</li>
+                    <li>CollapseTimerMultiplier: 1× → 1.5× → 2× → 3×</li>
+                    <li>Right-click context menu: "Upgrade to NEXT (-COSTG)"</li>
+                    <li>Downgrade protection: <code>(int)to &lt;= (int)Tier</code> prevents decreasing tier</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>💎 GeckoShift Backyard Treasure</h3>
+                <p class="tag">Architecture/ProjectHouse.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Treasure chest spawns on houses that are: <strong>Green state</strong> + <strong>Citadel tier</strong></li>
+                    <li><code>HasBackyardTreasure</code> flag and <code>PendingArtifactPath</code> for pipeline integration</li>
+                    <li><code>IsTreasureBeingDragged</code> flag for drag interaction</li>
+                    <li>Left-click drag: click on treasure, hold mouse button, drag toward screen center</li>
+                    <li>Central trove: 50px radius around screen center (converted to world coordinates)</li>
+                    <li>Delivery reward: +25 Gold, +10 Wealth</li>
+                    <li>Log message: "Treasure deposited to central trove! +25g +10w"</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📈 Citizen Skill Progression</h3>
+                <p class="tag">Core/SovereignState.cs — Citizen class</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>XP field on each Citizen, accumulated via <code>AddXP(int amount)</code></li>
+                    <li>100 XP → <strong>Archivist</strong> (RoleType 6), bonus damage vs threats (+5)</li>
+                    <li>250 XP → <strong>Sentinel</strong> (RoleType 7), additional bonus (+10 total)</li>
+                    <li>500 XP → <strong>Jurist</strong> (RoleType 8), maximum bonus (+15 total)</li>
+                    <li>XP gained per compliant line contributed to the state</li>
+                    <li>Specialization displayed in tooltip with badge color</li>
+                    <li>Higher specialization unlocks additional context menu actions</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🚚 Inter-Workspace Trade Routes</h3>
+                <p class="tag">Core/WorkspaceManager.cs + Core/SovereignState.cs</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><code>TradeRoute</code> class: Name, FromWorkspace, ToWorkspace, Progress (0→1), Efficiency (1–5×)</li>
+                    <li>Efficiency formula: <code>1 + shared_namespace_count × 0.5</code>, capped at 5×</li>
+                    <li>Visual: colored line between workspace house clusters + moving packet circle</li>
+                    <li>Packet position interpolated via <code>PacketX/Y = lerp(fromCenter, toCenter, Progress)</code></li>
+                    <li>Delivery each tick: food = eff×3, wealth = eff×2</li>
+                    <li>Routes severed on Error state: <code>CheckTradeRouteStatus()</code> runs each year tick</li>
+                    <li><code>EstablishTradeRoute(from, to)</code> auto-checks Error state on creation</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🌐 CI Event Webhook</h3>
+                <p class="tag">Infrastructure/EventWebhook.cs (~120 lines)</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li>Lightweight <code>HttpListener</code> on port 8176 (no ASP.NET dependency)</li>
+                    <li>POST <code>/</code> endpoint accepts JSON body with fields: <code>build_status</code> (success/failure), <code>event</code> (save/editor_save), <code>file</code></li>
+                    <li><strong>CI success</strong> → +5 sovereignty, +20 Wealth</li>
+                    <li><strong>CI failure</strong> → -10 sovereignty, -15 Wealth</li>
+                    <li><strong>Editor save event</strong> → +5 Food</li>
+                    <li>All effects logged to timeline and log queue</li>
+                    <li>Status indicator: <span class="key">WEBHOOK: :8176</span> or <span class="key">WEBHOOK: OFF</span></li>
+                    <li>Started in <code>Program.cs Main()</code>, disposed on shutdown</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ENDGAME v2.0.0 TAB ========== -->
+    <div id="tab-endgame" class="tab-content">
+        <div class="section">
+            <div class="section-title purple">🏁 Endgame v2.0.0 — New Systems</div>
+            <p>Four new major systems that transform the Oera Linda Simulator into a complete moddable dev ecosystem with git-lifeline mechanics, shareable reports, scripting hooks, and community scoreboards.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="card purple-brd">
+                <h3>🔀 Git Integration Engine</h3>
+                <p class="tag tag-purple">Simulation/GitIntegrationEngine.cs</p>
+                <p>Git as a <strong>core game mechanic</strong> — every git operation has a direct simulation consequence:</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><span class="key">G</span> — <strong>Commit</strong>: advances the game year by 1, adds sovereignty, logs to timeline</li>
+                    <li><span class="key">Ctrl+B</span> — <strong>Branch</strong>: forks a parallel workspace with independent sovereign state</li>
+                    <li><span class="key">Ctrl+M</span> — <strong>Merge</strong>: spawns 1–3 merge conflicts between citizens. Clean merge = +3 sovereignty</li>
+                    <li><span class="key">Ctrl+R</span> — <strong>Rebase</strong>: time-travel rewind, -2 sovereignty per year displaced</li>
+                    <li><strong>Conflicts</strong>: two citizens fight over a file. Unresolved after 30s → both citizens decay (60s timer), -5 sovereignty</li>
+                    <li>Click conflict label in the overlay to resolve manually</li>
+                    <li>15% chance of spontaneous conflict per non-main commit</li>
+                    <li>Conflicts displayed as color-coded overlay lines (gold → red as timer expires)</li>
+                </ul>
+            </div>
+
+            <div class="card purple-brd">
+                <h3>📊 Project Health Report Export</h3>
+                <p class="tag tag-purple">Core/ReportGenerator.cs</p>
+                <p>Generate comprehensive project health reports in two formats — shareable with your team without running the simulation:</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><strong>HTML report</strong> (<span class="key">H</span>): dark-themed styled page with sovereignty, resource ledger, citizen roster, houses/build states, directive violations table, year-over-year activity chart</li>
+                    <li><strong>Markdown report</strong> (<span class="key">R</span>): portable plain-text format, same data</li>
+                    <li>Sovereignty score color-coded: green (≥70%), gold (≥40%), red (&lt;40%)</li>
+                    <li>Saved to <code>reports/</code> directory with timestamp filenames</li>
+                    <li>UI buttons: REPORT / MD REP in bottom toolbar</li>
+                </ul>
+            </div>
+
+            <div class="card purple-brd">
+                <h3>🧩 Scripting API / Mod Hooks</h3>
+                <p class="tag tag-purple">Infrastructure/ModLoader.cs</p>
+                <p>Full modding surface with zero new NuGet dependencies — uses <code>AssemblyLoadContext</code> for clean isolation:</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><strong>IMod interface</strong> with 6 lifecycle hooks:
+                        <ul>
+                            <li><code>OnLoad(SovereignState)</code> — initialize mod state</li>
+                            <li><code>OnYearTick(int year)</code> — react to year changes</li>
+                            <li><code>OnFileAnalyzed(filePath, result)</code> — intercept analysis</li>
+                            <li><code>OnModifyResources(ref ResourcePack)</code> — adjust resource flow</li>
+                            <li><code>OnSovereigntyChange(ref double, string)</code> — modify sovereignty deltas</li>
+                            <li><code>OnDispose()</code> — cleanup on shutdown</li>
+                        </ul>
+                    </li>
+                    <li>Loads all <code>.dll</code> files from <code>/mods</code> directory at startup</li>
+                    <li>Collectible assemblies for future hot-reload</li>
+                    <li>Error isolation: one mod's exception never crashes others or the engine</li>
+                    <li>Status indicator: <span class="key">MODS: 2 ok, 0 fail</span></li>
+                </ul>
+            </div>
+
+            <div class="card purple-brd">
+                <h3>🏆 Optional Community Scoreboard</h3>
+                <p class="tag tag-purple">Infrastructure/ScoreboardService.cs</p>
+                <p>Strictly opt-in, no telemetry by default. Self-certifying signed score tokens:</p>
+                <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                    <li><strong>ScoreToken</strong> contains: player name, year, sovereignty, language purity, total compliant lines, citizen count, house count, total wealth, total food</li>
+                    <li><strong>SHA256 signature</strong>: self-certifying — no server required for verification</li>
+                    <li><strong>Export</strong> (<span class="key">Ctrl+F</span> or SCORE button): saves JSON token to <code>scoreboard/</code> directory</li>
+                    <li><strong>Submit</strong>: <code>SubmitToLeaderboard()</code> POSTs to configurable URL (disabled by default)</li>
+                    <li><strong>Verify</strong>: <code>VerifyToken(json)</code> validates signature without network</li>
+                    <li>Zero server-side tracking — the score is self-certifying</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title purple">❓ Contextual Help Overlay</div>
+            <div class="grid-2">
+                <div class="card purple-brd">
+                    <h3>Press <span class="key">/</span> anytime</h3>
+                    <p>Opens a full-screen overlay listing every keyboard shortcut, automatically filtered to show only what's available in the current game state:</p>
+                    <ul style="margin-left:1.2rem; margin-top:0.5rem; color:#b0b8c5; font-size:0.9rem;">
+                        <li>Groups: GENERAL, REPORTS & SCOREBOARD, GIT COMMANDS, CAMERA & NAVIGATION, CODE REVIEW TRIBUNAL, SELECTED CITIZEN, SELECTED HOUSE, NIGHTTIME MODE, TIMELINE</li>
+                        <li><strong>Git commands</strong> hidden during nighttime (locked phase)</li>
+                        <li><strong>Tribunal</strong> keys only shown when tribunal dialog is active</li>
+                        <li><strong>Citizen/House</strong> sections only appear when a citizen or house is selected</li>
+                        <li><strong>Nighttime mode</strong> tips only during night phase</li>
+                        <li>Dismiss with <span class="key">/</span> again or click outside the box</li>
+                    </ul>
+                </div>
+                <div class="card purple-brd">
+                    <h3>Complete Shortcut Reference</h3>
+                    <table class="law-table">
+                        <thead><tr><th>Key</th><th>Action</th><th>Availability</th></tr></thead>
+                        <tbody>
+                            <tr><td><span class="key">TAB</span></td><td>Toggle day/night</td><td>Always</td></tr>
+                            <tr><td><span class="key">S</span></td><td>Quick save</td><td>Always</td></tr>
+                            <tr><td><span class="key">L</span></td><td>Load latest save</td><td>Always</td></tr>
+                            <tr><td><span class="key">W</span></td><td>Cycle workspace</td><td>Always</td></tr>
+                            <tr><td><span class="key">/</span></td><td>Toggle help overlay</td><td>Always</td></tr>
+                            <tr><td><span class="key">H</span></td><td>HTML health report</td><td>Always</td></tr>
+                            <tr><td><span class="key">R</span></td><td>Markdown health report</td><td>Always</td></tr>
+                            <tr><td><span class="key">Ctrl+F</span></td><td>Export score token</td><td>Always</td></tr>
+                            <tr><td><span class="key">G</span></td><td>Git commit</td><td>Daytime + git active</td></tr>
+                            <tr><td><span class="key">Ctrl+B</span></td><td>Git branch</td><td>Daytime + git active</td></tr>
+                            <tr><td><span class="key">Ctrl+M</span></td><td>Git merge</td><td>Daytime + git active</td></tr>
+                            <tr><td><span class="key">Ctrl+R</span></td><td>Git rebase</td><td>Daytime + git active</td></tr>
+                            <tr><td><span class="key">A</span></td><td>Accept tribunal file</td><td>Tribunal open</td></tr>
+                            <tr><td><span class="key">B</span></td><td>Dismiss tribunal</td><td>Tribunal open</td></tr>
+                            <tr><td><span class="key">E</span></td><td>Export timeline</td><td>Timeline expanded</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title purple">📋 v2.0.0 Technical Details</div>
+            <div class="grid-2">
+                <div class="card purple-brd">
+                    <h3>New Source Files</h3>
+                    <ul style="margin-left:1.2rem; color:#b0b8c5; font-size:0.9rem;">
+                        <li><code>Simulation/GitIntegrationEngine.cs</code> — ~280 lines</li>
+                        <li><code>Core/ReportGenerator.cs</code> — ~180 lines</li>
+                        <li><code>Infrastructure/ModLoader.cs</code> — ~180 lines</li>
+                        <li><code>Infrastructure/ScoreboardService.cs</code> — ~130 lines</li>
+                    </ul>
+                </div>
+                <div class="card purple-brd">
+                    <h3>Key Design Decisions</h3>
+                    <ul style="margin-left:1.2rem; color:#b0b8c5; font-size:0.9rem;">
+                        <li><strong>Git is a simulation</strong>, not real git CLI — branches map to workspaces, commits map to year ticks</li>
+                        <li><strong>Mods use AssemblyLoadContext</strong> — zero new NuGet dependencies, clean isolation</li>
+                        <li><strong>Score tokens are self-certifying</strong> — no server needed, purely opt-in</li>
+                        <li><strong>Reports are static files</strong> — shareable without running the sim, zero runtime dependency</li>
+                        <li><strong>Help overlay is state-aware</strong> — only shows relevant shortcuts for current context</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Oera Linda Simulator v2.0.0 — built with .NET 8, Raylib-CsLo, and the spirit of the Juul. 🜄  Frya's lamp never extinguishes.</p>
+        <p>Part of the <strong>VAN_Engine</strong> ecosystem – offline first, zero telemetry, absolute sovereignty.</p>
+        <p style="margin-top: 0.5rem; color: #4a5080;">8,200+ lines of C# · 19 source files · 4 tiers · Endgame v2.0.0</p>
+    </footer>
+</div>
+
+<!-- MODAL FOR CODE POPUP -->
+<div id="codeModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <pre id="modalCode" style="font-family: monospace; white-space: pre-wrap; margin:0;"></pre>
+    </div>
+</div>
+
+<script>
+    // tab switching
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            tabs.forEach(b => b.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        });
+    });
+
+    // modal popup for code snippets
+    const modal = document.getElementById('codeModal');
+    const modalCode = document.getElementById('modalCode');
+    const closeSpan = document.getElementsByClassName('close')[0];
+
+    document.querySelectorAll('.clickable-code').forEach(el => {
+        el.addEventListener('click', (e) => {
+            const code = el.getAttribute('data-code');
+            if (code) {
+                modalCode.innerText = code;
+                modal.style.display = 'block';
+            }
+        });
+    });
+
+    closeSpan.onclick = () => modal.style.display = 'none';
+    window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
+</script>
+</body>
+</html>

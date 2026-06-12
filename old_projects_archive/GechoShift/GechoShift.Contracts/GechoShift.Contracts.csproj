@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>GechoShift.Contracts</RootNamespace>
-    <AssemblyName>GechoShift.Contracts</AssemblyName>
-  </PropertyGroup>
-</Project>

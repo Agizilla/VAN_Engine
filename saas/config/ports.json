@@ -1,0 +1,8 @@
+{
+  "_comment": "Single source of truth for all service ports. Services read from here — never hardcode.",
+  "clawdia_bridge": 55555,
+  "voice_server": 8888,
+  "saas_transposer": 9999,
+  "ide_api": 44444,
+  "ide_monitor_ws": 8765
+}
