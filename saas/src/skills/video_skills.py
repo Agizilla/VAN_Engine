@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .base import BaseSkill, register_skill
-from ..tools.master_skills.videoSkill import VideoSkill
+from tools.master_skills.videoSkill import VideoSkill
 
 _video = VideoSkill()
 
@@ -266,7 +266,7 @@ class VideoWebcamSkill(BaseSkill):
     description = "Capture a single frame from webcam"
     category = "video"
     def execute(self, **kwargs) -> dict:
-        from ..tools.master_skills.videoSkill import WebcamCapture
+        from tools.master_skills.videoSkill import WebcamCapture
         cam = WebcamCapture(kwargs.get("camera_id", 0))
         frame = cam.capture_frame()
         output = Path(kwargs.get("output", "")) if kwargs.get("output") else Path("webcam_capture.jpg")
@@ -281,5 +281,5 @@ class VideoInfoSkill(BaseSkill):
     description = "Get video skill metadata and capabilities"
     category = "video"
     def execute(self, **kwargs) -> dict:
-        from ..tools.master_skills.videoSkill import __meta__
+        from tools.master_skills.videoSkill import __meta__
         return {"result": __meta__}

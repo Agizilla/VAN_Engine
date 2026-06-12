@@ -1,12 +1,15 @@
 """GitHub Bridge — versioned, auditable agent-repo interaction layer.
 
 Actions:
-  commit        — Write content to a file in the repo and push
-  create_pr     — Open a pull request
-  list_issues   — Query open issues with optional label filter
-  list_forks    — Enumerate forks of the repo
-  repo_status   — Summary of repo state (branch, SHA, desc)
-  create_repo   — Initialize repo on GitHub if it doesn't exist
+  commit          — Write content to a file in the repo and push
+  create_pr       — Open a pull request
+  list_issues     — Query open issues with optional label filter
+  list_forks      — Enumerate forks of the repo
+  repo_status     — Summary of repo state (branch, SHA, desc)
+  create_repo     — Initialize repo on GitHub if it doesn't exist
+  repo_info       — Detailed repo metadata (stars, forks, topics, language, etc.)
+  repo_search     — Search GitHub repositories by query string
+  repo_read_file  — Read a file from a repo with optional ref
 
 Uses `gh` CLI (must be authenticated). Falls back to direct API calls with token.
 """
@@ -66,7 +69,7 @@ class GitHubBridgeSkill(BaseSkill):
         "properties": {
             "action": {
                 "type": "string",
-                "enum": ["commit", "create_pr", "list_issues", "list_forks", "repo_status", "create_repo"],
+                "enum": ["commit", "create_pr", "list_issues", "list_forks", "repo_status", "create_repo", "repo_info", "repo_search", "repo_read_file"],
                 "description": "GitHub operation to perform",
             },
             "repo": {
@@ -139,6 +142,23 @@ class GitHubBridgeSkill(BaseSkill):
                 "description": "Repo visibility (create_repo)",
                 "default": "public",
             },
+            "query": {
+                "type": "string",
+                "description": "Search query for repos (repo_search action)",
+                "default": "",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Max search results (repo_search action)",
+                "default": 10,
+                "minimum": 1,
+                "maximum": 100,
+            },
+            "ref": {
+                "type": "string",
+                "description": "Git ref (branch/commit) for reading file (repo_read_file)",
+                "default": "main",
+            },
         },
         "required": ["action"],
     }
@@ -173,6 +193,9 @@ class GitHubBridgeSkill(BaseSkill):
             "list_forks": self._list_forks,
             "repo_status": self._repo_status,
             "create_repo": self._create_repo,
+            "repo_info": self._repo_info,
+            "repo_search": self._repo_search,
+            "repo_read_file": self._repo_read_file,
         }
 
         handler = handlers.get(action)
@@ -347,4 +370,111 @@ class GitHubBridgeSkill(BaseSkill):
             "message": f"Created {repo}",
             "created": True,
             "url": result.get("html_url", ""),
+        }
+
+    def _repo_info(self, repo: str, **kwargs) -> dict:
+        raw = _gh(["api", f"/repos/{repo}"])
+        return {
+            "full_name": raw.get("full_name"),
+            "description": raw.get("description", ""),
+            "default_branch": raw.get("default_branch", "main"),
+            "visibility": raw.get("visibility", "public"),
+            "open_issues": raw.get("open_issues_count", 0),
+            "stars": raw.get("stargazers_count", 0),
+            "forks": raw.get("forks_count", 0),
+            "topics": raw.get("topics", []),
+            "language": raw.get("language", ""),
+            "license": raw.get("license", {}).get("spdx_id", "") if raw.get("license") else "",
+            "size_kb": raw.get("size", 0),
+            "created_at": raw.get("created_at", ""),
+            "pushed_at": raw.get("pushed_at", ""),
+            "updated_at": raw.get("updated_at", ""),
+            "url": raw.get("html_url", ""),
+            "has_issues": raw.get("has_issues", False),
+            "has_wiki": raw.get("has_wiki", False),
+            "has_pages": raw.get("has_pages", False),
+            "archived": raw.get("archived", False),
+            "disabled": raw.get("disabled", False),
+        }
+
+    def _repo_search(self, repo: str, **kwargs) -> dict:
+        query = kwargs.get("query", "").strip()
+        limit = kwargs.get("limit", 10)
+
+        if not query:
+            raise RuntimeError("query is required for repo_search action")
+
+        args = [
+            "search", "repos", query,
+            "--limit", str(limit),
+            "--json", "name,owner,description,url,stargazersCount,forkCount,language,updatedAt,topics,isPrivate,isArchived",
+        ]
+
+        raw = _gh(args)
+        items = raw if isinstance(raw, list) else []
+        repos = []
+        for item in items:
+            repos.append({
+                "name": item.get("name"),
+                "owner": item.get("owner", {}).get("login") if isinstance(item.get("owner"), dict) else "",
+                "description": item.get("description", ""),
+                "url": item.get("url", ""),
+                "stars": item.get("stargazersCount", 0),
+                "forks": item.get("forkCount", 0),
+                "language": item.get("language", ""),
+                "topics": item.get("topics", []),
+                "updated_at": item.get("updatedAt", ""),
+                "private": item.get("isPrivate", False),
+                "archived": item.get("isArchived", False),
+            })
+
+        return {"count": len(repos), "repos": repos, "query": query}
+
+    def _repo_read_file(self, repo: str, **kwargs) -> dict:
+        path = kwargs.get("path", "").strip()
+        ref = kwargs.get("ref", "main").strip()
+
+        if not path:
+            raise RuntimeError("path is required for repo_read_file action")
+
+        try:
+            raw = _gh([
+                "api", f"/repos/{repo}/contents/{path}",
+                "--method", "GET",
+                "--field", f"ref={ref}",
+            ])
+        except RuntimeError as e:
+            if "Not Found" in str(e) or "404" in str(e):
+                raise RuntimeError(f"File '{path}' not found in {repo}@{ref}")
+            raise
+
+        if isinstance(raw, list):
+            return {
+                "path": path,
+                "ref": ref,
+                "type": "directory",
+                "entries": [{
+                    "name": e.get("name"),
+                    "type": e.get("type"),
+                    "path": e.get("path"),
+                    "size": e.get("size", 0),
+                } for e in raw],
+            }
+
+        content_b64 = raw.get("content", "")
+        import base64
+        decoded = ""
+        try:
+            decoded = base64.b64decode(content_b64).decode("utf-8")
+        except Exception:
+            decoded = f"[base64 encoded, {len(content_b64)} chars]"
+
+        return {
+            "path": path,
+            "ref": ref,
+            "type": raw.get("type", "file"),
+            "size": raw.get("size", 0),
+            "sha": raw.get("sha", ""),
+            "encoding": raw.get("encoding", ""),
+            "content": decoded,
         }

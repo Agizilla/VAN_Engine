@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any
 import numpy as np
 from .base import BaseSkill, register_skill
-from ..tools.master_skills.imageSkill import ImageSkill, resize_to_square, detect_face_in_image
+from tools.master_skills.imageSkill import ImageSkill, resize_to_square, detect_face_in_image
 
 _img: ImageSkill | None = None
 
@@ -177,7 +177,7 @@ class VisionInpaintSkill(BaseSkill):
         if invert:
             result = _get_img().inpaint(img, mask, prompt)
         else:
-            from ..tools.master_skills.imageSkill import Inpainter
+            from tools.master_skills.imageSkill import Inpainter
             inpainter = Inpainter()
             result = inpainter.fill_background(img, mask, prompt)
         output = Path(kwargs.get("output", "")) if kwargs.get("output") else Path(path).parent / f"inpainted_{Path(path).name}"
@@ -233,7 +233,7 @@ class VisionSwapSkill(BaseSkill):
         tgt_img = _load_image(target)
         if src_img is None or tgt_img is None:
             return {"error": "Could not load source or target image"}
-        from ..tools.master_skills.imageSkill import FaceSwapper
+            from tools.master_skills.imageSkill import FaceSwapper
         swapper = FaceSwapper()
         result = swapper.swap(src_img, tgt_img)
         output = Path(kwargs.get("output", "")) if kwargs.get("output") else Path(target).parent / f"swapped_{Path(target).name}"
@@ -248,5 +248,5 @@ class VisionInfoSkill(BaseSkill):
     description = "Get image skill metadata and capabilities"
     category = "vision"
     def execute(self, **kwargs) -> dict:
-        from ..tools.master_skills.imageSkill import __meta__
+        from tools.master_skills.imageSkill import __meta__
         return {"result": __meta__}

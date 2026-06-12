@@ -8,17 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-_skills_base = Path(__file__).resolve().parent / "base.py"
-if _skills_base.exists():
-    spec = importlib.util.spec_from_file_location("skills.base", str(_skills_base))
-    base_mod = importlib.util.module_from_spec(spec)
-    sys.modules["skills.base"] = base_mod
-    spec.loader.exec_module(base_mod)
-    BaseSkill = base_mod.BaseSkill
-    register_skill = base_mod.register_skill
-    SkillContext = base_mod.SkillContext
-else:
-    from .base import BaseSkill, register_skill, SkillContext
+from .base import BaseSkill, register_skill, SkillContext
 
 MEMES_DIR = Path(__file__).resolve().parents[1] / "artifacts" / "humor"
 STATE_PATH = MEMES_DIR / "detector_state.json"

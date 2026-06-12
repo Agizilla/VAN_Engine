@@ -47,13 +47,75 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:.25rem;color:#f0f6fc}
 
 <div id="statusBar"></div>
 
-<input type="text" id="endpoint-input" placeholder="Server URL (e.g. http://127.0.0.1:8001)" spellcheck="false">
+<div class="tabs" style="display:flex;gap:4px;margin-bottom:1rem;border-bottom:1px solid #21262d;padding-bottom:0">
+  <button class="tab-btn active" data-tab="hooks" style="background:#161b22;color:#e6edf3;border:1px solid #30363d;border-bottom:none;border-radius:8px 8px 0 0;padding:.5rem 1.2rem;cursor:pointer;font-weight:600">HOOKS</button>
+  <button class="tab-btn" data-tab="optimiser" style="background:transparent;color:#8b949e;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;padding:.5rem 1.2rem;cursor:pointer;font-weight:600">✨ OPTIMISER</button>
+</div>
 
-<input type="text" id="search" class="search" placeholder="Filter hooks by name or description…" oninput="filterHooks()">
+<div id="tab-hooks" class="tab-panel">
+  <input type="text" id="endpoint-input" placeholder="Server URL (e.g. http://127.0.0.1:8001)" spellcheck="false">
+  <input type="text" id="search" class="search" placeholder="Filter hooks by name or description…" oninput="filterHooks()">
+  <div id="menu"></div>
+</div>
 
-<div id="menu"></div>
+<div id="tab-optimiser" class="tab-panel" style="display:none">
+  <h2 style="color:#79c0ff;font-size:1.3rem;margin-bottom:.5rem">Prompt Optimiser</h2>
+  <p style="color:#8b949e;margin-bottom:1rem">Inject Base64 Algorithm context into your prompts. The algorithm stays server-side, never exposed to client.</p>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px">
+      <label style="display:block;font-weight:600;margin-bottom:4px;font-size:.9rem">Original Prompt:</label>
+      <textarea id="optimiser-input" rows="10" style="width:100%;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:.5rem .75rem;font-family:'JetBrains Mono',monospace;font-size:.82rem;resize:vertical" placeholder="Enter your prompt here..."></textarea>
+      <button id="optimise-btn" style="margin-top:10px;padding:.6rem 1.5rem;background:#238636;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:.95rem;cursor:pointer">✨ Optimise & Copy</button>
+    </div>
+    <div style="flex:1;min-width:280px">
+      <label style="display:block;font-weight:600;margin-bottom:4px;font-size:.9rem">Optimised Prompt:</label>
+      <div id="optimiser-output" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:.75rem;font-family:'JetBrains Mono',monospace;font-size:.82rem;white-space:pre-wrap;min-height:200px;color:#e6edf3"></div>
+      <details style="margin-top:8px">
+        <summary style="cursor:pointer;color:#58a6ff;font-size:.85rem">Diff View</summary>
+        <pre id="optimiser-diff" style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:.75rem;margin-top:4px;color:#8b949e;font-size:.78rem;overflow-x:auto;max-height:300px"></pre>
+      </details>
+    </div>
+  </div>
+</div>
 
 <script>
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) {
+      b.style.background = 'transparent';
+      b.style.color = '#8b949e';
+    });
+    this.style.background = '#161b22';
+    this.style.color = '#e6edf3';
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.style.display = 'none'; });
+    document.getElementById('tab-' + this.dataset.tab).style.display = 'block';
+  });
+});
+
+// Optimiser
+document.getElementById('optimise-btn').addEventListener('click', async function() {
+  var input = document.getElementById('optimiser-input').value;
+  if (!input.trim()) { alert('Please enter a prompt'); return; }
+  var btn = this;
+  btn.disabled = true; btn.textContent = 'Optimising...';
+  var server = localStorage.getItem('saas_endpoint') || DEFAULT_SERVER;
+  try {
+    var resp = await fetch(server + '/api/optimise', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ prompt: input })
+    });
+    var data = await resp.json();
+    document.getElementById('optimiser-output').innerText = data.optimised;
+    document.getElementById('optimiser-diff').innerText = data.diff;
+    await navigator.clipboard.writeText(data.optimised);
+    alert('Optimised prompt copied to clipboard!');
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '✨ Optimise & Copy';
+});
+
 var DEFAULT_SERVER = 'http://127.0.0.1:8001';
 // If the HTML is served via http/https, dynamically default to that host origin instead of forcing port 8001
 if (window.location.protocol.startsWith('http')) {

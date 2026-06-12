@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from typing import Any
 from .base import BaseSkill, register_skill
-from ..tools.master_skills.prdSkill import PRDSkill
+from tools.master_skills.prdSkill import PRDSkill
 
 _prd = PRDSkill()
 _DEFAULT_ROOT = Path(__file__).parent.parent.parent.parent

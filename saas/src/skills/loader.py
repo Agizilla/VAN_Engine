@@ -1,6 +1,7 @@
 import importlib
+import importlib.util
 import inspect
-import pkgutil
+import sys
 import traceback
 from pathlib import Path
 from typing import Optional
@@ -27,16 +28,23 @@ class SkillLoader:
             return self._cache
 
         cap = detect_capabilities()
-        skills = []
+        seen: set[str] = set()
+        skills: list = []
 
         if self.skills_dir:
-            self._load_from_directory(self.skills_dir, cap, skills)
+            self._load_from_directory(self.skills_dir, cap, skills, seen)
 
         for name, info in get_registered_skills().items():
+            if name in seen:
+                continue
             cls = info["cls"]
-            skill_instance = cls()
-            if self._check_libs(skill_instance, cap):
-                skills.append(skill_instance)
+            try:
+                skill_instance = cls()
+                if self._check_libs(skill_instance, cap):
+                    skills.append(skill_instance)
+                    seen.add(name)
+            except Exception:
+                pass
 
         skill_key = lambda s: len(getattr(s, "required_libs", []))
         skills.sort(key=skill_key)
@@ -44,10 +52,11 @@ class SkillLoader:
         self._cache = skills
         return skills
 
-    def _load_from_directory(self, directory: str, cap, skills: list):
+    def _load_from_directory(self, directory: str, cap, skills: list, seen: set):
         path = Path(directory)
         if not path.exists():
             return
+        package_name = path.name
         for pyfile in sorted(path.glob("*.py")):
             if pyfile.name.startswith("_"):
                 continue
@@ -58,14 +67,29 @@ class SkillLoader:
                 continue
             self._loading_modules.add(mod_name)
             try:
-                spec = importlib.util.spec_from_file_location(mod_name, pyfile)
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                for name, obj in inspect.getmembers(mod, inspect.isclass):
+                full_name = f"{package_name}.{mod_name}"
+                if full_name in sys.modules:
+                    mod = sys.modules[full_name]
+                else:
+                    try:
+                        mod = importlib.import_module(full_name)
+                    except ImportError:
+                        spec = importlib.util.spec_from_file_location(mod_name, pyfile)
+                        mod = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(mod)
+                for _, obj in inspect.getmembers(mod, inspect.isclass):
                     if issubclass(obj, BaseSkill) and obj is not BaseSkill:
-                        instance = obj()
-                        if self._check_libs(instance, cap):
-                            skills.append(instance)
+                        try:
+                            instance = obj()
+                            sname = getattr(instance, "name", None) or getattr(obj, "name", None)
+                            if sname and sname in seen:
+                                continue
+                            if self._check_libs(instance, cap):
+                                skills.append(instance)
+                                if sname:
+                                    seen.add(sname)
+                        except Exception:
+                            pass
             except Exception as e:
                 self._log_import_error(pyfile, e)
             finally:
