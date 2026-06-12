@@ -22,6 +22,12 @@ def ui_menu(request: Request):
     return HTMLResponse(render_menu_page(skills))
 
 
+@router.get("/hooks/ui/learnings")
+async def ui_learnings(request: Request):
+    portal_path = Path(__file__).parent.parent / "static" / "learnings.html"
+    return HTMLResponse(portal_path.read_text(encoding="utf-8"))
+
+
 @router.get("/hooks/ui/portal")
 async def ui_portal(request: Request):
     portal_path = Path(__file__).parent.parent / "static" / "portal.html"

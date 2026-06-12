@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Learnings Registry</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:960px;margin:0 auto;padding:2rem 1.5rem}
+h1{font-size:1.8rem;font-weight:700;color:#f0f6fc;margin-bottom:.25rem}
+.subtitle{color:#8b949e;margin-bottom:1.5rem}
+.entry{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:1rem;margin-bottom:1rem}
+.entry h2{font-size:1.1rem;color:#79c0ff;margin-bottom:4px}
+.meta{font-size:.78rem;color:#8b949e;margin-bottom:.5rem}
+.meta span{margin-right:1rem}
+.entry ul{margin:.5rem 0;padding-left:1.2rem}
+.entry li{color:#e6edf3;font-size:.9rem;margin-bottom:3px;line-height:1.5}
+.behaviour{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:.6rem .8rem;margin-top:.5rem;font-size:.85rem;color:#8b949e;border-left:3px solid #3fb950}
+.tag{display:inline-block;font-size:.68rem;padding:1px 6px;border-radius:4px;background:#1f2937;color:#8b949e;margin:2px 3px 0 0}
+.badge{display:inline-block;padding:1px 8px;border-radius:12px;font-size:.7rem;font-weight:600;margin-right:4px}
+.badge.user{background:#1a3a2a;color:#3fb950}
+.badge.assistant{background:#1f2937;color:#58a6ff}
+.badge.architect{background:#2a1a4a;color:#b87aff}
+.error{padding:1rem;background:#3d1114;border:1px solid #da3633;color:#ffa198;border-radius:8px}
+</style></head><body>
+<h1>Learnings Registry</h1>
+<p class="subtitle" id="status">Loading...</p>
+<div id="entries"></div>
+<script>
+var S = window.location.origin;
+fetch(S+'/hooks/learnings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',limit:100})}).then(function(r){return r.json()}).then(function(d){
+  var entries=d.result&&d.result.entries?d.result.entries:[];
+  document.getElementById('status').textContent=entries.length+' entries';
+  var html='';
+  entries.forEach(function(e){
+    var a=e.author||{}; var an=a.name||'unknown'; var ar=a.role||'';
+    var bc=ar==='user'||ar==='Captain'?'user':ar==='Senior Architect'?'architect':'assistant';
+    var ls=e.learnings||[]; if(typeof ls==='string')ls=[ls];
+    var ts=e.tags||[]; if(typeof ts==='string')ts=[ts];
+    html+='<div class="entry"><h2>'+(e.task||'').substring(0,80)+'</h2>';
+    html+='<div class="meta"><span class="badge '+bc+'">'+an+'</span><span>'+(e.timestamp||'')+'</span><span>effort: '+(e.effort||'')+'</span></div><ul>';
+    html+=ls.map(function(l){var t=typeof l==='object'?l.learning||JSON.stringify(l):l;return '<li>'+t+'</li>';}).join('')+'</ul>';
+    if(e.adjusted_behaviour)html+='<div class="behaviour"><strong style="color:#3fb950">Adjusted Behaviour:</strong> '+e.adjusted_behaviour+'</div>';
+    html+='<div>'+ts.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div></div>';
+  });
+  document.getElementById('entries').innerHTML=html||'<p style="color:#8b949e">No entries.</p>';
+}).catch(function(e){
+  document.getElementById('status').textContent='Error';document.getElementById('entries').innerHTML='<div class="error">'+e.message+'</div>';
+});
+</script></body></html>

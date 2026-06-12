@@ -9,7 +9,7 @@ Endpoints:
 """
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -85,17 +85,29 @@ async def add_peer(req: PeerAddRequest):
     return {"status": "added", "peers": peers}
 
 
+def _is_duplicate(new_l: dict, existing: list[dict]) -> bool:
+    cutoff = datetime.now() - timedelta(days=7)
+    for ex in existing:
+        if ex.get("learning") != new_l.get("learning") or ex.get("author") != new_l.get("author"):
+            continue
+        ts_str = ex.get("timestamp")
+        if ts_str:
+            try:
+                if datetime.fromisoformat(ts_str) > cutoff:
+                    return True
+            except (ValueError, TypeError):
+                return True
+        else:
+            return True
+    return False
+
+
 @router.post("/receive")
 async def receive_gossip(req: GossipReceiveRequest):
+    existing = _list_learnings(limit=200)
     new_count = 0
-    existing = _list_learnings(limit=500)
     for learning in req.learnings:
-        dup = any(
-            l.get("learning") == learning.get("learning")
-            and l.get("author") == learning.get("author")
-            for l in existing
-        )
-        if dup:
+        if _is_duplicate(learning, existing):
             continue
         learning["gossip_source"] = req.sender
         learning["gossip_received"] = datetime.now(timezone.utc).isoformat()
