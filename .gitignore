@@ -61,6 +61,16 @@ espeak-ng/
 espeak-ng-bin/
 samples/
 
+# Large binary / media artifacts
+*.mp4
+*.mpeg
+*.avi
+*.mov
+*.mkv
+*.dat
+*.traineddata
+*.wasm
+
 # StyleTTS2 (cloned external)
 StyleTTS2/
 
