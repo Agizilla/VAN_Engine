@@ -1,0 +1,31 @@
+# VAN_Engine Bootstrap Configuration
+# ISO_019: Privacy by Default — all bridges disabled
+# ISO_020: Anti-Hallucination — enforced via drift gating
+
+version: 1.0
+
+engine:
+  name: VAN_Engine
+  root: ${PROJECT_ROOT}
+  log_level: info
+
+index:
+  path: memory/token_index.db
+  type: memory_mapped
+  size_mb: 365
+
+rules:
+  path: core/ISO_Rules.json
+  expected_count: 20
+
+bridges:
+  enabled: false  # ISO_019 enforced
+  allowed: []
+
+services:
+  log_dir: logs/
+  auto_start: true
+
+security:
+  iso_019_enforced: true
+  iso_020_enforced: true

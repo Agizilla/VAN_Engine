@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Living Code-Graph Explorer</title>
+    <style>
+        body { margin:0; overflow:hidden; font-family:'Inter',monospace; background:#0a0a1a; color:#eef; }
+        #controls { position:absolute; top:16px; left:16px; z-index:100; background:rgba(0,0,0,0.75); backdrop-filter:blur(8px); border-radius:16px; padding:10px 14px; display:flex; gap:8px; pointer-events:auto; }
+        button { background:#2c3e5a; border:1px solid #4f6f8f; color:white; padding:6px 14px; border-radius:40px; cursor:pointer; font-size:0.75rem; }
+        button.primary { background:#ff3366; border-color:#ff6699; }
+        #drag-overlay { position:fixed; inset:0; z-index:999; pointer-events:none; }
+        #drop-zone { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:20px; padding:10px 24px; border:2px dashed #ffaa33; pointer-events:auto; z-index:100; font-size:0.8rem; }
+        #status { position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.6); padding:6px 14px; border-radius:20px; font-size:0.7rem; pointer-events:none; z-index:100; }
+        .modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:1000; display:none; align-items:center; justify-content:center; }
+        .modal.active { display:flex; }
+        .modal-content { background:#1a1e2a; border-radius:24px; padding:20px; min-width:320px; max-width:500px; width:90%; }
+        .modal-content input, .modal-content button { margin:6px 0; padding:6px 10px; width:100%; box-sizing:border-box; }
+        .modal-content input { background:#2a2e3a; border:1px solid #4f6f8f; border-radius:12px; color:white; }
+        #execResult { margin-top:8px; font-size:0.7rem; background:#0a0a1a; border-radius:12px; padding:8px; max-height:200px; overflow:auto; }
+        .trace-slider { position:absolute; bottom:80px; left:15%; right:15%; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); border-radius:20px; padding:12px 16px; z-index:100; pointer-events:auto; display:none; }
+        .trace-slider.visible { display:block; }
+        .trace-slider input { width:100%; accent-color:#ff3366; }
+        .trace-slider .row { display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.7rem; gap:8px; }
+        .graph-legend { position:absolute; bottom:80px; left:16px; background:rgba(0,0,0,0.6); border-radius:12px; padding:8px 12px; font-size:0.65rem; z-index:100; pointer-events:none; }
+        .graph-legend span { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; }
+        .speed-btn { background:#1a2a3a; border:1px solid #4f6f8f; color:#889; padding:2px 10px; border-radius:12px; cursor:pointer; font-size:0.65rem; pointer-events:auto; }
+        .speed-btn.active { background:#ff3366; border-color:#ff6699; color:white; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="resetView">⟳ Reset View</button>
+        <button id="autoRotateToggle">⏸ Auto-Rotate</button>
+        <button id="uploadBtn">📁 Open .py</button>
+        <input type="file" id="fileInput" accept=".py" style="display:none">
+    </div>
+    <div id="drop-zone">📂 Drop a .py file to visualise its call graph</div>
+    <div id="drag-overlay"></div>
+    <div id="status">Ready</div>
+    <div class="graph-legend">
+        <div><span style="background:#ffaa66;"></span> Function node</div>
+        <div><span style="background:#66bb6a;"></span> Leaf (no calls)</div>
+        <div><span style="background:#ff6666;"></span> Missing dependency</div>
+    </div>
+    <div class="modal" id="execModal">
+        <div class="modal-content">
+            <h3 id="modalFuncName" style="margin:0 0 8px;"></h3>
+            <div id="modalParams"></div>
+            <button id="runExec" class="primary">▶ Run</button>
+            <button id="closeModal">Cancel</button>
+            <pre id="execResult"></pre>
+        </div>
+    </div>
+    <div class="trace-slider" id="traceSlider">
+        <input type="range" id="traceStep" min="0" max="0" value="0" step="1">
+        <div class="row">
+            <span>Step <span id="stepIdx">0</span>/<span id="stepMax">0</span></span>
+            <div style="display:flex;gap:6px;">
+                <button id="playTrace">▶ Play</button>
+                <button id="closeTrace">✖</button>
+            </div>
+        </div>
+        <div class="row" style="justify-content:center;gap:4px;">
+            <button class="speed-btn" data-speed="800">½×</button>
+            <button class="speed-btn active" data-speed="400">1×</button>
+            <button class="speed-btn" data-speed="150">2×</button>
+            <button class="speed-btn" data-speed="50">4×</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js" } }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        let scene, camera, renderer, labelRenderer, controls, nodesGroup, edgesGroup;
+        let graphData = null, sessionId = null;
+        let nodeObjects = new Map();
+        let edgeObjects = new Map();
+        let currentTrace = null, traceAnimation = null, playSpeed = 400;
+        let autoRotate = false;
+
+        // ---- Placeholders for future voice/chat/avatar ----
+        window.__voiceEnabled = false;
+        window.__avatarReady = false;
+        window.__chatHistory = [];
+        console.log('[LCGE] Voice/Avatar/Chat placeholders loaded');
+
+        // ---- Three.js ----
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a1a);
+            camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 10);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(innerWidth, innerHeight);
+            renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(innerWidth, innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0';
+            labelRenderer.domElement.style.left = '0';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            document.body.appendChild(labelRenderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.target.set(0, 0, 0);
+
+            nodesGroup = new THREE.Group();
+            edgesGroup = new THREE.Group();
+            scene.add(nodesGroup);
+            scene.add(edgesGroup);
+
+            const amb = new THREE.AmbientLight(0x404060);
+            scene.add(amb);
+            const dl = new THREE.DirectionalLight(0xffffff, 1.2);
+            dl.position.set(2, 4, 3);
+            scene.add(dl);
+            const fl = new THREE.PointLight(0x8855aa, 0.4);
+            fl.position.set(-2, 1, 2);
+            scene.add(fl);
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (autoRotate) {
+                const pivot = new THREE.Vector3(0, 0, 0);
+                const pos = camera.position.clone().sub(pivot);
+                pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.003);
+                camera.position.copy(pos.add(pivot));
+                camera.lookAt(0, 0, 0);
+            }
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // ---- Graph layout ----
+        function layoutGraph(functions) {
+            const names = Object.keys(functions);
+            const n = names.length;
+            const radius = Math.max(2.5, Math.min(9, n * 0.55));
+            const pos = {};
+            names.forEach((name, i) => {
+                const a = (i / n) * Math.PI * 2;
+                pos[name] = {
+                    x: Math.cos(a) * radius,
+                    y: Math.sin(a * 2) * 1.2,
+                    z: Math.sin(a) * radius
+                };
+            });
+            return pos;
+        }
+
+        // ---- Build 3D graph ----
+        function buildGraph(functions, imports) {
+            while (nodesGroup.children.length) nodesGroup.remove(nodesGroup.children[0]);
+            while (edgesGroup.children.length) edgesGroup.remove(edgesGroup.children[0]);
+            nodeObjects.clear();
+            edgeObjects.clear();
+
+            const pos = layoutGraph(functions);
+            const names = Object.keys(functions);
+
+            for (const name of names) {
+                const p = pos[name];
+                const info = functions[name];
+                const isLeaf = info.calls.length === 0;
+                const col = isLeaf ? 0x66bb6a : 0xffaa66;
+                const geo = new THREE.SphereGeometry(0.35, 20, 20);
+                const mat = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.1 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(p.x, p.y, p.z);
+                mesh.userData = { name, params: info.params, calls: info.calls, docstring: info.docstring, missing: false };
+                nodesGroup.add(mesh);
+
+                const div = document.createElement('div');
+                div.textContent = name;
+                div.style.cssText = 'color:#fff;font-size:12px;font-family:monospace;background:rgba(0,0,0,0.7);padding:2px 8px;border-radius:12px;border:1px solid #ffaa33;white-space:nowrap;';
+                const label = new CSS2DObject(div);
+                label.position.copy(mesh.position);
+                label.position.y += 0.5;
+                nodesGroup.add(label);
+                nodeObjects.set(name, { mesh, label, info });
+            }
+
+            for (const [name, info] of Object.entries(functions)) {
+                const from = pos[name];
+                if (!from) continue;
+                for (const call of info.calls) {
+                    const to = pos[call];
+                    if (!to) continue;
+                    const pts = [new THREE.Vector3(from.x, from.y, from.z), new THREE.Vector3(to.x, to.y, to.z)];
+                    const lineMat = new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.4 });
+                    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat);
+                    line.userData = { fromName: name, toName: call };
+                    edgesGroup.add(line);
+                    edgeObjects.set(`${name}->${call}`, line);
+                }
+            }
+
+            for (const [name, info] of Object.entries(functions)) {
+                for (const call of info.calls) {
+                    if (!functions[call]) {
+                        const obj = nodeObjects.get(name);
+                        if (obj) {
+                            obj.mesh.userData.missing = true;
+                            obj.mesh.material.color.setHex(0xff6666);
+                            obj.mesh.material.emissive.setHex(0xff3333);
+                            const ring = new THREE.Mesh(
+                                new THREE.SphereGeometry(0.42, 12, 12),
+                                new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, transparent: true, opacity: 0.4 })
+                            );
+                            obj.mesh.add(ring);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- File upload ----
+        async function uploadFile(file) {
+            const fd = new FormData();
+            fd.append('file', file);
+            const resp = await fetch('/upload', { method: 'POST', body: fd });
+            const data = await resp.json();
+            if (data.error) { document.getElementById('status').textContent = `Error: ${data.error}`; return; }
+            graphData = data.graph;
+            sessionId = data.session_id;
+            buildGraph(graphData.functions, graphData.imports);
+            document.getElementById('status').textContent = `Loaded ${Object.keys(graphData.functions).length} functions`;
+        }
+
+        // ---- Node click / execution ----
+        function onCanvasClick(event) {
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(nodesGroup.children, true);
+            if (hits.length) {
+                let obj = hits[0].object;
+                while (obj && !nodeObjects.has(obj.userData?.name)) obj = obj.parent;
+                if (obj?.userData?.name) showExecModal(obj.userData.name, obj.userData.params);
+            }
+        }
+
+        function showExecModal(funcName, params) {
+            const modal = document.getElementById('execModal');
+            document.getElementById('modalFuncName').textContent = funcName;
+            const pd = document.getElementById('modalParams');
+            pd.innerHTML = '';
+            params.forEach(p => {
+                const inp = document.createElement('input');
+                inp.placeholder = p;
+                inp.dataset.param = p;
+                pd.appendChild(inp);
+            });
+            modal.classList.add('active');
+            document.getElementById('runExec').onclick = async () => {
+                const args = Array.from(pd.querySelectorAll('input')).map(inp => {
+                    const v = inp.value;
+                    if (v === 'true') return true;
+                    if (v === 'false') return false;
+                    const n = Number(v);
+                    return isNaN(n) ? v : n;
+                });
+                const r = await execFunction(funcName, args);
+                document.getElementById('execResult').textContent = JSON.stringify(r, null, 2);
+                if (r.trace) showTraceSlider(r.trace);
+                modal.classList.remove('active');
+            };
+            document.getElementById('closeModal').onclick = () => modal.classList.remove('active');
+        }
+
+        async function execFunction(name, args) {
+            const resp = await fetch('/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId, function_name: name, args })
+            });
+            const data = await resp.json();
+            if (data.error) { document.getElementById('status').textContent = `Exec error: ${data.error}`; return { error: data.error }; }
+            return { result: data.result, trace: data.trace };
+        }
+
+        // ---- Trace slider ----
+        function getDefaultColor(obj) {
+            if (obj.mesh.userData.missing) return 0xff6666;
+            return obj.info.calls.length === 0 ? 0x66bb6a : 0xffaa66;
+        }
+
+        function resetAllHighlights() {
+            for (const [, obj] of nodeObjects) {
+                obj.mesh.material.emissiveIntensity = 0.1;
+                obj.mesh.material.color.setHex(getDefaultColor(obj));
+            }
+            for (const [, line] of edgeObjects) {
+                line.material.opacity = 0.4;
+                line.material.color.setHex(0x888888);
+            }
+        }
+
+        function highlightTrace(idx) {
+            const ev = currentTrace[idx];
+            if (!ev) return;
+            resetAllHighlights();
+
+            const obj = nodeObjects.get(ev.name);
+            if (obj) {
+                obj.mesh.material.emissiveIntensity = 1.0;
+                obj.mesh.material.color.setHex(0xff8888);
+                for (const call of obj.info.calls) {
+                    const key = `${ev.name}->${call}`;
+                    const line = edgeObjects.get(key);
+                    if (line) {
+                        line.material.opacity = 1.0;
+                        line.material.color.setHex(0xff8888);
+                    }
+                }
+            }
+            document.getElementById('status').textContent = `Step ${idx}: ${ev.type} ${ev.name} @ line ${ev.line}  |  ${obj ? obj.info.calls.join(', ') : '—'}`;
+        }
+
+        function flashCompletion() {
+            let flash = 0;
+            const flashId = setInterval(() => {
+                const bright = flash % 2 === 0;
+                for (const [, obj] of nodeObjects) {
+                    obj.mesh.material.emissiveIntensity = bright ? 0.6 : 0.1;
+                    obj.mesh.material.color.setHex(bright ? 0x66ff66 : getDefaultColor(obj));
+                }
+                flash++;
+                if (flash >= 6) { clearInterval(flashId); resetAllHighlights(); }
+            }, 150);
+        }
+
+        function showTraceSlider(trace) {
+            if (!trace?.length) return;
+            currentTrace = trace;
+            const sd = document.getElementById('traceSlider');
+            const si = document.getElementById('traceStep');
+            const playBtn = document.getElementById('playTrace');
+            si.max = trace.length - 1;
+            si.value = 0;
+            document.getElementById('stepMax').textContent = trace.length - 1;
+            si.oninput = () => { document.getElementById('stepIdx').textContent = si.value; highlightTrace(parseInt(si.value)); };
+            sd.classList.add('visible');
+
+            playBtn.onclick = () => {
+                if (traceAnimation) {
+                    clearInterval(traceAnimation);
+                    traceAnimation = null;
+                    playBtn.textContent = '▶ Resume';
+                    return;
+                }
+                const curVal = parseInt(si.value);
+                if (curVal >= currentTrace.length - 1) {
+                    si.value = 0;
+                    highlightTrace(0);
+                    document.getElementById('stepIdx').textContent = 0;
+                }
+                playBtn.textContent = '⏸ Pause';
+                traceAnimation = setInterval(() => {
+                    const curr = parseInt(si.value);
+                    if (curr >= currentTrace.length - 1) {
+                        clearInterval(traceAnimation);
+                        traceAnimation = null;
+                        playBtn.textContent = '↺ Replay';
+                        flashCompletion();
+                        return;
+                    }
+                    const next = curr + 1;
+                    si.value = next;
+                    highlightTrace(next);
+                    document.getElementById('stepIdx').textContent = next;
+                }, playSpeed);
+            };
+
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    playSpeed = parseInt(btn.dataset.speed);
+                    if (traceAnimation) {
+                        clearInterval(traceAnimation);
+                        traceAnimation = setInterval(() => {
+                            const curr = parseInt(si.value);
+                            if (curr >= currentTrace.length - 1) {
+                                clearInterval(traceAnimation);
+                                traceAnimation = null;
+                                playBtn.textContent = '↺ Replay';
+                                flashCompletion();
+                                return;
+                            }
+                            const next = curr + 1;
+                            si.value = next;
+                            highlightTrace(next);
+                            document.getElementById('stepIdx').textContent = next;
+                        }, playSpeed);
+                    }
+                };
+            });
+
+            document.getElementById('closeTrace').onclick = () => {
+                sd.classList.remove('visible');
+                if (traceAnimation) clearInterval(traceAnimation);
+                traceAnimation = null;
+                playBtn.textContent = '▶ Play';
+                resetAllHighlights();
+            };
+        }
+
+        // ---- Init ----
+        initThree();
+        renderer.domElement.addEventListener('click', onCanvasClick);
+
+        // ---- Drag-drop via overlay (avoids 3D element interception) ----
+        const dz = document.getElementById('drop-zone');
+        const overlay = document.getElementById('drag-overlay');
+        let dragActive = false;
+
+        async function handleDropFile(file) {
+            if (!file) return;
+            dz.style.background = file.name.endsWith('.py') ? '#2a5a3a' : '#5a2a2a';
+            if (file.name.endsWith('.py')) await uploadFile(file);
+            else alert('Please drop a .py file');
+            setTimeout(() => dz.style.background = '', 800);
+        }
+
+        // Activate overlay on any drag entering the window
+        window.addEventListener('dragenter', e => { if (!dragActive) { dragActive = true; overlay.style.pointerEvents = 'auto'; dz.style.background = '#2a3f60'; } });
+        window.addEventListener('dragover', e => e.preventDefault(), true); // capture — guaranteed preventDefault
+
+        // Deactivate when drag truly leaves the window
+        window.addEventListener('dragleave', e => {
+            if (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= innerWidth || e.clientY >= innerHeight) {
+                dragActive = false; overlay.style.pointerEvents = 'none'; dz.style.background = '';
+            }
+        });
+
+        // Deactivate when drag truly leaves the window
+        window.addEventListener('dragleave', e => {
+            if (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= innerWidth || e.clientY >= innerHeight) {
+                dragActive = false; overlay.style.pointerEvents = 'none'; dz.style.background = '';
+            }
+        });
+
+        overlay.addEventListener('dragover', e => e.preventDefault());
+        overlay.addEventListener('drop', async e => {
+            e.preventDefault();
+            dragActive = false; overlay.style.pointerEvents = 'none'; dz.style.background = '';
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            if (file) await handleDropFile(file);
+        });
+
+        // ---- File upload button ----
+        document.getElementById('uploadBtn').onclick = () => document.getElementById('fileInput').click();
+        document.getElementById('fileInput').onchange = async e => {
+            const file = e.target.files[0];
+            if (file) await handleDropFile(file);
+            e.target.value = '';
+        };
+
+        document.getElementById('resetView').onclick = () => { camera.position.set(5, 5, 10); controls.target.set(0, 0, 0); };
+        document.getElementById('autoRotateToggle').onclick = function() { autoRotate = !autoRotate; this.textContent = autoRotate ? '▶ Auto-Rotate' : '⏸ Auto-Rotate'; };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+            labelRenderer.setSize(innerWidth, innerHeight);
+        });
+
+        window.addEventListener('beforeunload', async () => {
+            if (sessionId) await fetch('/cleanup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
+        });
+    </script>
+</body>
+</html>

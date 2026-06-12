@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Art Skills Studio + MIDI Composer Mike</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #0a0c12;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #eef2ff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+        .sidebar {
+            width: 260px;
+            background: #11161f;
+            border-right: 1px solid #1e2a3a;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 1.5rem 1rem 0.5rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #fff, #ff3b6f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            border-bottom: 1px solid #1e2a3a;
+            margin-bottom: 1rem;
+        }
+        .skill-tab {
+            padding: 0.75rem 1.2rem;
+            margin: 0.2rem 0.6rem;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #b9c7d9;
+        }
+        .skill-tab:hover { background: #1e2a3a; color: white; }
+        .skill-tab.active { background: #2d3a4a; color: #ff3b6f; border-left: 3px solid #ff3b6f; font-weight: 600; }
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .settings-bar {
+            background: #0f1219;
+            padding: 0.8rem 1.2rem;
+            border-bottom: 1px solid #1e2a3a;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            align-items: center;
+        }
+        .settings-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #1a1f2a;
+            padding: 0.3rem 0.8rem;
+            border-radius: 30px;
+        }
+        .settings-group label { font-weight: 500; color: #b9c7d9; font-size: 0.75rem; }
+        input, select, button {
+            background: #11161f;
+            border: 1px solid #2d3a4a;
+            color: white;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        button { cursor: pointer; transition: 0.1s; }
+        button:hover { background: #2d3a4a; border-color: #ff3b6f; }
+        .canvas-container {
+            flex: 1;
+            background: #0a0c12;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            position: relative;
+        }
+        canvas {
+            background: #f5efe7;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+            border-radius: 16px;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+        }
+        .action-bar {
+            background: #0f1219;
+            padding: 0.7rem 1.5rem;
+            border-top: 1px solid #1e2a3a;
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .action-bar button {
+            padding: 0.4rem 1.2rem;
+            font-weight: 600;
+            background: #1e2a3a;
+        }
+        .play-btn {
+            background: #4A148C !important;
+            border-color: #ff3b6f !important;
+        }
+        .status {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: #6b8299;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #11161f; }
+        ::-webkit-scrollbar-thumb { background: #2d3a4a; border-radius: 10px; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="sidebar">
+        <div class="sidebar-header">🎨 PAI ART + MIDI MIKE</div>
+        <div id="skill-list"></div>
+    </div>
+    <div class="workspace">
+        <div class="settings-bar" id="settings-panel"></div>
+        <div class="canvas-container">
+            <canvas id="mainCanvas" width="900" height="540" style="width:100%; height:auto; max-width:900px; aspect-ratio:900/540"></canvas>
+        </div>
+        <div class="action-bar">
+            <button id="importBtn">📂 Import JSON</button>
+            <button id="exportBtn">💾 Export Config</button>
+            <button id="resetBtn">⟳ Reset</button>
+            <button id="undoBtn">↩️ Undo</button>
+            <button id="playMidiBtn" class="play-btn" style="display:none">🎵 Play MIDI</button>
+            <div class="status" id="statusMsg">ready</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- core state ----------
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    let currentSkill = "stats";
+    let settings = {};
+    let undoStack = [];
+    let audioCtx = null;
+
+    function captureState() { return { skill: currentSkill, settings: JSON.parse(JSON.stringify(settings)) }; }
+    function pushUndo() { undoStack.push(captureState()); if(undoStack.length > 20) undoStack.shift(); statusMsg("✔️ saved"); }
+    function undo() {
+        if(undoStack.length === 0) { statusMsg("nothing to undo"); return; }
+        let last = undoStack.pop();
+        currentSkill = last.skill; settings = last.settings;
+        highlightActiveTab(); buildSettingsUI(); renderCanvas();
+        statusMsg("↩️ undone");
+    }
+    function statusMsg(msg) {
+        const el = document.getElementById('statusMsg');
+        el.innerText = msg;
+        setTimeout(()=>{ if(document.getElementById('statusMsg')?.innerText === msg) document.getElementById('statusMsg').innerText = "ready"; }, 1500);
+    }
+
+    function resetSkill() {
+        if(currentSkill === "midi") {
+            settings = { notes: "C4,E4,G4,C5,G4,E4,C4", tempo: 120, instrument: "synth" };
+        } else if(currentSkill === "stats") settings = { stat: "78%", metric: "of developers", context: "use AI daily", iconType: "dev", numberColor: "#4A148C" };
+        else if(currentSkill === "taxonomy") settings = { rows: 3, cols: 4, categories: "AI,ML,Data,Ethics", gridColor: "#000000" };
+        else if(currentSkill === "techdiagram") settings = { diagramType: "flow", title: "API Gateway Flow" };
+        else if(currentSkill === "timeline") settings = { events: "2020:GPT-3,2022:ChatGPT,2025:AGI", orientation: "horizontal" };
+        else if(currentSkill === "conceptualmap") settings = { territories: "Reasoning,Creativity,Perception,Action" };
+        else if(currentSkill === "aphorism") settings = { text: "HUMANS NEED ENTROPY", bgColor: "#F5E6D3", textColor: "#000000" };
+        else if(currentSkill === "comics") settings = { panels: 3, story: "setup->problem->solution" };
+        else if(currentSkill === "comparison") settings = { left: "Before AI", right: "After AI", leftColor: "#4A148C", rightColor: "#00796B" };
+        else if(currentSkill === "framework") settings = { frameworkType: "2x2", labels: "Low,High,Simple,Complex" };
+        else if(currentSkill === "mermaid") settings = { diagram: "flowchart", steps: "Start,Decide?,Action,End" };
+        else if(currentSkill === "recipecard") settings = { steps: "Research,Create,Distribute,Analyze" };
+        else if(currentSkill === "annotated") settings = { annotationText: "critical point", arrowPos: "top-right" };
+        else if(currentSkill === "d3dash") settings = { dataset: "12,5,6,9,15", chartType: "bar" };
+        else if(currentSkill === "essayheader") settings = { emotion: "dread", subject: "human vs AI" };
+        else if(currentSkill === "iconpack") settings = { iconName: "brain", color: "#4A148C" };
+        else settings = {};
+        pushUndo();
+        renderCanvas();
+        buildSettingsUI();
+    }
+
+    function buildSettingsUI() {
+        const panel = document.getElementById('settings-panel');
+        const playBtn = document.getElementById('playMidiBtn');
+        panel.innerHTML = '';
+        if(currentSkill === "midi") {
+            playBtn.style.display = "inline-flex";
+            panel.innerHTML = `
+                <div class="settings-group"><label>🎼 Notes (comma separated)</label><input id="midiNotes" size="40" value="${settings.notes || 'C4,E4,G4,C5,G4,E4,C4'}"></div>
+                <div class="settings-group"><label>🎚️ Tempo (BPM)</label><input id="midiTempo" value="${settings.tempo || 120}" size="4"></div>
+                <div class="settings-group"><label>🎹 Instrument</label><select id="midiInst"><option ${(settings.instrument||'synth')==='synth'?'selected':''}>synth</option><option ${(settings.instrument||'synth')==='piano'?'selected':''}>piano</option></select></div>
+                <button id="applyMidi">Apply & Redraw</button>
+            `;
+            document.getElementById('applyMidi')?.addEventListener('click',()=>{
+                settings.notes = document.getElementById('midiNotes').value;
+                settings.tempo = parseInt(document.getElementById('midiTempo').value);
+                settings.instrument = document.getElementById('midiInst').value;
+                pushUndo(); renderCanvas();
+                statusMsg("MIDI score updated");
+            });
+        } else {
+            playBtn.style.display = "none";
+            // existing skills UI (simplified but functional)
+            if(currentSkill === "stats") {
+                panel.innerHTML = `<div class="settings-group"><label>Stat</label><input id="statNum" value="${settings.stat||'78%'}"></div>
+                <div class="settings-group"><label>Metric</label><input id="metricTxt" value="${settings.metric||'of developers'}"></div>
+                <div class="settings-group"><label>Context</label><input id="contextTxt" value="${settings.context||'use AI daily'}"></div>
+                <button id="applyStats">Apply</button>`;
+                document.getElementById('applyStats')?.addEventListener('click',()=>{ settings.stat = document.getElementById('statNum').value; settings.metric = document.getElementById('metricTxt').value; settings.context = document.getElementById('contextTxt').value; pushUndo(); renderCanvas(); });
+            } else if(currentSkill === "aphorism") {
+                panel.innerHTML = `<div class="settings-group"><label>Quote</label><input id="quoteText" value="${settings.text||'HUMANS NEED ENTROPY'}"></div>
+                <div class="settings-group"><label>BG Color</label><input id="bgColor" type="color" value="${settings.bgColor||'#F5E6D3'}"></div>
+                <button id="applyQuote">Apply</button>`;
+                document.getElementById('applyQuote')?.addEventListener('click',()=>{ settings.text = document.getElementById('quoteText').value; settings.bgColor = document.getElementById('bgColor').value; pushUndo(); renderCanvas(); });
+            } else {
+                panel.innerHTML = `<div class="settings-group"><span>✨ ${currentSkill} – adjustable via presets</span></div><button id="refreshBtn">Redraw</button>`;
+                document.getElementById('refreshBtn')?.addEventListener('click',()=>{ pushUndo(); renderCanvas(); });
+            }
+        }
+    }
+
+    // ----- MIDI playback using Web Audio (simple oscillator synth)
+    let currentPlayback = null;
+    function stopPlayback() { if(currentPlayback) { currentPlayback.forEach(t => clearTimeout(t)); currentPlayback = null; } }
+    function playMidiSequence() {
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        stopPlayback();
+        const noteNames = settings.notes.split(',').map(s=>s.trim());
+        const tempo = settings.tempo || 120;
+        const durationPerNote = 60 / tempo; // quarter note duration (seconds)
+        let time = audioCtx.currentTime;
+        const timers = [];
+        const noteFreq = { 'C4':261.63,'C#4':277.18,'D4':293.66,'D#4':311.13,'E4':329.63,'F4':349.23,'F#4':369.99,'G4':392.00,'G#4':415.30,'A4':440.00,'A#4':466.16,'B4':493.88,'C5':523.25,'C#5':554.37,'D5':587.33,'D#5':622.25,'E5':659.25,'F5':698.46,'F#5':739.99,'G5':783.99,'G#5':830.61,'A5':880.00,'A#5':932.33,'B5':987.77 };
+        noteNames.forEach((note, idx) => {
+            let freq = noteFreq[note] || 440;
+            let start = time + idx * durationPerNote;
+            let end = start + durationPerNote * 0.9;
+            let timer = setTimeout(() => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + durationPerNote*0.8);
+                osc.start();
+                osc.stop(audioCtx.currentTime + durationPerNote*0.8);
+            }, (start - audioCtx.currentTime)*1000);
+            timers.push(timer);
+        });
+        currentPlayback = timers;
+        statusMsg(`🎵 playing ${noteNames.length} notes`);
+        setTimeout(()=>{ if(currentPlayback === timers) currentPlayback = null; }, (noteNames.length*durationPerNote+0.5)*1000);
+    }
+
+    // ---------- drawing routines for each skill (keeping previous ones + midi visual) ----------
+    function drawMidiVisual() {
+        const w = canvas.width, h = canvas.height;
+        ctx.fillStyle = "#F5E6D3"; ctx.fillRect(0,0,w,h);
+        ctx.font = "bold 24px monospace"; ctx.fillStyle = "#4A148C";
+        ctx.fillText("🎹 Mike - MIDI Composer", 30, 60);
+        ctx.font = "16px monospace"; ctx.fillStyle = "#2D2D2D";
+        ctx.fillText("Sheet Music: " + (settings.notes || "C4,E4,G4"), 30, 120);
+        // draw a simple piano roll visualization
+        let notes = (settings.notes||"C4,E4,G4").split(',');
+        let noteY = 180;
+        ctx.fillStyle = "#000000";
+        for(let i=0;i<notes.length;i++){
+            ctx.fillRect(60 + i*45, noteY, 35, 30);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillText(notes[i], 68 + i*45, noteY+20);
+            ctx.fillStyle = "#000000";
+        }
+        ctx.fillStyle = "#4A148C";
+        ctx.fillText("▶️ Press PLAY button to hear this melody", 30, h-60);
+    }
+
+    function drawStats() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle = "#F5E6D3"; ctx.fillRect(0,0,w,h);
+        ctx.font = `bold ${Math.min(w*0.3, 120)}px "Inter", system-ui`;
+        ctx.fillStyle = settings.numberColor || "#4A148C";
+        ctx.textAlign = "center";
+        ctx.fillText(settings.stat, w/2, h*0.35);
+        ctx.font = `20px "Inter"`;
+        ctx.fillStyle = "#2D2D2D";
+        ctx.fillText(settings.metric, w/2, h*0.55);
+        ctx.font = `14px monospace`;
+        ctx.fillText(settings.context, w/2, h*0.7);
+    }
+    function drawTaxonomy() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,h);
+        let rows = settings.rows||3, cols = settings.cols||4;
+        let cats = (settings.categories||"A,B,C,D").split(",");
+        let cellW = w/cols, cellH = h/rows;
+        ctx.strokeStyle="#000"; ctx.lineWidth=2;
+        for(let i=0;i<rows;i++) for(let j=0;j<cols;j++){
+            ctx.strokeRect(j*cellW,i*cellH,cellW,cellH);
+            ctx.fillStyle="#2D2D2D";
+            ctx.font="14px monospace";
+            let label = cats[(i*cols+j)%cats.length] || "item";
+            ctx.fillText(label, j*cellW+10, i*cellH+25);
+        }
+    }
+    function drawTimeline() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,h);
+        let events = (settings.events||"2020:GPT-3,2022:ChatGPT,2025:AGI").split(",");
+        let stepX = w/(events.length+1);
+        ctx.beginPath(); ctx.moveTo(stepX, h/2); ctx.lineTo(w-stepX, h/2); ctx.stroke();
+        events.forEach((ev,i)=>{
+            let x = stepX*(i+1);
+            ctx.beginPath(); ctx.arc(x, h/2, 10,0,Math.PI*2); ctx.fillStyle="#4A148C"; ctx.fill();
+            ctx.fillStyle="#000"; ctx.font="12px monospace"; ctx.fillText(ev, x-30, h/2-12);
+        });
+    }
+    function drawAphorism() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle=settings.bgColor || "#F5E6D3"; ctx.fillRect(0,0,w,h);
+        ctx.font = `bold ${Math.min(w*0.12, 70)}px "Inter"`;
+        ctx.fillStyle = "#000";
+        ctx.textAlign="center";
+        let lines = (settings.text||"HUMANS NEED ENTROPY").split(" ");
+        let y = h*0.4;
+        lines.forEach((line,idx)=>{ ctx.fillText(line, w/2, y+idx*55); });
+    }
+    function drawComics() {
+        let panels=3; let w=canvas.width, pw=w/panels;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,canvas.height);
+        for(let i=0;i<panels;i++){
+            ctx.strokeRect(i*pw+5,20,pw-10,canvas.height-40);
+            ctx.fillStyle="#2D2D2D"; ctx.font="12px monospace";
+            ctx.fillText(`panel ${i+1}`, i*pw+20, 50);
+            ctx.beginPath(); ctx.arc(i*pw+pw/2, 150, 20,0,Math.PI*2); ctx.stroke();
+            ctx.moveTo(i*pw+pw/2,170); ctx.lineTo(i*pw+pw/2,220); ctx.stroke();
+        }
+    }
+    function drawComparison() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,h);
+        ctx.beginPath(); ctx.moveTo(w/2,0); ctx.lineTo(w/2,h); ctx.stroke();
+        ctx.fillStyle="#4A148C"; ctx.font="bold 20px"; ctx.fillText(settings.left||"BEFORE", w/4,50);
+        ctx.fillStyle="#00796B"; ctx.fillText(settings.right||"AFTER", w*0.75,50);
+    }
+    function drawFramework() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,h);
+        ctx.beginPath(); ctx.moveTo(w/2,0); ctx.lineTo(w/2,h); ctx.moveTo(0,h/2); ctx.lineTo(w,h/2); ctx.stroke();
+        ctx.font="14px monospace"; ctx.fillStyle="#000";
+        ctx.fillText("Low", w/4, h-10); ctx.fillText("High", w*0.75, h-10);
+        ctx.fillText("Simple", 10, h/2-10); ctx.fillText("Complex", 10, h/4);
+    }
+    function drawMermaidFlow() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,h);
+        let steps = ["Start","Decision?","Action","End"];
+        let y=40;
+        steps.forEach((s,i)=>{
+            ctx.fillStyle="#fff"; ctx.strokeRect(w/2-60, y, 120, 40);
+            ctx.fillStyle="#000"; ctx.fillText(s, w/2-40, y+25);
+            if(i<steps.length-1){
+                ctx.beginPath(); ctx.moveTo(w/2, y+40); ctx.lineTo(w/2, y+70); ctx.stroke();
+                ctx.fillStyle="#4A148C"; ctx.fillText("↓", w/2-5, y+60);
+            }
+            y+=70;
+        });
+    }
+    function drawRecipeCard() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,h);
+        let steps = (settings.steps||"Research,Create,Distribute").split(",");
+        steps.forEach((s,i)=>{
+            ctx.fillStyle="#2D2D2D"; ctx.fillRect(30, 50+i*90, 200, 60);
+            ctx.fillStyle="white"; ctx.fillText(`${i+1}. ${s}`, 45, 80+i*90);
+        });
+    }
+    function drawConceptualMap() {
+        const w=canvas.width, h=canvas.height;
+        ctx.fillStyle="#F5E6D3"; ctx.fillRect(0,0,w,h);
+        ctx.beginPath(); ctx.ellipse(w/2, h/2, 150, 120, 0,0,Math.PI*2); ctx.stroke();
+        ctx.fillText("Central Territory", w/2-70, h/2);
+        ctx.fillText("Island", w-100, 100);
+    }
+    function drawTechDiagram() { drawMermaidFlow(); }
+    function drawAnnotated() { drawComparison(); ctx.fillStyle="red"; ctx.fillText("🔥 annotation", 100,100); }
+    function drawD3dash() { drawStats(); }
+    function drawEssayheader() { ctx.fillStyle="#333"; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#8B4513"; ctx.font="bold 30px"; ctx.fillText("charcoal sketch", 50,100); }
+    function drawIconpack() { drawStats(); }
+    // fallback
+    function renderCanvas() {
+        if(!canvas) return;
+        canvas.width = 900; canvas.height = 540;
+        if(currentSkill === "midi") drawMidiVisual();
+        else if(currentSkill === "stats") drawStats();
+        else if(currentSkill === "taxonomy") drawTaxonomy();
+        else if(currentSkill === "techdiagram") drawTechDiagram();
+        else if(currentSkill === "timeline") drawTimeline();
+        else if(currentSkill === "conceptualmap") drawConceptualMap();
+        else if(currentSkill === "aphorism") drawAphorism();
+        else if(currentSkill === "comics") drawComics();
+        else if(currentSkill === "comparison") drawComparison();
+        else if(currentSkill === "framework") drawFramework();
+        else if(currentSkill === "mermaid") drawMermaidFlow();
+        else if(currentSkill === "recipecard") drawRecipeCard();
+        else if(currentSkill === "annotated") drawAnnotated();
+        else if(currentSkill === "d3dash") drawD3dash();
+        else if(currentSkill === "essayheader") drawEssayheader();
+        else if(currentSkill === "iconpack") drawIconpack();
+        else drawStats();
+        ctx.textAlign = "left";
+    }
+
+    // ----- sidebar & skill switching -----
+    const skillsList = [
+        { id:"stats", name:"📊 Stats" },
+        { id:"taxonomy", name:"🏷️ Taxonomy" },
+        { id:"techdiagram", name:"🔧 Tech Diagram" },
+        { id:"timeline", name:"⏳ Timeline" },
+        { id:"conceptualmap", name:"🗺️ Conceptual Map" },
+        { id:"aphorism", name:"💬 Aphorism" },
+        { id:"comics", name:"🎭 Comics" },
+        { id:"comparison", name:"⚖️ Comparison" },
+        { id:"framework", name:"🧠 Framework" },
+        { id:"mermaid", name:"📐 Mermaid" },
+        { id:"recipecard", name:"📖 Recipe Card" },
+        { id:"annotated", name:"✍️ Annotated" },
+        { id:"d3dash", name:"📈 D3 Dash" },
+        { id:"essayheader", name:"🎨 Essay Header" },
+        { id:"iconpack", name:"🖼️ Icon Pack" },
+        { id:"midi", name:"🎹 Mike (MIDI Composer)" }
+    ];
+    function highlightActiveTab() {
+        document.querySelectorAll('.skill-tab').forEach(tab=>{ if(tab.dataset.id===currentSkill) tab.classList.add('active'); else tab.classList.remove('active'); });
+    }
+    function buildSidebar() {
+        const container = document.getElementById('skill-list');
+        container.innerHTML = skillsList.map(skill => `<div class="skill-tab" data-id="${skill.id}">${skill.name}</div>`).join('');
+        document.querySelectorAll('.skill-tab').forEach(el => {
+            el.addEventListener('click',()=>{
+                currentSkill = el.dataset.id;
+                if(!settings[currentSkill]) resetSkill();
+                highlightActiveTab();
+                buildSettingsUI();
+                renderCanvas();
+                pushUndo();
+            });
+        });
+    }
+
+    // ----- event binding & initialisation -----
+    document.getElementById('exportBtn').addEventListener('click',()=>{
+        const exportData = { skill: currentSkill, settings, version:2 };
+        const json = JSON.stringify(exportData, null,2);
+        const blob = new Blob([json], {type:"application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `pai_${currentSkill}_config.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        statusMsg("exported");
+    });
+    document.getElementById('importBtn').addEventListener('click',()=>{
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = (e)=>{
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev)=>{
+                try{
+                    const data = JSON.parse(ev.target.result);
+                    if(data.skill && data.settings){
+                        currentSkill = data.skill;
+                        settings = data.settings;
+                        highlightActiveTab();
+                        buildSettingsUI();
+                        renderCanvas();
+                        pushUndo();
+                        statusMsg("import success");
+                    } else throw new Error("invalid");
+                }catch(err){ alert("invalid file");}
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    });
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ resetSkill(); });
+    document.getElementById('undoBtn').addEventListener('click', ()=>{ undo(); });
+    document.getElementById('playMidiBtn').addEventListener('click', ()=>{ if(currentSkill==='midi') playMidiSequence(); else statusMsg("activate MIDI skill first"); });
+
+    // init
+    buildSidebar();
+    currentSkill = "midi";
+    resetSkill();
+    highlightActiveTab();
+    buildSettingsUI();
+    renderCanvas();
+    // ensure audio context resumes on user gesture (play button handles it)
+</script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ClawdiaBridge · API</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; max-width: 900px; margin: 0 auto; }
+h1 { color: var(--accent); font-size: 1.5rem; margin-bottom: 0.25rem; }
+h1 span { color: var(--muted); font-weight: 400; }
+.subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.875rem; }
+.status-grid { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.status-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.25rem; text-align: center; min-width: 120px; }
+.status-item .label { font-size: 0.7rem; color: var(--muted); }
+.status-item .value { font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; }
+.badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+.badge-ok { background: rgba(63,185,80,0.15); color: var(--green); }
+h2 { font-size: 1rem; color: var(--text); margin: 1.5rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; }
+.method { font-weight: 700; font-family: monospace; }
+.method-get { color: var(--green); }
+.method-post { color: #d29922; }
+code { background: var(--surface); padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.75rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.info { font-size: 0.875rem; color: var(--muted); margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+<h1>ClawdiaBridge <span>v1.0.0</span></h1>
+<div class="subtitle">P2P Collective Sync Mesh · Trust Protocol · Skills Engine</div>
+
+<div class="status-grid" id="status-grid">
+  <div class="status-item"><div class="label">Server</div><div class="value" id="srv-status">—</div></div>
+  <div class="status-item"><div class="label">Peers</div><div class="value" id="srv-peers">—</div></div>
+  <div class="status-item"><div class="label">Skills</div><div class="value" id="srv-skills">—</div></div>
+  <div class="status-item"><div class="label">Messages</div><div class="value" id="srv-msgs">—</div></div>
+  <div class="status-item"><div class="label">CPU</div><div class="value" id="srv-cpu">—</div></div>
+</div>
+
+<h2>REST API</h2>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+  <tr><td class="method method-get">GET</td><td><code>/</code></td><td>This page</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/api/v1/trust/check</code></td><td>Check trust status (<code>x-session-id</code> header required)</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/api/v1/trust/ledger</code></td><td>View immutable trust ledger</td></tr>
+  <tr><td class="method method-post">POST</td><td><code>/api/v1/trust/penalty</code></td><td>Apply trust penalty</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/api/v1/peers</code></td><td>List P2P mesh peers</td></tr>
+  <tr><td class="method method-post">POST</td><td><code>/api/v1/peer/register</code></td><td>Register as a peer</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/api/v1/peer/status</code></td><td>P2P mesh status</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/api/v1/skills</code></td><td>List skills catalog</td></tr>
+  <tr><td class="method method-post">POST</td><td><code>/clawdia</code></td><td>Send a message (<code>source</code>, <code>text</code>)</td></tr>
+  <tr><td class="method method-post">POST</td><td><code>/clawdia/collective</code></td><td>Submit collective contribution</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/clawdia/inbox</code></td><td>View inbox messages</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/clawdia-harness.js</code></td><td>Browser injection harness</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/deepseek-comms-test.js</code></td><td>DeepSeek comms test script</td></tr>
+  <tr><td class="method method-get">GET</td><td><code>/scada.html</code></td><td>PivotSCADA monitor (legacy)</td></tr>
+</table>
+
+<h2>WebSocket</h2>
+<div class="info">Connect to <code>ws://localhost:8080</code> for real-time events (trust updates, P2P gossip, clawdia messages).</div>
+
+<h2>Quick Test</h2>
+<div class="info">
+  <pre style="background:var(--surface);padding:0.75rem;border-radius:6px;overflow-x:auto;font-size:0.75rem">curl.exe -X POST http://localhost:8080/clawdia ^
+  -H "Content-Type: application/json" ^
+  -d '{"source":"test","text":"Hello from ClawdiaBridge"}'
+
+curl.exe -H "x-session-id: demo" http://localhost:8080/api/v1/trust/check</pre>
+</div>
+
+<h2>Related Servers</h2>
+<table>
+  <tr><th>Service</th><th>URL</th><th>Description</th></tr>
+  <tr><td>ClawDia Dashboard</td><td><a href="http://localhost:8000" target="_blank">http://localhost:8000</a></td><td>Memory, skills, voice, RAG + Database viewer</td></tr>
+  <tr><td>FastAPI Brain</td><td><a href="http://localhost:11434" target="_blank">http://localhost:11434</a></td><td>LLM chat, image transform, P2P endpoints</td></tr>
+</table>
+
+<script>
+async function loadStats() {
+  try {
+    const [trustRes, peersRes, skillsRes, inboxRes] = await Promise.all([
+      fetch('/api/v1/trust/check', { headers: { 'x-session-id': 'index' } }).catch(() => null),
+      fetch('/api/v1/peers').catch(() => null),
+      fetch('/api/v1/skills').catch(() => null),
+      fetch('/clawdia/inbox').catch(() => null),
+    ]);
+    const trust = trustRes ? await trustRes.json() : null;
+    const peers = peersRes ? await peersRes.json() : null;
+    const skills = skillsRes ? await skillsRes.json() : null;
+    const inbox = inboxRes ? await inboxRes.json() : null;
+    document.getElementById('srv-status').innerHTML = '<span class="badge badge-ok">ONLINE</span>';
+    document.getElementById('srv-peers').textContent = peers?.count ?? '—';
+    document.getElementById('srv-skills').textContent = skills?.length ?? '—';
+    document.getElementById('srv-msgs').textContent = inbox?.length ?? '—';
+    document.getElementById('srv-cpu').textContent = trust?.score ?? '—';
+  } catch (e) {
+    document.getElementById('srv-status').textContent = 'OFFLINE';
+  }
+}
+loadStats();
+setInterval(loadStats, 5000);
+</script>
+</body>
+</html>

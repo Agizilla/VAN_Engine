@@ -1,0 +1,13 @@
+INFO:     127.0.0.1:60419 - "GET /hooks/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65210 - "GET /hooks/ui/lexicon HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65210 - "GET /hooks/lexicon HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65210 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59179 - "GET /hooks/ui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59179 - "GET /hooks/ui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59179 - "GET /hooks/ui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59179 - "GET /hooks/ui/dirty_talker HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59179 - "GET /hooks/dirty_talker HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55670 - "POST /hooks/dirty_talker HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64223 - "GET /hooks/ui HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64223 - "GET /hooks/ui/learnings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64223 - "GET /hooks/learnings HTTP/1.1" 200 OK

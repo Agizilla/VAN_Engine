@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Voice Landmark Morph + Face Warp</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b1219;--panel:#111d2b;--border:#1a2d40;--accent:#7c5cfc;--voiceA:#4fc3f7;--voiceB:#ef5350;--morph:#ffd740;--mesh:#66bb6a;--text:#c8d6e5;--text-dim:#5a728a;--ok:#66bb6a;--font:'Segoe UI',system-ui,sans-serif;--mono:'Cascadia Code','JetBrains Mono',monospace}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+#app{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
+
+#topbar{display:flex;align-items:center;gap:0.75rem;padding:0.35rem 1rem;background:var(--panel);border-bottom:1px solid var(--border);z-index:10;flex-wrap:wrap}
+#topbar h1{font-size:0.85rem;display:flex;align-items:center;gap:0.4rem}
+#topbar h1 span{color:var(--accent)}
+#topbar .sub{font-size:0.6rem;color:var(--text-dim)}
+#status-bar{margin-left:auto;display:flex;align-items:center;gap:0.5rem;font-size:0.65rem;font-family:var(--mono);color:var(--text-dim)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot.idle{background:var(--text-dim)}
+.dot.live{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.dot.voice{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.dot.morph{background:var(--morph);box-shadow:0 0 6px var(--morph)}
+#file-name{font-size:0.6rem;color:var(--accent);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+#main{display:grid;grid-template-columns:1fr 310px;overflow:hidden}
+#canvas-wrap{display:grid;grid-template-rows:1fr 1fr;overflow:hidden}
+#canvas-wrap canvas{width:100%;display:block}
+#spectrum{background:#0a1219}
+#face-canvas{background:#0d1520;cursor:crosshair}
+.canvas-label{position:absolute;font-size:0.55rem;color:rgba(255,255,255,0.15);font-family:var(--mono);padding:2px 6px;pointer-events:none;z-index:1}
+#canvas-wrap{position:relative}
+#canvas-wrap .cl1{top:2px;left:4px}
+#canvas-wrap .cl2{bottom:2px;left:4px}
+#canvas-wrap .cl2 .drip-badge{color:rgba(255,100,100,0.3);margin-left:6px}
+
+#side{background:var(--panel);border-left:1px solid var(--border);padding:0.5rem;display:flex;flex-direction:column;gap:0.35rem;overflow-y:auto;font-size:0.7rem}
+#side h3{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-top:0.25rem}
+#side h3:first-child{margin-top:0}
+.btn{width:100%;padding:0.4rem;border:1px solid var(--border);border-radius:5px;background:#1a2d40;color:var(--text);font-size:0.7rem;cursor:pointer;transition:all 0.15s;font-family:var(--font);text-align:center}
+.btn:hover{background:#223a52;border-color:var(--accent)}
+.btn:disabled{opacity:0.35;cursor:default}
+.btn.sm{width:auto;padding:0.3rem 0.5rem;font-size:0.6rem}
+.btn.recording{background:#4a1a1a;border-color:var(--voiceB);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:0.6}}
+.btn-row{display:flex;gap:3px}.btn-row .btn{flex:1}
+.btn.face-preset{padding:0.25rem 0.4rem;font-size:0.55rem}
+
+.voice-section{border:1px solid var(--border);border-radius:5px;padding:0.35rem;background:rgba(255,255,255,0.02)}
+.voice-header{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.25rem;font-size:0.7rem;font-weight:600}
+.voice-header .badge{display:inline-block;width:8px;height:8px;border-radius:50%}
+.voice-header .badge.A{background:var(--voiceA)}
+.voice-header .badge.B{background:var(--voiceB)}
+.voice-info{font-size:0.55rem;color:var(--text-dim);font-family:var(--mono);display:flex;gap:0.5rem;margin-top:0.15rem}
+
+.morph-section{border:1px solid var(--border);border-radius:5px;padding:0.35rem;background:rgba(255,215,64,0.03)}
+.morph-row{display:flex;align-items:center;gap:0.35rem;font-size:0.65rem}
+.morph-row input[type=range]{flex:1;accent-color:var(--morph);height:4px;cursor:pointer}
+.morph-label{font-family:var(--mono);font-size:0.6rem;color:var(--morph);min-width:2.5rem;text-align:center}
+.morph-markers{display:flex;justify-content:space-between;font-size:0.55rem;color:var(--text-dim);margin-top:-0.2rem}
+
+.face-section{border:1px solid var(--border);border-radius:5px;padding:0.35rem;background:rgba(102,187,106,0.03)}
+.face-preset-row{display:flex;flex-wrap:wrap;gap:3px}
+
+.toggle-row{display:flex;align-items:center;gap:0.4rem;font-size:0.65rem;padding:0.15rem 0}
+.toggle{position:relative;width:32px;height:18px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#1a2d42;border-radius:20px;cursor:pointer;transition:0.2s}
+.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:2px;bottom:2px;background:var(--text-dim);border-radius:50%;transition:0.2s}
+.toggle input:checked+.toggle-slider{background:#2a1a5a}
+.toggle input:checked+.toggle-slider::before{transform:translateX(14px);background:var(--accent)}
+
+.landmark-list{font-family:var(--mono);font-size:0.6rem;color:var(--text-dim);line-height:1.4;max-height:120px;overflow-y:auto}
+.landmark-list .lm{display:flex;justify-content:space-between;padding:0.08rem 0;border-bottom:1px solid rgba(255,255,255,0.03);padding-left:4px}
+.landmark-list .lm .freq{color:var(--text);min-width:4rem}
+.landmark-list .lm .amp{color:#ffa726;min-width:3rem}
+.landmark-list .lm .bw{color:var(--accent);min-width:3rem}
+.landmark-count{font-size:0.6rem;color:var(--text-dim);text-align:center;margin-top:0.2rem}
+
+.progress-wrap{width:100%;height:3px;background:#1a2d42;border-radius:2px;overflow:hidden}
+.progress-bar{height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 0.1s}
+
+#event-log{background:var(--panel);border-top:1px solid var(--border);padding:0.2rem 1rem;max-height:48px;overflow-y:auto;font-family:var(--mono);font-size:0.6rem}
+
+@media(max-width:800px){
+  #main{grid-template-columns:1fr;grid-template-rows:40vh auto auto}
+  #canvas-wrap{grid-template-rows:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>🎤 <span>Voice</span>Landmark <span>Warp</span></h1>
+    <span class="sub">144-pt face mesh · spectral → warp</span>
+    <span id="file-name"></span>
+    <div id="status-bar"><span class="dot idle" id="dot"></span><span id="status-label">Idle</span><span id="rec-timer" style="display:none;color:var(--voiceB)"></span></div>
+  </div>
+
+  <div id="main">
+    <div id="canvas-wrap">
+      <span class="canvas-label cl1">— spectrum + 24 landmarks —</span>
+      <canvas id="spectrum"></canvas>
+      <span class="canvas-label cl2">— face warp (12-zone mesh) <span class="drip-badge">💧 drip</span> —</span>
+      <canvas id="face-canvas"></canvas>
+    </div>
+
+    <div id="side">
+      <div class="voice-section">
+        <div class="voice-header"><span class="badge A"></span>Voice A</div>
+        <div class="btn-row">
+          <button class="btn sm" id="rec-A">🔴 Rec</button>
+          <button class="btn sm" id="load-A">📁 Load</button>
+          <button class="btn sm" id="play-A" disabled>▶ Play</button>
+        </div>
+        <div class="voice-info"><span id="info-A">Not loaded</span></div>
+      </div>
+      <div class="voice-section">
+        <div class="voice-header"><span class="badge B"></span>Voice B</div>
+        <div class="btn-row">
+          <button class="btn sm" id="rec-B">🔴 Rec</button>
+          <button class="btn sm" id="load-B">📁 Load</button>
+          <button class="btn sm" id="play-B" disabled>▶ Play</button>
+        </div>
+        <div class="voice-info"><span id="info-B">Not loaded</span></div>
+      </div>
+      <input type="file" id="file-input" accept=".wav,.mp3,.mp4,.ogg,.m4a,.webm,.flac" style="display:none">
+      <input type="file" id="face-input" accept="image/jpeg,image/png,image/webp" style="display:none">
+
+      <div class="morph-section">
+        <h3 style="margin:0 0 0.2rem 0">Voice Morph</h3>
+        <div class="morph-row">
+          <span style="font-size:0.55rem;color:var(--voiceA)">A</span>
+          <input type="range" id="morph-slider" min="0" max="100" value="50">
+          <span style="font-size:0.55rem;color:var(--voiceB)">B</span>
+        </div>
+        <div class="morph-markers"><span>0%</span><span class="morph-label" id="morph-pct">50%</span><span>100%</span></div>
+        <div class="btn-row" style="margin-top:0.2rem">
+          <button class="btn sm" id="btn-apply" disabled>APPLY</button>
+          <button class="btn sm" id="btn-test" disabled>▶ TEST</button>
+        </div>
+      </div>
+
+      <div class="face-section">
+        <h3 style="margin:0 0 0.2rem 0">🎭 Face Warp</h3>
+        <div class="face-preset-row">
+          <button class="btn face-preset" id="preset-surprise">😲 Surprise</button>
+          <button class="btn face-preset" id="preset-anger">😠 Anger</button>
+          <button class="btn face-preset" id="preset-tension">😬 Tension</button>
+          <button class="btn face-preset" id="preset-contempt">😏 Contempt</button>
+          <button class="btn face-preset" id="preset-joy">😊 Joy</button>
+          <button class="btn face-preset" id="preset-sadness">😢 Sadness</button>
+          <button class="btn face-preset" id="preset-fear">😨 Fear</button>
+          <button class="btn face-preset" id="preset-curiosity">🔍 Curiosity</button>
+          <button class="btn face-preset" id="preset-triumph">🏆 Triumph</button>
+          <button class="btn face-preset" id="preset-mischief">😈 Mischief</button>
+          <button class="btn face-preset" id="preset-reset">⟳ Reset</button>
+        </div>
+        <div class="btn-row" style="margin-top:0.2rem;gap:4px">
+          <button class="btn sm" id="load-face">🖼 Load Face</button>
+          <input type="text" id="text-emotion-input" placeholder="Type emotion name..." list="emo-datalist" style="flex:2;background:#1a2d40;border:1px solid var(--border);border-radius:5px;padding:0.25rem 0.4rem;color:var(--text);font-size:0.65rem">
+          <datalist id="emo-datalist"></datalist>
+          <button class="btn sm" id="apply-text-emo">Apply</button>
+        </div>
+        <div style="font-size:0.55rem;color:var(--text-dim);margin-top:0.15rem">Left-click = +0.1 · Right-click = −0.1 · Drag zones ↕↔ · Type emotion name + Apply for text-driven warp</div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:0.2rem 0.5rem;padding:0.15rem 0">
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="hold-peaks" checked><span class="toggle-slider"></span></label>Hold</label>
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="show-grid" checked><span class="toggle-slider"></span></label>Grid</label>
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="smooth-toggle" checked><span class="toggle-slider"></span></label>Smooth</label>
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="mesh-toggle" checked><span class="toggle-slider"></span></label>Mesh</label>
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="warp-toggle" checked><span class="toggle-slider"></span></label>Warp</label>
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="drip-toggle" checked><span class="toggle-slider"></span></label>Drip</label>
+      </div>
+
+      <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+
+      <div>
+        <h3>Landmark Vector (24 pt)</h3>
+        <div class="landmark-list" id="landmark-list"><div style="color:var(--text-dim);font-size:0.6rem;text-align:center;padding:0.5rem 0">Waiting for audio...</div></div>
+        <div class="landmark-count" id="lm-count">0 landmarks</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="event-log"></div>
+</div>
+
+<script>
+// ─── Voice Landmark Engine + 12-Zone Face Warp ─────────────────
+const FFT_SIZE = 4096;
+const SAMPLE_RATE = 48000;
+const MAX_LANDMARKS = 24;
+const MIN_FREQ = 60;
+const MAX_FREQ = 8000;
+const MIN_PEAK_PROMINENCE = 3;
+const HOP_SIZE = FFT_SIZE / 4;
+const HANN = new Float32Array(FFT_SIZE);
+for (let i = 0; i < FFT_SIZE; i++) HANN[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (FFT_SIZE - 1)));
+
+const FACE_ROWS = [
+  { top: 0.00, bot: 0.16, label: 'Forehead', bandMin: 6000, bandMax: 8000 },
+  { top: 0.16, bot: 0.30, label: 'Brows',    bandMin: 4000, bandMax: 6000 },
+  { top: 0.30, bot: 0.44, label: 'Eyes',     bandMin: 2500, bandMax: 4000 },
+  { top: 0.44, bot: 0.58, label: 'Cheeks',   bandMin: 1500, bandMax: 2500 },
+  { top: 0.58, bot: 0.74, label: 'Mouth',    bandMin: 500,  bandMax: 1500 },
+  { top: 0.74, bot: 1.00, label: 'Chin',     bandMin: 60,   bandMax: 500  },
+];
+const FACE_COLS = [
+  { left: 0.00, right: 0.48, side: 'L' },
+  { left: 0.52, right: 1.00, side: 'R' },
+];
+
+// ─── DOM refs ────────────────────────────────────────────────────
+const spectrumCanvas = document.getElementById('spectrum');
+const sctx = spectrumCanvas.getContext('2d');
+const faceCanvas = document.getElementById('face-canvas');
+const fctx = faceCanvas.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+
+// ─── State ───────────────────────────────────────────────────────
+const voices = {
+  A: { buffer: null, landmarks: [], spectrum: null, duration: 0, sr: 0, name: '' },
+  B: { buffer: null, landmarks: [], spectrum: null, duration: 0, sr: 0, name: '' },
+};
+let morphedLandmarks = [];
+let morphBuffer = null;
+let morphSrc = null;
+let morphRatio = 0.5;
+
+let audioCtx = null;
+let liveAnalyser = null;
+let liveSource = null;
+let liveStream = null;
+let liveAnimId = null;
+let liveLandmarks = [];
+let freqData = new Float32Array(FFT_SIZE / 2);
+let peakHistory = [];
+let isLiveActive = false;
+
+let currentRecorder = null;
+let recordingFor = null;
+let recStream = null;
+let recChunks = [];
+let recStartTime = 0;
+let recTimerInterval = null;
+
+// ─── Face warp state ─────────────────────────────────────────────
+let faceImage = null;
+let neutralCorners = null;
+let deformedCorners = null;
+let scaleX = Array(6).fill().map(() => Array(2).fill(1.0));
+let scaleY = Array(6).fill().map(() => Array(2).fill(1.0));
+let isDragging = false;
+let activeZoneRow = -1, activeZoneCol = -1;
+let dragStartX = 0, dragStartY = 0;
+let startScaleX = 1, startScaleY = 1;
+let warpNeedsUpdate = true;
+let audioWarpActive = true;
+
+// ─── Canvas resize ───────────────────────────────────────────────
+function resizeCanvases() {
+  [spectrumCanvas, faceCanvas].forEach(c => {
+    c.width = wrap.clientWidth * devicePixelRatio;
+    c.height = (wrap.clientHeight / 2) * devicePixelRatio;
+    c.style.width = wrap.clientWidth + 'px';
+    c.style.height = (wrap.clientHeight / 2) + 'px';
+  });
+  neutralCorners = buildNeutralCorners(faceCanvas.width, faceCanvas.height);
+  warpNeedsUpdate = true;
+}
+new ResizeObserver(resizeCanvases).observe(wrap);
+setTimeout(resizeCanvases, 10);
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvases, 300));
+
+// ─── FFT ─────────────────────────────────────────────────────────
+function fft(real, imag) {
+  const n = real.length;
+  let bits = 0;
+  while ((1 << bits) < n) bits++;
+  for (let i = 0; i < n; i++) {
+    let j = 0, x = i;
+    for (let b = 0; b < bits; b++) { j = (j << 1) | (x & 1); x >>= 1; }
+    if (j > i) { [real[i], real[j]] = [real[j], real[i]]; [imag[i], imag[j]] = [imag[j], imag[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len;
+    const wlenR = Math.cos(ang), wlenI = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let wR = 1, wI = 0;
+      for (let j = 0; j < len / 2; j++) {
+        const uR = real[i + j], uI = imag[i + j];
+        const vR = real[i + j + len / 2] * wR - imag[i + j + len / 2] * wI;
+        const vI = real[i + j + len / 2] * wI + imag[i + j + len / 2] * wR;
+        real[i + j] = uR + vR; imag[i + j] = uI + vI;
+        real[i + j + len / 2] = uR - vR; imag[i + j + len / 2] = uI - vI;
+        const t = wR * wlenR - wI * wlenI;
+        wI = wR * wlenI + wI * wlenR;
+        wR = t;
+      }
+    }
+  }
+}
+function binToFreq(bin) { return bin * SAMPLE_RATE / FFT_SIZE; }
+function freqToBin(f) { return Math.round(f * FFT_SIZE / SAMPLE_RATE); }
+
+// ─── Spectral analysis ──────────────────────────────────────────
+function smoothSpectrum(data, k) {
+  const out = new Float32Array(data.length);
+  const ks = k || 5;
+  for (let i = 0; i < data.length; i++) {
+    let sum = 0, c = 0;
+    for (let j = -ks; j <= ks; j++) { const idx = i + j; if (idx >= 0 && idx < data.length) { sum += data[idx]; c++; } }
+    out[i] = sum / c;
+  }
+  return out;
+}
+
+function getBandEnergy(spectrum, fMin, fMax) {
+  if (!spectrum) return 0;
+  const lo = Math.max(freqToBin(MIN_FREQ), freqToBin(fMin));
+  const hi = Math.min(freqToBin(MAX_FREQ), freqToBin(fMax));
+  let sum = 0, count = 0;
+  for (let i = lo; i <= hi && i < spectrum.length; i++) { sum += spectrum[i]; count++; }
+  if (!count) return 0;
+  return Math.max(0, Math.min(1, (sum / count + 70) / 50));
+}
+
+function detectPeaks(spectrum) {
+  const peaks = [];
+  const minBin = freqToBin(MIN_FREQ), maxBin = freqToBin(MAX_FREQ);
+  for (let i = minBin + 2; i < maxBin - 2; i++) {
+    if (spectrum[i] > spectrum[i - 1] && spectrum[i] >= spectrum[i + 1]) {
+      const left = i - 2, right = i + 2;
+      const localMin = Math.min(spectrum[left], spectrum[right]);
+      const prominence = spectrum[i] - localMin;
+      if (prominence < MIN_PEAK_PROMINENCE) continue;
+      const half = spectrum[i] - prominence * 0.5;
+      let lo = i, hi = i;
+      while (lo > minBin && spectrum[lo] > half) lo--;
+      while (hi < maxBin && spectrum[hi] > half) hi++;
+      const a = spectrum[i - 1], b = spectrum[i], c = spectrum[i + 1];
+      const offset = (a - c) / (2 * (a - 2 * b + c)) || 0;
+      peaks.push({ bin: i, freq: binToFreq(i + offset), amplitude: spectrum[i], bandwidth: Math.max(binToFreq(hi) - binToFreq(lo), 20), prominence });
+    }
+  }
+  peaks.sort((a, b) => b.amplitude - a.amplitude);
+  return peaks.slice(0, MAX_LANDMARKS).sort((a, b) => a.freq - b.freq);
+}
+
+function trackPeaks(newPeaks) {
+  if (!peakHistory.length) { peakHistory = newPeaks.map(p => ({...p})); return newPeaks; }
+  return newPeaks.map(p => {
+    const prev = peakHistory.find(ph => Math.abs(ph.freq - p.freq) < 80);
+    if (prev) { p.freq = prev.freq * 0.3 + p.freq * 0.7; p.amplitude = prev.amplitude * 0.2 + p.amplitude * 0.8; p.bandwidth = prev.bandwidth * 0.3 + p.bandwidth * 0.7; }
+    return p;
+  });
+}
+
+function frameToMag(ch, offset, binCount) {
+  const real = new Float32Array(FFT_SIZE), imag = new Float32Array(FFT_SIZE);
+  for (let i = 0; i < FFT_SIZE; i++) real[i] = ch[offset + i] * HANN[i];
+  fft(real, imag);
+  const mag = new Float32Array(binCount);
+  for (let i = 0; i < binCount; i++) mag[i] = 20 * Math.log10(Math.sqrt(real[i] * real[i] + imag[i] * imag[i]) + 1e-10);
+  return mag;
+}
+
+function analyzeBuffer(buffer) {
+  const ch = buffer.getChannelData(0);
+  const numFrames = Math.floor((ch.length - FFT_SIZE) / HOP_SIZE);
+  const binCount = FFT_SIZE / 2;
+  const acc = new Float32Array(binCount);
+  const bar = document.getElementById('progress-bar');
+  let fc = 0;
+  for (let f = 0; f < numFrames; f++) {
+    const mag = frameToMag(ch, f * HOP_SIZE, binCount);
+    for (let i = 0; i < binCount; i++) acc[i] += mag[i];
+    fc++;
+    if (f % 100 === 0) bar.style.width = `${(f / numFrames) * 100}%`;
+  }
+  bar.style.width = '100%'; setTimeout(() => bar.style.width = '0%', 800);
+  for (let i = 0; i < binCount; i++) acc[i] = Math.max(-120, acc[i] / fc);
+  return { spectrum: acc, landmarks: detectPeaks(acc) };
+}
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// ─── Voice management ────────────────────────────────────────────
+function voiceLoaded(id, buffer) {
+  log(`Voice ${id}: ${buffer.duration.toFixed(1)}s, ${buffer.sampleRate}Hz`);
+  document.getElementById(`info-${id}`).textContent = `${buffer.duration.toFixed(1)}s \u00b7 ${buffer.sampleRate}Hz`;
+  document.getElementById(`play-${id}`).disabled = false;
+  const r = analyzeBuffer(buffer);
+  voices[id].buffer = buffer; voices[id].spectrum = r.spectrum; voices[id].landmarks = r.landmarks;
+  voices[id].duration = buffer.duration; voices[id].sr = buffer.sampleRate;
+  checkMorphReady();
+  if (id === 'A') redraw('A'); else redraw('B');
+  log(`Voice ${id}: ${r.landmarks.length} landmarks`);
+}
+function checkMorphReady() { document.getElementById('btn-apply').disabled = !(voices.A.buffer && voices.B.buffer); }
+
+async function startRecording(id) {
+  if (currentRecorder) return;
+  recordingFor = id;
+  const btn = document.getElementById(`rec-${id}`); btn.textContent = '\u25a0 Stop'; btn.classList.add('recording');
+  try { recStream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { log(`Mic error: ${e.message}`); stopRecording(); return; }
+  recChunks = [];
+  currentRecorder = new MediaRecorder(recStream, { mimeType: 'audio/webm;codecs=opus' });
+  currentRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+  currentRecorder.onstop = () => processRecording(id);
+  currentRecorder.start(100);
+  recStartTime = Date.now();
+  document.getElementById('rec-timer').style.display = 'inline';
+  recTimerInterval = setInterval(() => document.getElementById('rec-timer').textContent = `\u23fa ${((Date.now() - recStartTime) / 1000).toFixed(1)}s`, 100);
+  setUI('recording'); log(`Recording Voice ${id}...`);
+}
+function stopRecording() {
+  clearInterval(recTimerInterval); document.getElementById('rec-timer').style.display = 'none';
+  if (currentRecorder && currentRecorder.state !== 'inactive') currentRecorder.stop();
+  if (recStream) recStream.getTracks().forEach(t => t.stop());
+  currentRecorder = null; recStream = null;
+  [document.getElementById('rec-A'), document.getElementById('rec-B')].forEach(b => { b.textContent = '\U0001f534 Rec'; b.classList.remove('recording'); });
+  if (recordingFor) setUI('processing');
+}
+async function processRecording(id) {
+  if (!recChunks.length) { log('No audio captured'); setUI('idle'); return; }
+  const blob = new Blob(recChunks, { type: 'audio/webm' });
+  log(`Recorded ${(blob.size / 1024).toFixed(1)} KB`);
+  try { const b = await (await blob.arrayBuffer()); voices[id].name = `recording-${id}`; voiceLoaded(id, await getAudioCtx().decodeAudioData(b)); }
+  catch (e) { log(`Decode failed: ${e.message}`); }
+  recordingFor = null; if (!isLiveActive) setUI('idle');
+}
+
+let loadTarget = null;
+function loadFileForVoice(id) { loadTarget = id; document.getElementById('file-input').click(); }
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file || !loadTarget) { e.target.value = ''; return; }
+  const id = loadTarget; loadTarget = null; e.target.value = '';
+  setUI('processing'); log(`Loading ${file.name} for Voice ${id}`);
+  const r = new FileReader();
+  r.onload = async ev => { try { voices[id].name = file.name; voiceLoaded(id, await getAudioCtx().decodeAudioData(ev.target.result)); } catch (err) { log(`Decode failed: ${err.message}`); setUI('idle'); } };
+  r.readAsArrayBuffer(file);
+});
+
+let activePlaySrc = null;
+function stopPlayback() { if (activePlaySrc) { try { activePlaySrc.stop(); } catch(e) {} activePlaySrc.disconnect(); activePlaySrc = null; } }
+function playVoice(id) {
+  if (!voices[id].buffer) return;
+  stopPlayback(); stopMorphTest();
+  const s = getAudioCtx().createBufferSource(); s.buffer = voices[id].buffer; s.connect(getAudioCtx().destination); s.start();
+  activePlaySrc = s; log(`Playing Voice ${id}`);
+}
+function stopMorphTest() { if (morphSrc) { try { morphSrc.stop(); } catch(e) {} morphSrc.disconnect(); morphSrc = null; } }
+function playMorph() {
+  if (!morphBuffer) return;
+  stopMorphTest(); stopPlayback();
+  const s = getAudioCtx().createBufferSource(); s.buffer = morphBuffer; s.connect(getAudioCtx().destination); s.start();
+  morphSrc = s; log('Playing morphed voice');
+}
+
+function interpolateLandmarks(a, b, ratio) {
+  const n = Math.min(a.length, b.length, MAX_LANDMARKS);
+  const r = [];
+  for (let i = 0; i < n; i++) r.push({ freq: a[i].freq * (1 - ratio) + b[i].freq * ratio, amplitude: a[i].amplitude * (1 - ratio) + b[i].amplitude * ratio, bandwidth: a[i].bandwidth * (1 - ratio) + b[i].bandwidth * ratio, bin: Math.round(a[i].bin * (1 - ratio) + b[i].bin * ratio) });
+  return r;
+}
+function applyMorph() {
+  if (!voices.A.buffer || !voices.B.buffer) return;
+  morphedLandmarks = interpolateLandmarks(voices.A.landmarks, voices.B.landmarks, morphRatio);
+  log(`Morphed at ${Math.round(morphRatio * 100)}%: ${morphedLandmarks.length} landmarks`);
+  setUI('morphing'); document.getElementById('btn-test').disabled = true;
+  setTimeout(() => {
+    synthesizeMorph(voices.A.buffer, morphedLandmarks).then(buf => { morphBuffer = buf; document.getElementById('btn-test').disabled = false; redraw('morph'); log(`Morph synthesis: ${buf.duration.toFixed(1)}s`); })
+    .catch(e => { log(`Synthesis error: ${e.message}`); setUI('idle'); });
+  }, 50);
+}
+function synthesizeMorph(sourceBuffer, landmarks) {
+  if (!landmarks.length) return Promise.reject(new Error('No landmarks'));
+  const oac = new OfflineAudioContext(sourceBuffer.numberOfChannels, sourceBuffer.length, sourceBuffer.sampleRate);
+  const src = oac.createBufferSource(); src.buffer = sourceBuffer;
+  const master = oac.createGain(); master.gain.value = 0.6;
+  for (const lm of landmarks) {
+    const f = oac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = Math.max(30, Math.min(lm.freq, sourceBuffer.sampleRate / 2 - 10)); f.Q.value = Math.max(0.5, lm.freq / Math.max(lm.bandwidth, 10));
+    const g = oac.createGain(); g.gain.value = Math.pow(10, Math.max(-2, (lm.amplitude + 70) / 35)) / landmarks.length * 1.5;
+    src.connect(f); f.connect(g); g.connect(master);
+  }
+  const d = oac.createGain(); d.gain.value = 0.15; src.connect(d); d.connect(master);
+  master.connect(oac.destination); src.start();
+  return oac.startRendering();
+}
+
+// ─── Drip distortion effect ───────────────────────────────────────
+let dripIntensity = 0;
+let dripDecay = 0.92;
+
+function applyDripEffect() {
+  if (!faceImage || dripIntensity < 0.005) return;
+  const dripEnabled = document.getElementById('drip-toggle').checked;
+  if (!dripEnabled) { dripIntensity = 0; return; }
+  const W = faceCanvas.width, H = faceCanvas.height;
+  const temp = document.createElement('canvas');
+  temp.width = W; temp.height = H;
+  const tc = temp.getContext('2d');
+  const iw = faceImage.width, ih = faceImage.height;
+  const s = Math.max(W / iw, H / ih);
+  tc.drawImage(faceImage, (W - iw * s) / 2, (H - ih * s) / 2, iw * s, ih * s);
+  const src = tc.getImageData(0, 0, W, H);
+  const dst = new ImageData(W, H);
+  const str = dripIntensity * 60;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const drift = Math.sin(x * 0.05 + y * 0.02) * str;
+      const dy = Math.round(drift);
+      const sy = Math.max(0, Math.min(H - 1, y - dy));
+      const si = (sy * W + x) * 4;
+      const di = (y * W + x) * 4;
+      dst.data[di] = src.data[si];
+      dst.data[di + 1] = src.data[si + 1];
+      dst.data[di + 2] = src.data[si + 2];
+      dst.data[di + 3] = 255;
+    }
+  }
+  fctx.putImageData(dst, 0, 0);
+  // Draw grid overlay on dripped result
+  drawFaceCanvasOverlay();
+  dripIntensity *= dripDecay;
+}
+
+function triggerDrip(energy) {
+  dripIntensity = Math.min(1, dripIntensity + energy * 0.5);
+}
+
+// ─── Face warp engine ────────────────────────────────────────────
+function buildNeutralCorners(w, h) {
+  const marginX = w * 0.05, marginY = h * 0.05;
+  const iw = w - 2 * marginX, ih = h - 2 * marginY;
+  const corners = [];
+  for (let r = 0; r < 7; r++) {
+    corners[r] = [];
+    const y = marginY + (r / 6) * ih;
+    for (let c = 0; c < 3; c++) corners[r][c] = { x: marginX + (c / 2) * iw, y };
+  }
+  return corners;
+}
+
+function updateDeformedCorners() {
+  if (!neutralCorners) return;
+  const w = faceCanvas.width, h = faceCanvas.height;
+  const marginX = w * 0.05, marginY = h * 0.05;
+  const ow = Array(6).fill().map(() => Array(2));
+  const oh = Array(6).fill().map(() => Array(2));
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) {
+    ow[i][j] = neutralCorners[i][j + 1].x - neutralCorners[i][j].x;
+    oh[i][j] = neutralCorners[i + 1][j].y - neutralCorners[i][j].y;
+  }
+  const dc = Array(7).fill().map(() => Array(3));
+  dc[0][0] = { x: marginX, y: marginY };
+  for (let j = 1; j <= 2; j++) {
+    const p = dc[0][j - 1], zc = j - 1;
+    dc[0][j] = { x: p.x + ow[0][zc] * scaleX[0][zc], y: marginY };
+  }
+  for (let i = 1; i <= 6; i++) {
+    const zr = i - 1;
+    for (let j = 0; j <= 2; j++) {
+      const abv = dc[i - 1][j];
+      let hs;
+      if (j === 0) hs = scaleY[zr][0];
+      else if (j === 2) hs = scaleY[zr][1];
+      else hs = (scaleY[zr][0] + scaleY[zr][1]) / 2;
+      const dh = oh[zr][j === 0 ? 0 : j - 1] * hs;
+      dc[i][j] = { x: abv.x, y: abv.y + dh };
+    }
+    for (let j = 1; j <= 2; j++) {
+      const l = dc[i][j - 1], zc = j - 1;
+      dc[i][j].x = l.x + ow[zr][zc] * scaleX[zr][zc];
+    }
+  }
+  deformedCorners = dc;
+  warpNeedsUpdate = true;
+}
+
+function driveZonesFromSpectrum(spectrum) {
+  if (!audioWarpActive || !spectrum) return;
+  let changed = false;
+  let totalEnergy = 0;
+  for (let r = 0; r < 6; r++) {
+    for (let c = 0; c < 2; c++) {
+      const energy = getBandEnergy(spectrum, FACE_ROWS[r].bandMin, FACE_ROWS[r].bandMax);
+      totalEnergy += energy;
+      // Upper zones (rows 0-1): stretch vertically with high freq energy
+      // Middle zones (rows 2-3): stretch horizontally with mid energy
+      // Lower zones (rows 4-5): compress with low energy (jaw tension)
+      let sx = 1.0, sy = 1.0;
+      if (r <= 1) { sx = 1.0 + energy * 0.15; sy = 1.0 + energy * 0.25; }
+      else if (r <= 3) { sx = 1.0 + energy * 0.2; sy = 1.0 + energy * 0.12; }
+      else { sx = 1.0 - energy * 0.15; sy = 1.0 - energy * 0.2; }
+      if (c === 1) { sx += energy * 0.04; sy += energy * 0.03; }
+      if (Math.abs(scaleX[r][c] - sx) > 0.01 || Math.abs(scaleY[r][c] - sy) > 0.01) changed = true;
+      scaleX[r][c] = scaleX[r][c] * 0.6 + sx * 0.4;
+      scaleY[r][c] = scaleY[r][c] * 0.6 + sy * 0.4;
+    }
+  }
+  if (totalEnergy > 0.3) triggerDrip(totalEnergy / 6);
+  if (changed) { updateDeformedCorners(); drawFaceCanvas(); warpFace(); }
+}
+
+// ─── Text-driven emotion parser ───────────────────────────────────
+const TEXT_EMO_PRESETS = {
+  calculation: { row1: -0.1, row2: -0.2, row4: -0.15, row5: 0 },
+  curiosity:   { row1: 0.05, row2: 0.1 },
+  surprise:    { row2: 0.4, row4: 0.35 },
+  anger:       { row1: -0.25, row5: -0.2, x5: -0.15 },
+  tension:     { row5: -0.2, x5: -0.2, row2: -0.1 },
+  contempt:    { r4_y: 0.25, r4_x: 0.1, r1: -0.05, side: 'right' },
+  joy:         { row2: 0.15, row4: 0.12, row0: 0.05 },
+  sadness:     { row0: -0.05, row2: -0.12, row5: -0.08 },
+  fear:        { row2: 0.3, row4: 0.25, row1: 0.15 },
+  love:        { row1: 0.05, row2: 0.08, row4: 0.1 },
+  triumph:     { row2: 0.25, row4: 0.18, row3: 0.08 },
+  mischief:    { r1_r: 0.08, r4_r: 0.12, row2: -0.03 },
+};
+
+function applyTextEmotion(emoName, intensity) {
+  const preset = TEXT_EMO_PRESETS[emoName.toLowerCase()];
+  if (!preset) return false;
+  audioWarpActive = false;
+  const scale = intensity || 1.0;
+  for (let c of [0, 1]) {
+    if (preset.row0 !== undefined) { scaleY[0][c] = clamp(scaleY[0][c] + preset.row0 * scale); }
+    if (preset.row1 !== undefined) { scaleY[1][c] = clamp(scaleY[1][c] + preset.row1 * scale); }
+    if (preset.row2 !== undefined) { scaleY[2][c] = clamp(scaleY[2][c] + preset.row2 * scale); }
+    if (preset.row3 !== undefined) { scaleY[3][c] = clamp(scaleY[3][c] + preset.row3 * scale); }
+    if (preset.row4 !== undefined) { scaleY[4][c] = clamp(scaleY[4][c] + preset.row4 * scale); }
+    if (preset.row5 !== undefined) { scaleY[5][c] = clamp(scaleY[5][c] + preset.row5 * scale); }
+    if (preset.x5 !== undefined) { scaleX[5][c] = clamp(scaleX[5][c] + preset.x5 * scale); }
+  }
+  if (preset.r4_y !== undefined) { scaleY[4][1] = clamp(scaleY[4][1] + preset.r4_y * scale); }
+  if (preset.r4_x !== undefined) { scaleX[4][1] = clamp(scaleX[4][1] + preset.r4_x * scale); }
+  if (preset.r1_r !== undefined) { scaleY[1][1] = clamp(scaleY[1][1] + preset.r1_r * scale); }
+  if (preset.r1 !== undefined) { scaleY[1][1] = clamp(scaleY[1][1] + preset.r1 * scale); }
+  updateDeformedCorners(); drawFaceCanvas(); warpFace();
+  log(`Text emotion: ${emoName} (${(scale * 100).toFixed(0)}%)`);
+  return true;
+}
+
+function getStaticZoneFromPoint(px, py) {
+  if (!neutralCorners) return null;
+  const w = faceCanvas.width, h = faceCanvas.height;
+  const mx = w * 0.05, my = h * 0.05;
+  const iw = w - 2 * mx, ih = h - 2 * my;
+  if (px < mx || px > mx + iw || py < my || py > my + ih) return null;
+  const col = Math.floor((px - mx) / (iw / 2));
+  const row = Math.floor((py - my) / (ih / 6));
+  return { row: Math.min(5, Math.max(0, row)), col: Math.min(1, Math.max(0, col)) };
+}
+
+function drawFaceCanvas() {
+  const W = faceCanvas.width, H = faceCanvas.height, dpr = devicePixelRatio;
+  fctx.clearRect(0, 0, W, H);
+  if (faceImage) {
+    const iw = faceImage.width, ih = faceImage.height;
+    const s = Math.max(W / iw, H / ih);
+    fctx.drawImage(faceImage, (W - iw * s) / 2, (H - ih * s) / 2, iw * s, ih * s);
+    // Apply drip on top if active
+    if (dripIntensity > 0.005) { applyDripEffect(); return; }
+  } else {
+    fctx.fillStyle = '#11161f'; fctx.fillRect(0, 0, W, H);
+    fctx.fillStyle = '#a0b4e0'; fctx.font = '12px monospace'; fctx.textAlign = 'center';
+    fctx.fillText('Load a face image', W / 2, H / 2);
+  }
+  drawFaceCanvasOverlay();
+}
+
+function drawFaceCanvasOverlay() {
+  if (!deformedCorners) return;
+  const W = faceCanvas.width, H = faceCanvas.height, dpr = devicePixelRatio;
+  const showMesh = document.getElementById('mesh-toggle').checked;
+  if (!showMesh) return;
+  // Dim overlay
+  fctx.fillStyle = 'rgba(0,0,0,0.03)'; fctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) {
+    const tl = deformedCorners[i][j], tr = deformedCorners[i][j + 1], br = deformedCorners[i + 1][j + 1], bl = deformedCorners[i + 1][j];
+    // Zone fill
+    fctx.beginPath(); fctx.moveTo(tl.x, tl.y); fctx.lineTo(tr.x, tr.y); fctx.lineTo(br.x, br.y); fctx.lineTo(bl.x, bl.y); fctx.closePath();
+    fctx.fillStyle = 'rgba(70,130,200,0.06)'; fctx.fill();
+    fctx.strokeStyle = '#ffdb8e'; fctx.lineWidth = 1.2 * dpr; fctx.stroke();
+    // Zone label
+    const cx = (tl.x + tr.x + br.x + bl.x) / 4, cy = (tl.y + tr.y + br.y + bl.y) / 4;
+    fctx.fillStyle = 'rgba(255,224,163,0.5)'; fctx.font = `bold ${9 * dpr}px sans-serif`; fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+    fctx.fillText(`${FACE_COLS[j].side}${i + 1}`, cx, cy - 6 * dpr);
+    fctx.fillStyle = 'rgba(255,224,163,0.25)'; fctx.font = `${7 * dpr}px sans-serif`;
+    fctx.fillText(`${scaleX[i][j].toFixed(2)}x${scaleY[i][j].toFixed(2)}`, cx, cy + 8 * dpr);
+    // Corner marks (test-landmark style)
+    for (const p of [tl, tr, br, bl]) {
+      fctx.fillStyle = 'rgba(79,195,247,0.4)'; fctx.fillRect(p.x - 2.5 * dpr, p.y - 2.5 * dpr, 5 * dpr, 5 * dpr);
+    }
+    // Midline pivot points
+    const mid = [
+      { x: (tl.x + tr.x) / 2, y: (tl.y + tr.y) / 2 },
+      { x: (tr.x + br.x) / 2, y: (tr.y + br.y) / 2 },
+      { x: (br.x + bl.x) / 2, y: (br.y + bl.y) / 2 },
+      { x: (bl.x + tl.x) / 2, y: (bl.y + tl.y) / 2 }
+    ];
+    for (const m of mid) {
+      fctx.beginPath(); fctx.arc(m.x, m.y, 3 * dpr, 0, Math.PI * 2);
+      fctx.fillStyle = 'rgba(255,215,64,0.5)'; fctx.fill();
+      fctx.strokeStyle = 'rgba(255,215,64,0.2)'; fctx.lineWidth = 0.5 * dpr; fctx.stroke();
+    }
+    // Band energy bar (subtl indicator of current audio driver)
+    const energy = audioWarpActive ? getBandEnergy(freqData || (voices.A.spectrum || null), FACE_ROWS[i].bandMin, FACE_ROWS[i].bandMax) : 0;
+    if (energy > 0.01) {
+      const barX = cx, barY = bl.y + 6 * dpr, barW = 30 * dpr * energy, barH = 3 * dpr;
+      fctx.fillStyle = `hsla(${120 - energy * 120}, 80%, 60%, 0.4)`;
+      fctx.fillRect(barX - barW / 2, barY, barW, barH);
+    }
+  }
+  // Center divider line
+  const midX = (deformedCorners[0][0].x + deformedCorners[0][1].x + deformedCorners[0][2].x) / 3;
+  fctx.strokeStyle = 'rgba(255,255,255,0.04)'; fctx.lineWidth = 0.5 * dpr; fctx.setLineDash([3 * dpr, 6 * dpr]);
+  fctx.beginPath(); fctx.moveTo(midX, deformedCorners[0][0].y); fctx.lineTo(midX, deformedCorners[6][0].y); fctx.stroke();
+  fctx.setLineDash([]);
+  // Row labels
+  fctx.font = `${7 * dpr}px sans-serif`; fctx.fillStyle = 'rgba(255,255,255,0.1)'; fctx.textAlign = 'right';
+  for (let i = 0; i < 6; i++) {
+    const y = (deformedCorners[i][0].y + deformedCorners[i + 1][0].y) / 2;
+    fctx.fillText(FACE_ROWS[i].label, deformedCorners[0][0].x - 6 * dpr, y + 2.5 * dpr);
+  }
+}
+
+function warpFace() {
+  if (!faceImage || !neutralCorners || !deformedCorners) return;
+  const W = faceCanvas.width, H = faceCanvas.height;
+  const showWarp = document.getElementById('warp-toggle').checked;
+  if (!showWarp) return;
+
+  // Trigger drip if intensity high
+  let avgDef = 0;
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) {
+    avgDef += Math.abs(scaleX[i][j] - 1) + Math.abs(scaleY[i][j] - 1);
+  }
+  avgDef /= 12;
+  if (avgDef > 0.08) triggerDrip(avgDef);
+
+  // Source image (same placement as in drawFaceCanvas)
+  const srcCanvas = document.createElement('canvas');
+  srcCanvas.width = W; srcCanvas.height = H;
+  const sctx2 = srcCanvas.getContext('2d');
+  const iw = faceImage.width, ih = faceImage.height;
+  const s = Math.max(W / iw, H / ih);
+  sctx2.drawImage(faceImage, (W - iw * s) / 2, (H - ih * s) / 2, iw * s, ih * s);
+  const srcData = sctx2.getImageData(0, 0, W, H);
+
+  // Build triangle list
+  const tris = [];
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) {
+    const s00 = neutralCorners[i][j], s01 = neutralCorners[i][j + 1], s10 = neutralCorners[i + 1][j], s11 = neutralCorners[i + 1][j + 1];
+    const d00 = deformedCorners[i][j], d01 = deformedCorners[i][j + 1], d10 = deformedCorners[i + 1][j], d11 = deformedCorners[i + 1][j + 1];
+    tris.push({ s: [s00, s01, s10], d: [d00, d01, d10] }, { s: [s01, s11, s10], d: [d01, d11, d10] });
+  }
+
+  const outImg = fctx.createImageData(W, H);
+  const outD = outImg.data;
+  for (let i = 0; i < outD.length; i += 4) outD[i + 3] = 255;
+
+  for (const tri of tris) {
+    const [dA, dB, dC] = tri.d, [sA, sB, sC] = tri.s;
+    const minX = Math.max(0, Math.floor(Math.min(dA.x, dB.x, dC.x)));
+    const maxX = Math.min(W - 1, Math.ceil(Math.max(dA.x, dB.x, dC.x)));
+    const minY = Math.max(0, Math.floor(Math.min(dA.y, dB.y, dC.y)));
+    const maxY = Math.min(H - 1, Math.ceil(Math.max(dA.y, dB.y, dC.y)));
+    for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
+      const v0 = { x: dB.x - dA.x, y: dB.y - dA.y }, v1 = { x: dC.x - dA.x, y: dC.y - dA.y }, v2 = { x: x + 0.5 - dA.x, y: y + 0.5 - dA.y };
+      const d00 = v0.x * v0.x + v0.y * v0.y, d01 = v0.x * v1.x + v0.y * v1.y, d11 = v1.x * v1.x + v1.y * v1.y;
+      const d20 = v2.x * v0.x + v2.y * v0.y, d21 = v2.x * v1.x + v2.y * v1.y;
+      const denom = d00 * d11 - d01 * d01;
+      if (Math.abs(denom) < 1e-8) continue;
+      const v = (d11 * d20 - d01 * d21) / denom, w = (d00 * d21 - d01 * d20) / denom, u = 1 - v - w;
+      if (u >= -0.01 && v >= -0.01 && w >= -0.01) {
+        const sx = Math.round(u * sA.x + v * sB.x + w * sC.x);
+        const sy = Math.round(u * sA.y + v * sB.y + w * sC.y);
+        if (sx >= 0 && sx < W && sy >= 0 && sy < H) {
+          const si = (sy * W + sx) * 4, oi = (y * W + x) * 4;
+          outD[oi] = srcData.data[si]; outD[oi + 1] = srcData.data[si + 1]; outD[oi + 2] = srcData.data[si + 2];
+        }
+      }
+    }
+  }
+  // Gap fill
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const oi = (y * W + x) * 4;
+    if (outD[oi + 3] === 0) {
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const ni = ((y + dy) * W + (x + dx)) * 4;
+        if (srcData.data[ni + 3]) { outD[oi] = srcData.data[ni]; outD[oi + 1] = srcData.data[ni + 1]; outD[oi + 2] = srcData.data[ni + 2]; outD[oi + 3] = 255; dy = 2; break; }
+      }
+    }
+  }
+  fctx.putImageData(outImg, 0, 0);
+  // Redraw grid overlay on top of warped result
+  drawFaceCanvas();
+}
+
+// ─── Stepwise ±0.1 emotion modifiers ────────────────────────────
+function clamp(v) { return Math.min(2.2, Math.max(0.4, v)); }
+function stepEmotion(name, delta) {
+  audioWarpActive = false;
+  switch (name) {
+    case 'surprise':
+      for (let c of [0, 1]) { scaleY[2][c] = clamp(scaleY[2][c] + delta); scaleY[4][c] = clamp(scaleY[4][c] + delta); }
+      break;
+    case 'anger':
+      for (let c of [0, 1]) { scaleY[1][c] = clamp(scaleY[1][c] - delta); scaleY[5][c] = clamp(scaleY[5][c] - delta); scaleX[5][c] = clamp(scaleX[5][c] - delta * 0.6); }
+      break;
+    case 'tension':
+      for (let c of [0, 1]) { scaleX[5][c] = clamp(scaleX[5][c] - delta); scaleY[2][c] = clamp(scaleY[2][c] - delta * 0.5); }
+      break;
+    case 'contempt':
+      scaleY[4][1] = clamp(scaleY[4][1] + delta);
+      scaleX[4][1] = clamp(scaleX[4][1] + delta * 0.4);
+      scaleY[1][1] = clamp(scaleY[1][1] - delta * 0.2);
+      break;
+    case 'joy':
+      for (let c of [0, 1]) { scaleY[2][c] = clamp(scaleY[2][c] + delta * 0.7); scaleY[4][c] = clamp(scaleY[4][c] + delta * 0.6); scaleY[0][c] = clamp(scaleY[0][c] + delta * 0.2); }
+      break;
+    case 'sadness':
+      for (let c of [0, 1]) { scaleY[0][c] = clamp(scaleY[0][c] - delta * 0.3); scaleY[2][c] = clamp(scaleY[2][c] - delta * 0.6); scaleY[5][c] = clamp(scaleY[5][c] - delta * 0.4); }
+      break;
+    case 'fear':
+      for (let c of [0, 1]) { scaleY[2][c] = clamp(scaleY[2][c] + delta * 1.2); scaleY[4][c] = clamp(scaleY[4][c] + delta); scaleY[1][c] = clamp(scaleY[1][c] + delta * 0.6); }
+      break;
+    case 'curiosity':
+      for (let c of [0, 1]) { scaleY[1][c] = clamp(scaleY[1][c] + delta * 0.3); scaleY[2][c] = clamp(scaleY[2][c] + delta * 0.5); }
+      break;
+    case 'triumph':
+      for (let c of [0, 1]) { scaleY[2][c] = clamp(scaleY[2][c] + delta); scaleY[4][c] = clamp(scaleY[4][c] + delta * 0.8); scaleY[3][c] = clamp(scaleY[3][c] + delta * 0.4); }
+      break;
+    case 'mischief':
+      scaleY[1][1] = clamp(scaleY[1][1] + delta * 0.5);
+      scaleY[4][1] = clamp(scaleY[4][1] + delta * 0.7);
+      scaleX[4][1] = clamp(scaleX[4][1] + delta * 0.3);
+      for (let c of [0, 1]) { scaleY[2][c] = clamp(scaleY[2][c] - delta * 0.2); }
+      break;
+    default: return;
+  }
+  log(`${name}: ${delta >= 0 ? '+' : ''}${delta.toFixed(1)}`);
+  updateDeformedCorners(); drawFaceCanvas(); warpFace();
+}
+function resetFaceScales() {
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) { scaleX[i][j] = 1; scaleY[i][j] = 1; }
+  audioWarpActive = true;
+  updateDeformedCorners(); drawFaceCanvas(); warpFace();
+  log('Face zones reset — audio warp re-enabled');
+}
+
+// ─── Drawing (spectrum) ──────────────────────────────────────────
+function redraw(active) {
+  const W = spectrumCanvas.width, H = spectrumCanvas.height, dpr = devicePixelRatio;
+  sctx.clearRect(0, 0, W, H);
+  const grad = sctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#0d1a2b'); grad.addColorStop(1, '#0a1219');
+  sctx.fillStyle = grad; sctx.fillRect(0, 0, W, H);
+  const ml = 44 * dpr, mr = 14 * dpr, mt = 22 * dpr, mb = 30 * dpr;
+  const pW = W - ml - mr, pH = H - mt - mb;
+  const pT = mt, pB = H - mb;
+  const minB = freqToBin(MIN_FREQ), maxB = freqToBin(MAX_FREQ);
+  const bR = maxB - minB;
+  const showG = document.getElementById('show-grid').checked;
+
+  function xF(f) { return ml + (Math.log2(f / MIN_FREQ) / Math.log2(MAX_FREQ / MIN_FREQ)) * pW; }
+  function xB(b) { return ml + ((b - minB) / bR) * pW; }
+  function yD(db) { return pT + (1 - (db + 100) / 80) * pH; }
+
+  if (showG) {
+    sctx.strokeStyle = 'rgba(255,255,255,0.04)'; sctx.lineWidth = dpr;
+    sctx.font = `${8 * dpr}px sans-serif`; sctx.fillStyle = 'rgba(255,255,255,0.1)';
+    for (const f of [60,100,200,300,500,800,1000,1500,2000,3000,4000,6000,8000]) {
+      const x = xF(f); sctx.beginPath(); sctx.moveTo(x, pT); sctx.lineTo(x, pB); sctx.stroke();
+      sctx.fillText(f < 1000 ? `${f}Hz` : `${f/1000}kHz`, x - 10 * dpr, pB + 12 * dpr);
+    }
+  }
+
+  function drawSL(data, color) {
+    const sm = document.getElementById('smooth-toggle').checked ? smoothSpectrum(data, 3) : data;
+    sctx.beginPath(); sctx.strokeStyle = color; sctx.lineWidth = 1.5 * dpr;
+    for (let i = minB; i < maxB; i++) { const x = xB(i), y = yD(sm[i]); i === minB ? sctx.moveTo(x, y) : sctx.lineTo(x, y); }
+    sctx.stroke();
+    sctx.lineTo(xB(maxB), pB); sctx.lineTo(xB(minB), pB); sctx.closePath();
+    const fg = sctx.createLinearGradient(0, pT, 0, pB);
+    fg.addColorStop(0, 'rgba(124,92,252,0.06)'); fg.addColorStop(1, 'rgba(124,92,252,0.01)');
+    sctx.fillStyle = fg; sctx.fill();
+  }
+  function drawLS(lms, st) {
+    for (const p of lms) {
+      const x = xB(p.bin), y = yD(p.amplitude);
+      const bwP = ((p.bandwidth / (SAMPLE_RATE / FFT_SIZE)) / bR) * pW;
+      sctx.beginPath(); sctx.ellipse(x, y, Math.max(bwP / 2, 3 * dpr), 8 * dpr, 0, 0, Math.PI * 2);
+      sctx.fillStyle = st.g.replace('0.3', '0.08'); sctx.fill();
+      const r = Math.max(3, 5 + (p.amplitude + 50) / 50 * 3) * dpr;
+      const g2 = sctx.createRadialGradient(x, y, 0, x, y, r * 2.5);
+      g2.addColorStop(0, st.g); g2.addColorStop(1, 'transparent');
+      sctx.fillStyle = g2; sctx.beginPath(); sctx.arc(x, y, r * 2.5, 0, Math.PI * 2); sctx.fill();
+      sctx.beginPath(); sctx.arc(x, y, r, 0, Math.PI * 2);
+      sctx.fillStyle = st.f; sctx.fill(); sctx.strokeStyle = `hsla(${st.h},70%,70%,0.4)`; sctx.lineWidth = 0.8 * dpr; sctx.stroke();
+      sctx.fillStyle = `hsla(${st.h},60%,75%,0.6)`;
+      sctx.font = `${7 * dpr}px sans-serif`; sctx.textAlign = 'center';
+      sctx.fillText(`${Math.round(p.freq)}Hz`, x, y - r - 4 * dpr);
+      if (document.getElementById('hold-peaks').checked) {
+        sctx.strokeStyle = st.l; sctx.lineWidth = 0.8 * dpr; sctx.setLineDash([2 * dpr, 3 * dpr]);
+        sctx.beginPath(); sctx.moveTo(x, pT); sctx.lineTo(x, pB); sctx.stroke(); sctx.setLineDash([]);
+      }
+    }
+  }
+
+  const ms = active === 'morph' ? 'A' : (active || 'A');
+  if (isLiveActive && freqData) drawSL(freqData, 'rgba(76,175,80,0.3)');
+  else if (active === 'morph' && voices.A.spectrum) drawSL(voices.A.spectrum, 'rgba(200,214,229,0.2)');
+  else if (voices[ms] && voices[ms].spectrum) drawSL(voices[ms].spectrum, 'rgba(200,214,229,0.25)');
+
+  if (voices.A.landmarks.length && active !== 'morph') drawLS(voices.A.landmarks, { h: 200, f: 'rgba(79,195,247,0.9)', g: 'hsla(200,80%,65%,0.3)', l: 'hsla(200,60%,60%,0.06)' });
+  if (voices.B.landmarks.length && active !== 'morph') drawLS(voices.B.landmarks, { h: 0, f: 'rgba(239,83,80,0.9)', g: 'hsla(0,80%,65%,0.3)', l: 'hsla(0,60%,60%,0.06)' });
+  if (active === 'morph' && morphedLandmarks.length) drawLS(morphedLandmarks, { h: 45, f: 'rgba(255,215,64,0.95)', g: 'hsla(45,90%,65%,0.35)', l: 'hsla(45,80%,60%,0.08)' });
+
+  // Drive face warp from spectrum
+  const ms2 = isLiveActive ? freqData : (active === 'morph' && voices.A.spectrum ? voices.A.spectrum : (voices[ms] ? voices[ms].spectrum : null));
+  driveZonesFromSpectrum(ms2);
+}
+
+// ─── Live mode ───────────────────────────────────────────────────
+function liveFrame() {
+  if (!liveAnalyser) return;
+  liveAnalyser.getFloatFrequencyData(freqData);
+  liveLandmarks = trackPeaks(detectPeaks(freqData));
+  voices.A.landmarks = liveLandmarks;
+  redraw('A');
+  updateLandmarkList(liveLandmarks);
+  liveAnimId = requestAnimationFrame(liveFrame);
+}
+
+async function startLive() {
+  stopAllAudio();
+  try {
+    liveStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const ctx = getAudioCtx();
+    liveSource = ctx.createMediaStreamSource(liveStream);
+    liveAnalyser = ctx.createAnalyser();
+    liveAnalyser.fftSize = FFT_SIZE;
+    liveAnalyser.smoothingTimeConstant = 0.8;
+    liveSource.connect(liveAnalyser);
+    isLiveActive = true;
+    peakHistory = [];
+    setUI('live');
+    liveFrame();
+    log('Live mode active');
+  } catch (e) { log(`Mic error: ${e.message}`); setUI('idle'); }
+}
+
+// ─── Stop ────────────────────────────────────────────────────────
+function stopAllAudio() {
+  if (liveAnimId) { cancelAnimationFrame(liveAnimId); liveAnimId = null; }
+  if (liveStream) liveStream.getTracks().forEach(t => t.stop());
+  if (liveSource) liveSource.disconnect();
+  liveAnalyser = null; liveSource = null; liveStream = null;
+  isLiveActive = false;
+  stopPlayback(); stopMorphTest();
+}
+function fullReset() { stopAllAudio(); if (currentRecorder) stopRecording(); setUI('idle'); log('Stopped'); }
+
+// ─── UI ──────────────────────────────────────────────────────────
+function setUI(mode) {
+  const dot = document.getElementById('dot'), lbl = document.getElementById('status-label');
+  switch (mode) {
+    case 'idle': dot.className = 'dot idle'; lbl.textContent = 'Idle'; break;
+    case 'live': dot.className = 'dot live'; lbl.textContent = 'Live'; break;
+    case 'recording': dot.className = 'dot live'; lbl.textContent = 'Recording...'; break;
+    case 'processing': dot.className = 'dot voice'; lbl.textContent = 'Processing...'; break;
+    case 'morphing': dot.className = 'dot morph'; lbl.textContent = 'Morphing...'; break;
+  }
+}
+
+function updateLandmarkList(lms) {
+  const list = lms || (morphedLandmarks.length ? morphedLandmarks : (voices.A.landmarks.length ? voices.A.landmarks : voices.B.landmarks));
+  const el = document.getElementById('landmark-list'), cnt = document.getElementById('lm-count');
+  if (!list || !list.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:0.6rem;text-align:center;padding:0.5rem 0">No landmarks</div>'; cnt.textContent = '0 landmarks'; return; }
+  let h = '';
+  for (let i = 0; i < Math.min(list.length, 24); i++) { const p = list[i]; h += `<div class="lm"><span>#${i+1}</span><span class="freq">${Math.round(p.freq)} Hz</span><span class="amp">${(p.amplitude+60).toFixed(1)} dB</span><span class="bw">${Math.round(p.bandwidth)} Hz</span></div>`; }
+  el.innerHTML = h; cnt.textContent = `${list.length} landmarks`;
+}
+
+function log(msg) {
+  const el = document.getElementById('event-log');
+  const e = document.createElement('div'); e.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(e); el.scrollTop = el.scrollHeight;
+  if (el.children.length > 50) el.removeChild(el.firstChild);
+}
+
+// ─── Toggle → redraw ────────────────────────────────────────────
+function toggleRedraw() {
+  if (morphedLandmarks.length) redraw('morph');
+  else if (voices.A.landmarks.length) redraw('A');
+  else if (voices.B.landmarks.length) redraw('B');
+  else redraw();
+  updateDeformedCorners(); drawFaceCanvas(); warpFace();
+}
+document.getElementById('hold-peaks').addEventListener('change', toggleRedraw);
+document.getElementById('show-grid').addEventListener('change', toggleRedraw);
+document.getElementById('smooth-toggle').addEventListener('change', toggleRedraw);
+document.getElementById('mesh-toggle').addEventListener('change', toggleRedraw);
+document.getElementById('warp-toggle').addEventListener('change', () => { warpFace(); drawFaceCanvas(); });
+
+// ─── PointerEvents drag on face canvas (static grid, no drift) ──
+function canvasCoords(e) {
+  const r = faceCanvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * (faceCanvas.width / r.width), y: (e.clientY - r.top) * (faceCanvas.height / r.height) };
+}
+faceCanvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const p = canvasCoords(e); const z = getStaticZoneFromPoint(p.x, p.y);
+  if (z) { isDragging = true; activeZoneRow = z.row; activeZoneCol = z.col; dragStartX = p.x; dragStartY = p.y; startScaleX = scaleX[z.row][z.col]; startScaleY = scaleY[z.row][z.col]; audioWarpActive = false; faceCanvas.style.cursor = 'grabbing'; faceCanvas.setPointerCapture(e.pointerId); }
+});
+faceCanvas.addEventListener('pointermove', e => {
+  if (!isDragging || activeZoneRow === -1) return;
+  e.preventDefault();
+  const p = canvasCoords(e);
+  const sens = 0.005;
+  scaleX[activeZoneRow][activeZoneCol] = clamp(startScaleX + (p.x - dragStartX) * sens);
+  scaleY[activeZoneRow][activeZoneCol] = clamp(startScaleY + (p.y - dragStartY) * sens);
+  updateDeformedCorners(); drawFaceCanvas(); warpFace();
+});
+faceCanvas.addEventListener('pointerup', e => { if (isDragging) { isDragging = false; activeZoneRow = -1; faceCanvas.style.cursor = 'crosshair'; faceCanvas.releasePointerCapture(e.pointerId); } });
+faceCanvas.style.touchAction = 'none';
+faceCanvas.style.cursor = 'crosshair';
+
+// ─── Event bindings ──────────────────────────────────────────────
+document.getElementById('rec-A').addEventListener('click', () => startRecording('A'));
+document.getElementById('rec-B').addEventListener('click', () => startRecording('B'));
+document.getElementById('load-A').addEventListener('click', () => loadFileForVoice('A'));
+document.getElementById('load-B').addEventListener('click', () => loadFileForVoice('B'));
+document.getElementById('play-A').addEventListener('click', () => playVoice('A'));
+document.getElementById('play-B').addEventListener('click', () => playVoice('B'));
+document.getElementById('btn-apply').addEventListener('click', applyMorph);
+document.getElementById('btn-test').addEventListener('click', playMorph);
+document.getElementById('morph-slider').addEventListener('input', e => { morphRatio = parseInt(e.target.value) / 100; document.getElementById('morph-pct').textContent = `${Math.round(morphRatio * 100)}%`; });
+function bindStep(id, name) {
+  const b = document.getElementById(id);
+  b.addEventListener('click', e => { e.preventDefault(); stepEmotion(name, 0.1); });
+  b.addEventListener('contextmenu', e => { e.preventDefault(); stepEmotion(name, -0.1); return false; });
+}
+bindStep('preset-surprise', 'surprise');
+bindStep('preset-anger', 'anger');
+bindStep('preset-tension', 'tension');
+bindStep('preset-contempt', 'contempt');
+bindStep('preset-joy', 'joy');
+bindStep('preset-sadness', 'sadness');
+bindStep('preset-fear', 'fear');
+bindStep('preset-curiosity', 'curiosity');
+bindStep('preset-triumph', 'triumph');
+bindStep('preset-mischief', 'mischief');
+document.getElementById('preset-reset').addEventListener('click', resetFaceScales);
+document.getElementById('load-face').addEventListener('click', () => document.getElementById('face-input').click());
+
+// Text emotion input
+document.getElementById('apply-text-emo').addEventListener('click', () => {
+  const val = document.getElementById('text-emotion-input').value.trim().toLowerCase();
+  if (!val) return;
+  applyTextEmotion(val, 1.0);
+});
+document.getElementById('text-emotion-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('apply-text-emo').click(); }
+});
+document.getElementById('face-input').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return; e.target.value = '';
+  const r = new FileReader();
+  r.onload = ev => { const img = new Image(); img.onload = () => { faceImage = img; neutralCorners = buildNeutralCorners(faceCanvas.width, faceCanvas.height); resetFaceScales(); log(`Face loaded: ${f.name}`); }; img.src = ev.target.result; };
+  r.readAsDataURL(f);
+});
+
+// Topbar buttons
+const liveBtn = document.createElement('button');
+liveBtn.className = 'btn sm'; liveBtn.textContent = '\U0001f3a4 Live';
+liveBtn.style.cssText = 'margin-left:auto';
+liveBtn.addEventListener('click', () => { fullReset(); startLive(); });
+document.getElementById('topbar').appendChild(liveBtn);
+
+const stopBtn = document.createElement('button');
+stopBtn.className = 'btn sm'; stopBtn.textContent = '\u25a0 Stop';
+stopBtn.addEventListener('click', fullReset);
+document.getElementById('topbar').appendChild(stopBtn);
+
+// ═══ Emotional Dictionary Integration ═══
+let BRIDGE_PORT = 55555;
+let emoDictLoaded = false;
+
+async function loadPortConfig() {
+  try {
+    const r = await fetch(`http://localhost:${BRIDGE_PORT}/config/ports`);
+    if (!r.ok) throw new Error('port config not found');
+    const cfg = await r.json();
+    if (cfg.clawdia_bridge) BRIDGE_PORT = cfg.clawdia_bridge;
+  } catch (e) { /* offline mode, use defaults */ }
+}
+
+async function loadEmotionalDictionary() {
+  try {
+    const r = await fetch(`http://localhost:${BRIDGE_PORT}/config/emotional-dictionary`);
+    if (!r.ok) throw new Error('emotional dictionary not found');
+    const dict = await r.json();
+    if (dict.emotions) {
+      for (const [emoName, emoData] of Object.entries(dict.emotions)) {
+        const key = emoName.toLowerCase();
+        if (!TEXT_EMO_PRESETS[key] && emoData.facial_deltas) {
+          const preset = {};
+          for (const [zone, vals] of Object.entries(emoData.facial_deltas)) {
+            if (zone.startsWith('row') || zone.startsWith('r') || zone === 'x5') preset[zone] = vals.y || vals.x || 0.1;
+          }
+          TEXT_EMO_PRESETS[key] = preset;
+        }
+      }
+    }
+    emoDictLoaded = true;
+    log(`Loaded emotional dictionary (v${dict.version || '?'}) — ${Object.keys(TEXT_EMO_PRESETS).length} emotions`);
+    // Update datalist
+    const dl = document.getElementById('emo-datalist');
+    if (dl) dl.innerHTML = Object.keys(TEXT_EMO_PRESETS).map(k => `<option value="${k}">`).join('');
+  } catch (e) {
+    log(`Emotional dict offline: ${e.message} — using ${Object.keys(TEXT_EMO_PRESETS).length} built-in presets`);
+  }
+}
+
+// ═══ Init ═══
+(async function init() {
+  await loadPortConfig();
+  await loadEmotionalDictionary();
+})();
+(function loadDefaultAvatar() {
+  const img = new Image();
+  img.onload = () => { faceImage = img; neutralCorners = buildNeutralCorners(faceCanvas.width, faceCanvas.height); resetFaceScales(); log('Default avatar loaded (GEMINI)'); };
+  img.onerror = () => log('Default avatar not found — click "Load Face"');
+  img.src = 'avatar.png';
+})();
+
+log('Loaded — spectrum + face warp with 12-zone mesh');
+</script>
+</body>
+</html>

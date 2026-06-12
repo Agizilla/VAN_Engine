@@ -1,0 +1,4 @@
+{"level":30,"time":1781038995524,"pid":12492,"hostname":"DESKTOP-4MO7766","server":"started","port":8080}
+{"level":30,"time":1781038995525,"pid":12492,"hostname":"DESKTOP-4MO7766","msg":"WebSocket server ready"}
+{"level":30,"time":1781100712675,"pid":7292,"hostname":"DESKTOP-4MO7766","server":"started","port":55555}
+{"level":30,"time":1781100712675,"pid":7292,"hostname":"DESKTOP-4MO7766","msg":"WebSocket server ready"}

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARA — Behaviour Tree Engine</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0a; color:#ccc; font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+  #header { padding:14px 20px; background:#111; border-bottom:1px solid #1a1a1a; display:flex; justify-content:space-between; align-items:center; }
+  #header h1 { font-size:14px; font-weight:700; color:#d29b83; letter-spacing:1px; text-transform:uppercase; }
+  #header .sub { font-size:11px; color:#555; }
+  #main { display:flex; flex:1; gap:14px; padding:14px; overflow:hidden; }
+  #left-pane { flex:1; display:flex; flex-direction:column; gap:10px; min-width:0; }
+  #right-pane { width:340px; flex-shrink:0; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+  .section-title { font-size:11px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .card { background:#111; border:1px solid #1a1a1a; border-radius:6px; padding:12px; }
+  .card-title { font-size:12px; font-weight:600; color:#aaa; margin-bottom:8px; }
+
+  /* Tree view */
+  #tree-container { overflow-y:auto; flex:1; min-height:200px; font-size:13px; }
+  .tree-node { padding:6px 8px; margin:2px 0; border-radius:4px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:8px; }
+  .tree-node:hover { background:#1a1a1a; }
+  .tree-node.selected { background:#1e1e1e; border:1px solid #2a2a2a; }
+  .tree-node .status-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .status-IDLE { background:#333; }
+  .status-RUNNING { background:#3498db; box-shadow:0 0 6px #3498db44; }
+  .status-SUCCESS { background:#2ecc71; }
+  .status-FAILURE { background:#e74c3c; }
+  .tree-node .node-icon { font-size:12px; width:18px; text-align:center; flex-shrink:0; color:#666; }
+  .tree-node .node-name { color:#ccc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tree-node .node-type { font-size:10px; color:#555; margin-left:auto; }
+  .tree-children { margin-left:20px; border-left:1px solid #1a1a1a; padding-left:6px; }
+  .tree-node.drag-over { background:#1e2a1e; border-color:#2ecc71; }
+
+  /* Stats */
+  #stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .stat-card { background:#0f0f0f; border:1px solid #1a1a1a; border-radius:5px; padding:10px; }
+  .stat-card .label { font-size:10px; color:#555; text-transform:uppercase; }
+  .stat-card .value { font-size:20px; font-weight:700; color:#e0e0e0; margin-top:2px; }
+  .stat-card .value.good { color:#2ecc71; }
+  .stat-card .value.warn { color:#f39c12; }
+
+  /* Progress bar */
+  #progress-wrap { background:#0f0f0f; border-radius:4px; height:6px; overflow:hidden; margin-top:4px; }
+  #progress-fill { height:100%; background:#2ecc71; border-radius:4px; transition:width 0.4s; width:0%; }
+
+  /* Task form */
+  #task-form { display:flex; gap:6px; flex-wrap:wrap; }
+  #task-form input { flex:1; min-width:120px; background:#0f0f0f; border:1px solid #222; border-radius:4px; padding:7px 10px; color:#ccc; font-size:12px; outline:none; font-family:inherit; }
+  #task-form input:focus { border-color:#3a3a3a; }
+  #task-form select { background:#0f0f0f; border:1px solid #222; border-radius:4px; padding:7px 10px; color:#aaa; font-size:12px; outline:none; font-family:inherit; }
+  #task-form select:focus { border-color:#3a3a3a; }
+
+  .btn { background:#222; border:1px solid #333; color:#aaa; padding:7px 16px; border-radius:4px; cursor:pointer; font-size:12px; transition:all 0.15s; font-family:inherit; }
+  .btn:hover { background:#2a2a2a; color:#fff; }
+  .btn-primary { background:#9b2a2a; border-color:#b53a3a; color:#fff; }
+  .btn-primary:hover { background:#b53a3a; }
+  .btn-sm { padding:4px 10px; font-size:11px; }
+  .btn-danger { background:#5c1a1a; border-color:#7a2222; color:#e74c3c; }
+  .btn-danger:hover { background:#7a2222; color:#fff; }
+
+  /* Task detail panel */
+  #task-detail { display:none; }
+  #task-detail.visible { display:block; }
+  .detail-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #181818; }
+  .detail-row .label { font-size:11px; color:#666; }
+  .detail-row .val { font-size:12px; color:#ccc; }
+  .detail-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+
+  #status-bar { position:fixed; bottom:0; left:0; right:0; background:#111; border-top:1px solid #1a1a1a; padding:7px 14px; font-size:11px; color:#555; display:flex; justify-content:space-between; z-index:100; }
+  #toast { position:fixed; bottom:44px; left:50%; transform:translateX(-50%); background:#1a1a1a; border:1px solid #2a2a2a; border-radius:8px; padding:7px 16px; color:#aaa; font-size:12px; z-index:600; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+  #toast.show { opacity:1; }
+
+  .empty-state { text-align:center; padding:40px 20px; color:#555; }
+  .empty-state p { font-size:13px; margin-bottom:4px; }
+  .empty-state small { font-size:11px; color:#444; }
+
+  /* Tree action bar */
+  #tree-actions { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { display:inline-block; font-size:10px; padding:2px 6px; border-radius:3px; background:#181818; color:#666; }
+
+  /* Confirm modal */
+  #confirm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:900; justify-content:center; align-items:center; }
+  #confirm-overlay.visible { display:flex; }
+  #confirm-box { background:#151515; border:1px solid #2a2a2a; border-radius:8px; padding:20px; max-width:380px; width:90%; }
+  #confirm-box p { font-size:13px; color:#ccc; margin-bottom:14px; }
+  #confirm-box .btn-row { display:flex; gap:8px; justify-content:flex-end; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Behaviour Tree Engine</h1>
+    <div class="sub">Sprint 7 · Hierarchical execution tree</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn btn-sm" onclick="window.open('index.html','_blank')">⟵ Main</button>
+    <button class="btn btn-sm" id="btn-tick">▶ Tick</button>
+    <button class="btn btn-sm" id="btn-tick-all">⏩ Tick All</button>
+    <button class="btn btn-sm btn-danger" id="btn-reset">⟲ Reset</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="left-pane">
+    <div class="section-title">Execution Tree</div>
+    <div id="stats-row">
+      <div class="stat-card"><div class="label">Tasks</div><div class="value" id="stat-total">0</div></div>
+      <div class="stat-card"><div class="label">Completed</div><div class="value" id="stat-done">0</div></div>
+      <div class="stat-card"><div class="label">Elapsed</div><div class="value" id="stat-elapsed">0s</div></div>
+    </div>
+    <div id="progress-wrap"><div id="progress-fill"></div></div>
+    <div id="tree-container">
+      <div class="empty-state" id="empty-tree">
+        <p>No tasks yet</p>
+        <small>Add a task in the right panel to begin</small>
+      </div>
+    </div>
+  </div>
+
+  <div id="right-pane">
+    <div class="card">
+      <div class="card-title">Add Task</div>
+      <div id="task-form">
+        <input id="task-name-input" placeholder="Task name..." maxlength="80">
+        <select id="task-type-select">
+          <option value="Action">Action</option>
+          <option value="Sequence">Sequence</option>
+          <option value="Condition">Condition</option>
+        </select>
+        <button class="btn btn-primary btn-sm" id="btn-add-task">+ Add</button>
+      </div>
+    </div>
+
+    <div class="card" id="task-detail">
+      <div class="card-title" id="detail-title">Task Detail</div>
+      <div id="detail-body">
+        <div class="detail-row"><span class="label">ID</span><span class="val" id="detail-id">—</span></div>
+        <div class="detail-row"><span class="label">Type</span><span class="val" id="detail-type">—</span></div>
+        <div class="detail-row"><span class="label">Status</span><span class="val" id="detail-status">—</span></div>
+        <div class="detail-row"><span class="label">Children</span><span class="val" id="detail-children">0</span></div>
+        <div class="detail-actions">
+          <button class="btn btn-sm" id="detail-set-running">Set Running</button>
+          <button class="btn btn-sm" id="detail-set-success">Set Success</button>
+          <button class="btn btn-sm" id="detail-set-failure">Set Failure</button>
+          <button class="btn btn-sm" id="detail-set-idle">Reset to Idle</button>
+          <button class="btn btn-sm btn-danger" id="detail-delete">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sprint Info</div>
+      <div class="detail-row"><span class="label">Created</span><span class="val" id="sprint-created">—</span></div>
+      <div class="detail-row"><span class="label">Last Tick</span><span class="val" id="sprint-ticked">—</span></div>
+      <div class="detail-row"><span class="label">Node Types</span><span class="val" id="sprint-types">—</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="status-bar">
+  <span id="status-left">Ready</span>
+  <span id="status-right">v1 · ARA Behaviour Tree</span>
+</div>
+
+<div id="toast"></div>
+
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <p id="confirm-msg">Are you sure?</p>
+    <div class="btn-row">
+      <button class="btn btn-sm" id="confirm-no">Cancel</button>
+      <button class="btn btn-sm btn-danger" id="confirm-yes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// BEHAVIOUR TREE ENGINE
+// ============================================================
+const BT_STATES = { IDLE: 'IDLE', RUNNING: 'RUNNING', SUCCESS: 'SUCCESS', FAILURE: 'FAILURE' };
+
+class BTNode {
+  constructor(name, type) {
+    this.id = BTNode._nextId++;
+    this.name = name || type;
+    this.type = type;
+    this.state = BT_STATES.IDLE;
+    this.children = [];
+    this.parent = null;
+  }
+  addChild(child) {
+    child.parent = this;
+    this.children.push(child);
+    return child;
+  }
+  removeChild(child) {
+    const idx = this.children.indexOf(child);
+    if (idx !== -1) { this.children.splice(idx, 1); child.parent = null; }
+  }
+  tick(bb) { return BT_STATES.SUCCESS; }
+  reset() {
+    this.state = BT_STATES.IDLE;
+    this.children.forEach(c => c.reset());
+  }
+  toJSON() {
+    return { id: this.id, name: this.name, type: this.type, state: this.state,
+      children: this.children.map(c => c.toJSON()) };
+  }
+  static fromJSON(data) {
+    const node = new BTNode(data.name, data.type);
+    node.id = data.id; node.state = data.state;
+    BTNode._nextId = Math.max(BTNode._nextId, data.id + 1);
+    (data.children || []).forEach(cd => node.addChild(BTNode.fromJSON(cd)));
+    return node;
+  }
+
+  getDescendantCount() {
+    let n = 1;
+    this.children.forEach(c => n += c.getDescendantCount());
+    return n;
+  }
+
+  getStatusSummary() {
+    const s = { total: 1, running: this.state === 'RUNNING' ? 1 : 0,
+      success: this.state === 'SUCCESS' ? 1 : 0, failure: this.state === 'FAILURE' ? 1 : 0 };
+    this.children.forEach(c => {
+      const cs = c.getStatusSummary();
+      s.total += cs.total; s.running += cs.running; s.success += cs.success; s.failure += cs.failure;
+    });
+    return s;
+  }
+
+  setName(name) { if (name) this.name = name; }
+}
+BTNode._nextId = 1;
+
+// Sequence: run children in order, fail on first FAILURE, return RUNNING if any child runs
+class Sequence extends BTNode {
+  constructor(name) { super(name || 'SEQ', 'Sequence'); }
+  tick(bb) {
+    for (const child of this.children) {
+      const result = child.tick(bb);
+      if (result === BT_STATES.FAILURE) { this.state = BT_STATES.FAILURE; return BT_STATES.FAILURE; }
+      if (result === BT_STATES.RUNNING) { this.state = BT_STATES.RUNNING; return BT_STATES.RUNNING; }
+    }
+    this.state = BT_STATES.SUCCESS;
+    return BT_STATES.SUCCESS;
+  }
+  static fromJSON(d) { const n = new Sequence(d.name); n.id = d.id; n.state = d.state; BTNode._nextId = Math.max(BTNode._nextId, d.id + 1); (d.children||[]).forEach(c => n.addChild(BTNode.fromJSON(c))); return n; }
+}
+
+// Selector: run children in order, succeed on first SUCCESS, return RUNNING if any child runs
+class Selector extends BTNode {
+  constructor(name) { super(name || 'SEL', 'Selector'); }
+  tick(bb) {
+    for (const child of this.children) {
+      const result = child.tick(bb);
+      if (result === BT_STATES.SUCCESS) { this.state = BT_STATES.SUCCESS; return BT_STATES.SUCCESS; }
+      if (result === BT_STATES.RUNNING) { this.state = BT_STATES.RUNNING; return BT_STATES.RUNNING; }
+    }
+    this.state = BT_STATES.FAILURE;
+    return BT_STATES.FAILURE;
+  }
+  static fromJSON(d) { const n = new Selector(d.name); n.id = d.id; n.state = d.state; BTNode._nextId = Math.max(BTNode._nextId, d.id + 1); (d.children||[]).forEach(c => n.addChild(BTNode.fromJSON(c))); return n; }
+}
+
+// Condition: evaluate a predicate (stored as function name in blackboard)
+class Condition extends BTNode {
+  constructor(name, predicateName) { super(name || 'COND', 'Condition'); this.predicateName = predicateName || ''; }
+  tick(bb) {
+    const fn = bb && typeof bb.get === 'function' ? bb.get(this.predicateName || this.name) : null;
+    const passes = typeof fn === 'function' ? fn(bb) : true;
+    this.state = passes ? BT_STATES.SUCCESS : BT_STATES.FAILURE;
+    return this.state;
+  }
+  toJSON() { return { ...super.toJSON(), predicateName: this.predicateName }; }
+  static fromJSON(d) { const n = new Condition(d.name, d.predicateName); n.id = d.id; n.state = d.state; BTNode._nextId = Math.max(BTNode._nextId, d.id + 1); (d.children||[]).forEach(c => n.addChild(BTNode.fromJSON(c))); return n; }
+}
+
+// Action: execute a function (stored in blackboard), can return RUNNING
+class Action extends BTNode {
+  constructor(name) { super(name || 'ACT', 'Action'); }
+  tick(bb) {
+    this.state = BT_STATES.RUNNING;
+    const fn = bb && typeof bb.get === 'function' ? bb.get(this.name) : null;
+    if (typeof fn === 'function') {
+      try {
+        const result = fn(bb);
+        this.state = result || BT_STATES.SUCCESS;
+      } catch (e) {
+        console.warn('BT Action failed:', this.name, e);
+        this.state = BT_STATES.FAILURE;
+      }
+    } else {
+      this.state = BT_STATES.SUCCESS;
+    }
+    return this.state;
+  }
+  static fromJSON(d) { const n = new Action(d.name); n.id = d.id; n.state = d.state; BTNode._nextId = Math.max(BTNode._nextId, d.id + 1); return n; }
+}
+
+// Blackboard: shared key-value context for the tree
+class Blackboard {
+  constructor() { this._data = {}; }
+  set(key, val) { this._data[key] = val; return this; }
+  get(key) { return this._data[key]; }
+  has(key) { return key in this._data; }
+  remove(key) { delete this._data[key]; }
+  keys() { return Object.keys(this._data); }
+  toJSON() { return { ...this._data }; }
+  load(data) { if (data) { this._data = { ...data }; } }
+}
+
+// Behaviour Tree: orchestrates tick loop over root node
+class BehaviourTree {
+  constructor(root, blackboard) {
+    this.root = root || new Sequence('ROOT');
+    this.blackboard = blackboard || new Blackboard();
+    this.tickCount = 0;
+    this.createdAt = Date.now();
+    this.lastTickAt = null;
+  }
+  tick() {
+    this.tickCount++;
+    this.lastTickAt = Date.now();
+    return this.root.tick(this.blackboard);
+  }
+  reset() {
+    this.root.reset();
+    this.tickCount = 0;
+  }
+  toJSON() {
+    return { root: this.root.toJSON(), tickCount: this.tickCount,
+      createdAt: this.createdAt, lastTickAt: this.lastTickAt,
+      blackboard: this.blackboard.toJSON() };
+  }
+  static fromJSON(data) {
+    const root = data.root ? (() => {
+      const n = data.root; const builders = { Sequence, Selector, Condition, Action };
+      return (builders[n.type] || BTNode).fromJSON(n);
+    })() : new Sequence('ROOT');
+    const bb = new Blackboard();
+    bb.load(data.blackboard);
+    const bt = new BehaviourTree(root, bb);
+    bt.tickCount = data.tickCount || 0;
+    bt.createdAt = data.createdAt || Date.now();
+    bt.lastTickAt = data.lastTickAt || null;
+    return bt;
+  }
+  getNode(id) {
+    if (this.root.id === id) return this.root;
+    const queue = [...this.root.children];
+    while (queue.length > 0) {
+      const n = queue.shift();
+      if (n.id === id) return n;
+      queue.push(...n.children);
+    }
+    return null;
+  }
+  getAllNodes() {
+    const nodes = [];
+    const queue = [this.root];
+    while (queue.length > 0) {
+      const n = queue.shift();
+      nodes.push(n);
+      queue.push(...n.children);
+    }
+    return nodes;
+  }
+}
+
+// ============================================================
+// UI CONTROLLER
+// ============================================================
+class BTUI {
+  constructor() {
+    this.tree = new BehaviourTree();
+    this.selectedNodeId = null;
+    this._loadState();
+    this._bindUI();
+    this._render();
+  }
+
+  _bindUI() {
+    document.getElementById('btn-add-task').onclick = () => this._addTask();
+    document.getElementById('task-name-input').onkeydown = e => { if (e.key === 'Enter') this._addTask(); };
+    document.getElementById('btn-tick').onclick = () => { this.tree.tick(); this._saveState(); this._render(); };
+    document.getElementById('btn-tick-all').onclick = () => {
+      let prev = null;
+      for (let i = 0; i < 20; i++) {
+        const r = this.tree.tick();
+        if (r === prev && r !== 'RUNNING') break;
+        prev = r;
+      }
+      this._saveState(); this._render();
+    };
+    document.getElementById('btn-reset').onclick = () => this._confirm('Reset all tasks to IDLE?', () => {
+      this.tree.reset(); this._saveState(); this._render();
+    });
+
+    // Detail buttons
+    document.getElementById('detail-set-running').onclick = () => this._setNodeState('RUNNING');
+    document.getElementById('detail-set-success').onclick = () => this._setNodeState('SUCCESS');
+    document.getElementById('detail-set-failure').onclick = () => this._setNodeState('FAILURE');
+    document.getElementById('detail-set-idle').onclick = () => this._setNodeState('IDLE');
+    document.getElementById('detail-delete').onclick = () => this._deleteSelected();
+
+    // Confirm modal
+    document.getElementById('confirm-no').onclick = () => this._hideConfirm();
+    document.getElementById('confirm-yes').onclick = () => { if (this._confirmCb) this._confirmCb(); this._hideConfirm(); };
+  }
+
+  _addTask() {
+    const name = document.getElementById('task-name-input').value.trim();
+    if (!name) return;
+    const type = document.getElementById('task-type-select').value;
+    let node;
+    switch (type) {
+      case 'Sequence': node = new Sequence(name); break;
+      case 'Condition': node = new Condition(name); break;
+      default: node = new Action(name); break;
+    }
+    // Add under ROOT or under selected node if it's a composite
+    const parent = this._getSelectedComposite() || this.tree.root;
+    parent.addChild(node);
+    document.getElementById('task-name-input').value = '';
+    this._saveState(); this._render();
+    this._toast(`Added "${name}"`);
+  }
+
+  _getSelectedComposite() {
+    if (!this.selectedNodeId) return null;
+    const node = this.tree.getNode(this.selectedNodeId);
+    if (node && (node.type === 'Sequence' || node.type === 'Selector')) return node;
+    return null;
+  }
+
+  _setNodeState(state) {
+    if (!this.selectedNodeId) return;
+    const node = this.tree.getNode(this.selectedNodeId);
+    if (node) { node.state = state; this._saveState(); this._render(); }
+  }
+
+  _deleteSelected() {
+    if (!this.selectedNodeId || this.selectedNodeId === this.tree.root.id) return;
+    this._confirm('Delete this task and all its children?', () => {
+      const node = this.tree.getNode(this.selectedNodeId);
+      if (node && node.parent) {
+        node.parent.removeChild(node);
+        this.selectedNodeId = null;
+        this._saveState(); this._render();
+        this._toast('Task deleted');
+      }
+    });
+  }
+
+  _render() {
+    this._renderTree();
+    this._renderStats();
+    this._renderDetail();
+    this._renderSprintInfo();
+  }
+
+  _renderTree() {
+    const container = document.getElementById('tree-container');
+    const empty = document.getElementById('empty-tree');
+    const children = this.tree.root.children;
+    if (children.length === 0) {
+      container.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    container.innerHTML = this._renderNode(this.tree.root, 0);
+    // Attach click listeners after rendering
+    container.querySelectorAll('.tree-node').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const id = parseInt(el.dataset.nodeId);
+        this.selectedNodeId = id;
+        this._render();
+      };
+    });
+  }
+
+  _renderNode(node, depth) {
+    const icon = { Sequence: '▶', Selector: '?', Condition: '◆', Action: '●' }[node.type] || '○';
+    const isRoot = node === this.tree.root;
+    const sel = this.selectedNodeId === node.id ? ' selected' : '';
+    const hasChildren = node.children.length > 0;
+    let html = `<div class="tree-node${sel}" data-node-id="${node.id}" style="padding-left:${12 + depth * 4}px">
+      <span class="status-dot status-${node.state}"></span>
+      <span class="node-icon">${icon}</span>
+      <span class="node-name">${isRoot ? 'ROOT: ' : ''}${this._esc(node.name)}</span>
+      <span class="node-type">${node.type}${hasChildren ? ` (${node.children.length})` : ''}</span>
+    </div>`;
+    if (hasChildren) {
+      html += '<div class="tree-children">';
+      node.children.forEach(c => { html += this._renderNode(c, depth + 1); });
+      html += '</div>';
+    }
+    return html;
+  }
+
+  _renderStats() {
+    const summary = this.tree.root.getStatusSummary();
+    document.getElementById('stat-total').textContent = summary.total - 1; // exclude root
+    document.getElementById('stat-done').textContent = summary.success;
+    const elapsed = Math.floor((Date.now() - this.tree.createdAt) / 1000);
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    document.getElementById('stat-elapsed').textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    const doneEl = document.getElementById('stat-done');
+    doneEl.className = 'value' + (summary.success > 0 && summary.success >= (summary.total - 1) * 0.8 ? ' good' : '');
+    const totalTasks = Math.max(1, summary.total - 1);
+    const pct = (summary.success / totalTasks) * 100;
+    document.getElementById('progress-fill').style.width = `${Math.min(100, pct)}%`;
+  }
+
+  _renderDetail() {
+    const detail = document.getElementById('task-detail');
+    if (!this.selectedNodeId) { detail.classList.remove('visible'); return; }
+    const node = this.tree.getNode(this.selectedNodeId);
+    if (!node) { detail.classList.remove('visible'); return; }
+    detail.classList.add('visible');
+    document.getElementById('detail-title').textContent = this._esc(node.name);
+    document.getElementById('detail-id').textContent = node.id;
+    document.getElementById('detail-type').textContent = node.type;
+    document.getElementById('detail-status').textContent = node.state;
+    document.getElementById('detail-children').textContent = node.children.length;
+  }
+
+  _renderSprintInfo() {
+    const all = this.tree.getAllNodes();
+    const typeCount = {};
+    all.forEach(n => { typeCount[n.type] = (typeCount[n.type] || 0) + 1; });
+    document.getElementById('sprint-types').textContent = Object.entries(typeCount).map(([k, v]) => `${k}=${v}`).join(', ');
+    document.getElementById('sprint-created').textContent = new Date(this.tree.createdAt).toLocaleString();
+    document.getElementById('sprint-ticked').textContent = this.tree.lastTickAt
+      ? new Date(this.tree.lastTickAt).toLocaleString() : '—';
+  }
+
+  _toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  _confirm(msg, cb) {
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-overlay').classList.add('visible');
+    this._confirmCb = cb;
+  }
+
+  _hideConfirm() {
+    document.getElementById('confirm-overlay').classList.remove('visible');
+    this._confirmCb = null;
+  }
+
+  _esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  _saveState() {
+    try {
+      localStorage.setItem('ara_bt_state', JSON.stringify(this.tree.toJSON()));
+    } catch (e) { console.warn('BT save failed:', e); }
+  }
+
+  _loadState() {
+    try {
+      const raw = localStorage.getItem('ara_bt_state');
+      if (raw) {
+        const data = JSON.parse(raw);
+        this.tree = BehaviourTree.fromJSON(data);
+      }
+    } catch (e) { console.warn('BT load failed:', e); }
+  }
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  window.btApp = new BTUI();
+});
+</script>
+</body>
+</html>

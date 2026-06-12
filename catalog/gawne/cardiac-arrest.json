@@ -1,0 +1,33 @@
+{
+  "songName": "Cardiac Arrest",
+  "artistName": "Luke Gawne",
+  "album": "Unknown (Single)",
+  "year": null,
+  "wheelNumber": null,
+  "genre": "Rap / Hardcore Hip-Hop / Lyrical",
+  "vocalType": "male",
+  "songStyle": "aggressive, technical, competitive, boastful, medical-metaphor",
+  "lyrics": "",
+  "themes": [
+    "medical metaphor for rap dominance",
+    "competition",
+    "resurrection",
+    "haters",
+    "underdog to alpha",
+    "death and rebirth"
+  ],
+  "payment": null,
+  "editingOptions": {
+    "demucs": null,
+    "musicVideo": null,
+    "additionalArt": null,
+    "personalRecording": null
+  },
+  "files": {
+    "primary": null,
+    "associated": [],
+    "albumArt": null
+  },
+  "id3": null,
+  "notes": "Cataloged from lyrics provided. Structure: Chorus → Verse 1 → Chorus → Verse 2 → Chorus. Heavy use of medical/emergency imagery (cardiac arrest, CPR, defibrillator, flatline, hospice, rigamortis) as extended metaphor for his rap dominance. Pop culture references: Goku (Dragon Ball Z), Clark Kent/Superman, Rick and Morty, Malcolm X, Sadam Hussein. Tonally distinct from Forgive Me — this is a competitive brag track, not confessional."
+}

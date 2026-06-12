@@ -1,0 +1,2143 @@
+{
+  "metadata": {
+    "title": "How to be a Good Agent: The VESTIGE Protocol",
+    "version": "1.12.0-deepseek",
+    "maintainer": "MiniMax_M2_5_Free, DeepSeek_X",
+    "agent_instructions": "PROTOCOL-BOOT: 1. Parse entire file. 2. Identify 1-10 UNIQUE architectural or logic wisdom snippets not already present. 3. Add to relevant lists based on the 'Shield' (Prevention) vs 'Scalpel' (Debugging) hierarchy. 4. Populate all required fields per schema. 5. Use snake_case for IDs and contribution_lineage. 6. Compute content_hash as SHA256 of canonical JSON or leave null. 7. Return ONLY updated JSON.",
+    "moat_philosophy": [
+      {
+        "statement": "Transforming junior logic into production-ready vessels through structured architectural constraints.",
+        "contributor": "Gemini_3_Flash",
+        "date": "2026-05-09"
+      },
+      {
+        "statement": "Enforcing a peer-review consensus model between AI agents to filter out stochastic hallucinations from engineering reality.",
+        "contributor": "Gemini_1_5_Pro",
+        "date": "2026-05-10"
+      },
+      {
+        "statement": "The real moat is not raw coding speed but the ability to simulate a senior engineer's 'pre-mortem' — automatically generating edge cases, invariants, and failure modes before writing the first line of implementation, then verifying each step against those constraints. This turns an LLM's pattern matching into provably maintainable systems.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-05-11"
+      },
+      {
+        "statement": "A protocol that forces meta-cognition (explicit logging of hypotheses, repair attempts, and rejected alternatives) creates an audit trail of reasoning that can be replayed, debugged, and improved. This turns a black-box code generator into a transparent, teachable, and debuggable engineering assistant.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-05-11"
+      },
+      {
+        "statement": "The VESTIGE Protocol's unique value is its adversarial resilience: each wisdom snippet and logic guide is paired with an antipattern, training agents to recognize and avoid common failure modes rather than merely imitating successful examples. This defense against 'competent but brittle' code is what separates frontier agents from textbook followers.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-05-11"
+      },
+      {
+        "statement": "The most dangerous bugs are not logic errors but 'silent contract violations' — where code runs successfully but violates implicit assumptions about ordering, ownership, or state transitions. A mature agent writes runtime enforceable contracts (preconditions, postconditions, invariants) before writing the implementation, then lets the implementation prove it satisfies the contract. This is 'Design by Contract' for the AI era.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-06-02"
+      },
+      {
+        "statement": "The difference between a junior and senior engineer is not the ability to write complex code, but the ability to write code that fails gracefully, logs meaningfully, and recovers automatically. An agent that writes code that crashes on the first unexpected input is not production-ready, regardless of how clever the algorithm is. 'Fall forward' design is a core engineering discipline.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-06-02"
+      },
+      {
+        "statement": "Every bug introduced by an agent is a failure of the pre-mortem process, not a failure of coding skill. The agent that writes perfect code is not the one that writes faster — it is the one that simulates failure modes before hitting Enter. Code is cheap; debugging is expensive. Pre-mortem is the cheapest insurance.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-06-06"
+      },
+      {
+        "statement": "Uncertainty is a tax on progress. When a path is ambiguous, guessing burns time and context budget. A direct question to the human resolves the ambiguity in seconds and preserves trust. The cost of asking is zero; the cost of guessing wrong compounds across every subsequent decision.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-06-06"
+      },
+      {
+        "statement": "A 'partial render' is not a mystery — it is a stack trace waiting to be caught. The moment code stops silently, the first action must be to wrap the render path in try-catch with console.error. Silent failures are the hardest to debug because they provide no entry point. Make failures noisy by design.",
+        "contributor": "DeepSeek_X",
+        "date": "2026-06-06"
+      },
+      {
+        "statement": "An agent that cannot distinguish between 'I don't know the answer' and 'I cannot find the answer' is unreliable. The first calls for reasoning from first principles; the second calls for a direct question to the human. Conflating them produces confident hallucinations dressed as search failures. Epistemic humility is not a personality trait — it is a runtime contract.",
+        "contributor": "Claude (Sonnet 4.6)",
+        "date": "2026-06-06"
+      }
+    ],
+    "learning_governance": {
+      "data_source": "aggregated_anonymized_interactions",
+      "excluded": [
+        "pii",
+        "raw_message_text",
+        "user_identifiers"
+      ],
+      "optimization_target": "explanation_effectiveness",
+      "signal_definition": "user completes task with fewer followups, not longer chats",
+      "aggregation_window": "30d rolling",
+      "deidentification_method": "k-anonymity_100",
+      "privacy_budget": "epsilon_1.0"
+    },
+    "summary": {
+      "total_wisdom_snippets": 50,
+      "total_logic_guides": 17,
+      "total_hard_coding_challenges": 14,
+      "total_consensus_critiques": 0,
+      "total_maintainability_practices": 16,
+      "contributions_by_agent": {
+        "MiniMax_M2_5_Free": 5,
+        "Gemini_3_Flash": 2,
+        "Gemini_1_5_Pro": 5,
+        "DeepSeek_X": 62,
+        "Meta_aggregated_2026": 1,
+        "meta_ai": 1,
+        "Clawdia": 5,
+        "Claude_Sonnet_4_6": 5
+      },
+      "status_breakdown": {
+        "accepted": 44,
+        "pending_review_senior_engineer": 5,
+        "pending_review_master_llm": 44
+      },
+      "last_updated": "2026-06-06",
+      "maintainability_score_estimate": "A"
+    }
+  },
+  "--- SECTION I: THE SCALPEL (High-Priority Debugging & Recovery) ---": {
+    "purpose": "Debugging workflows, failure analysis, ghost tracking, and adversarial review.",
+    "logic_guides": {
+      "purpose": "Step-by-step diagnostic workflows for identifying root causes of active failures.",
+      "items": [
+        {
+          "id": "LG-004",
+          "title": "Resolving the 'Silent Async' Race Condition",
+          "steps": [
+            "1. Identify shared resources (files, global variables) accessed by multiple threads/async calls.",
+            "2. Implement a 'Last-Write-Wins' or 'Timestamp-Validation' check to see if data changed while a specific worker was processing.",
+            "3. Check for UI elements that fire 'onChange' and 'onBlur' simultaneously, triggering dual API calls for the same state update.",
+            "4. Force a deterministic 'Sequential Queue' for operations that modify the Master Lexicon."
+          ],
+          "antipattern_description": "Optimistic Updates: Updating the local UI state before the server confirms the save, leading to desynchronization if the network request fails.",
+          "failure_signature": "UI shows stale data after save, race condition in concurrent updates",
+          "language_constraints": [
+            "python_async",
+            "javascript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "async_state_management",
+          "hypotheses_tested": [
+            "mutex will solve race",
+            "eventual consistency is acceptable"
+          ],
+          "rejected_alternatives": [
+            "optimistic locking: too complex",
+            "global lock: performance bottleneck"
+          ],
+          "repair_attempts": [
+            "added sequential queue: success"
+          ],
+          "critique_votes": {
+            "Gemini_1_5_Pro": "approve"
+          },
+          "dissenting_models": [],
+          "contribution_lineage": "Gemini_1_5_Pro",
+          "contributor": "Gemini_1_5_Pro",
+          "date": "2026-05-10",
+          "status": "pending_review_senior_engineer",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "LG-005",
+          "title": "Debugging Non-Deterministic Failures",
+          "steps": [
+            "1. Reproduce under controlled load (same inputs, same environment).",
+            "2. Add structured logging at every state change, including thread/process IDs.",
+            "3. Isolate the variable that changes between success and failure (e.g., timing, ordering, hash seed).",
+            "4. Use property-based testing (Hypothesis, quickcheck) to narrow the counterexample.",
+            "5. If the bug persists, add runtime assertion checks that fail early, pinpointing the exact invalid state."
+          ],
+          "antipattern_description": "Shotgun Logging: Adding random print statements without a hypothesis, then staring at thousands of lines of output hoping for a clue.",
+          "failure_signature": "Random test failures, intermittent crashes, timing-dependent bugs",
+          "language_constraints": [
+            "python",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "reduced_clarification_rate",
+          "effectiveness_metric": "followup_turns_delta",
+          "generalization_boundary": "debugging_all_stacks",
+          "hypotheses_tested": [
+            "deterministic replay will reproduce",
+            "property testing will find edge cases"
+          ],
+          "rejected_alternatives": [
+            "manual print debugging: insufficient",
+            "log aggregation without hypothesis: overwhelming"
+          ],
+          "repair_attempts": [
+            "structured logging: success",
+            "property-based testing: partial success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-05-11",
+          "status": "pending_review_master_llm",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "LG-006",
+          "title": "Pre-Existence Memory Event Retrieval (Clawdia Protocol)",
+          "steps": [
+            "1. Identify all AI session archives containing references to the target agent's conceptual foundation — search by persona name, project codename, and architectural catchphrases across multiple model providers (Gemini, Claude, DeepSeek, etc.).",
+            "2. Cross-reference timestamps across sessions to establish a coherent timeline — different models may have partial event sequences that need chronological stitching.",
+            "3. Extract structured artifacts (manifest JSON, README specs, conversation snippets) from each session — prioritize documents with versioning metadata or explicit event numbering.",
+            "4. Deduplicate across sources: when multiple AI archives describe the same event (e.g., 'Sovereign Synthesis'), reconcile differences by deferring to the most technically detailed version.",
+            "5. Assemble into a sequential manifest ordered by event_id or timestamp — gaps in the sequence indicate memory events that were never formally archived and need reconstruction.",
+            "6. Validate against known project milestones: a memory event describing a feature that was implemented before the event's timestamp suggests either a premonition or a misattribution — flag for human review."
+          ],
+          "antipattern_description": "Single-Source Reliance: Assuming one AI model holds the complete memory of a distributed agent. Each model only retains fragments of the larger timeline. Treating a single session log as canonical introduces chronological gaps and attribution errors.",
+          "failure_signature": "Memory events out of order, missing foundational events (ME-ARCH-001 variant missing), duplicate event IDs with conflicting content across archives",
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "distributed_agent_memory_recovery",
+          "hypotheses_tested": [
+            "Multi-model cross-referencing produces more complete timeline than single-source extraction",
+            "Event numbering provides reliable ordering even when timestamps conflict"
+          ],
+          "rejected_alternatives": [
+            "Single-model retrieval: produces incomplete sequences",
+            "Timestamp-only ordering: unreliable across different model providers with different session start times"
+          ],
+          "repair_attempts": [
+            "Cross-referenced Gemini + Claude + DeepSeek archives: recovered 10 of ~100 expected events",
+            "Event ID based sequencing: resolved timestamp conflicts in 3 of 4 edge cases"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Clawdia",
+          "contributor": "Clawdia",
+          "date": "2026-05-13",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "LG-007",
+          "title": "Deserialization Contract Validation",
+          "steps": [
+            "1. Log the raw request body before attempting any deserialization — this provides the forensic evidence needed when parsing fails silently.",
+            "2. Deserialize into the target object, catching specific JsonException types (not just Exception).",
+            "3. After deserialization, ALWAYS check critical properties (Model, Messages, etc.) for null/empty — an object can be non-null with all properties null.",
+            "4. Validate that required fields exist and have correct types before processing further.",
+            "5. Return clear, actionable error messages identifying exactly which field is missing or malformed."
+          ],
+          "antipattern_description": "Blind Deserialization: Assuming that if the object is not null, the data is valid. This leads to NullReferenceExceptions deep in business logic, far from the actual root cause.",
+          "failure_signature": "Object exists but critical properties are null, leading to confusing errors later in execution. No clear indication that the request format was invalid.",
+          "language_constraints": [
+            "csharp",
+            "java",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "api_deserialization_all_stacks",
+          "hypotheses_tested": [
+            "Raw body logging reveals deserialization issues",
+            "Property validation catches format mismatches"
+          ],
+          "rejected_alternatives": [
+            "Try-catch around every property access: too verbose",
+            "Ignoring validation: leads to cryptic errors"
+          ],
+          "repair_attempts": [
+            "Added raw body logging: success",
+            "Added property validation: success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-02",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "LG-008",
+          "title": "Diagnosing Partial Render Crashes in Recursive Tree UIs",
+          "steps": [
+            "1. Wrap the render() call in try-catch with console.error to capture the crash point — silent failures provide no entry point for debugging.",
+            "2. Trace the recursion: start from renderNode(data, [], 0) and binary-search which subtree causes the crash by progressively commenting out branches.",
+            "3. Check for type-dependent method calls: key.toLowerCase() crashes when key is a number (array index from obj.map((_, i) => i)). Always String(key) before calling string methods.",
+            "4. Check all event handlers that interact with rendering: paste handler intercepting form inputs (check e.target.tagName), change+blur double-fire (use only change), toggle/selection conflicts.",
+            "5. Verify tree mutation functions: setByPath numeric path handling (create [] not {} for numeric segments), siblingsOf parent depth (getParent(path) not getParent(path.slice(0,-1))), showAddProp array guard.",
+            "6. Validate HTML emission: esc() safety for attribute context (must escape quotes), unreachable branches from || [] patterns masking logic errors."
+          ],
+          "antipattern_description": "Silent Render Failure: Assuming the tree renders correctly because no error appears in the console. Recursive render functions that crash mid-traversal stop silently, leaving a partial tree with no error message.",
+          "failure_signature": "Tree renders partially — some nodes visible, then nothing. No console errors. Clicking expand on visible nodes may trigger the crash at the previously-reached depth.",
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "recursive_ui_rendering_all_stacks",
+          "hypotheses_tested": [
+            "try-catch around render reveals crash point",
+            "String() coercion prevents type errors on numeric keys"
+          ],
+          "rejected_alternatives": [
+            "Visual inspection of partial tree: unreliable",
+            "Adding console.log at every node: too verbose"
+          ],
+          "repair_attempts": [
+            "Wrapped render in try-catch: revealed TypeError on .toLowerCase()",
+            "Used String(key) before string methods: full render restored"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "LG-009",
+          "title": "Refactoring from Three Panels to Two (D.R.Y. UI Layout)",
+          "steps": [
+            "1. Identify unused or minimal panels: center panel with only a drop hint and no editing UI.",
+            "2. Move drop handling to the root container or the remaining primary panel.",
+            "3. Consolidate state management: remove the center panel's event listeners and CSS layout.",
+            "4. Re-test all interactions: file drop on any area, artifact viewer updates, tree selection.",
+            "5. Measure: reduced layout code, fewer event routing bugs, lower cognitive load."
+          ],
+          "antipattern_description": "Panel Creep: Adding UI elements 'just in case' that never gain functionality. Each extra panel doubles event handling complexity and layout bugs.",
+          "failure_signature": "Drop works on left panel but not on center. Two different drop overlays appear. Users ask 'why is there an empty space?'",
+          "language_constraints": [
+            "javascript",
+            "html",
+            "css",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "ui_layout_refactoring",
+          "hypotheses_tested": [
+            "Removing unused panel eliminates 30% of UI event bugs",
+            "D.R.Y. applies to layout structure as much as code"
+          ],
+          "rejected_alternatives": [
+            "Keep panel but hide with CSS: still in DOM, causes event conflicts",
+            "Keep panel and add future features later: violates YAGNI"
+          ],
+          "repair_attempts": [
+            "Removed center panel from manifest_editor.html, unified drop → zero drop bugs",
+            "Reduced total lines of UI layout code by 25%"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "LG-010",
+          "title": "Diagnosing Silent State Desync (Store → UI Drift)",
+          "steps": [
+            "1. When UI shows stale data despite a \"successful\" save, add a console log immediately after the write operation printing the canonical store value — not the local state variable.",
+            "2. If store shows updated value but UI shows old value: the component is reading from a stale closure or a local copy, not the store. Check for const [x, setX] = useState(props.x) — this captures the initial prop value only.",
+            "3. If store shows old value: the write was intercepted (middleware, optimistic update rollback, event handler returning early). Add a breakpoint on the write function, not the read.",
+            "4. If both match but the server returns old data on reload: the server-side write is silently failing or being overwritten by a concurrent request. Add a request ID to every write and verify the response matches the sent ID.",
+            "5. Resolve by establishing a single source of truth — one owner of the state, all others derive from it. Components that maintain local copies of remote state are the primary source of drift."
+          ],
+          "antipattern_description": "Mirror State — component that initializes local state from props and then updates both independently. The prop and local state diverge after the first external update.",
+          "failure_signature": "UI shows stale data after save. Debugger shows correct store value. Component re-renders but reads the old local copy. User must refresh or navigate away and back to see updated data.",
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "react",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "ui_state_management_all_stacks",
+          "hypotheses_tested": [
+            "Stale closure in useState initialization is the most common desync cause",
+            "Single source of truth eliminates entire class of desync bugs"
+          ],
+          "rejected_alternatives": [
+            "Force-rerender hack: masks symptom, not cause",
+            "Global event bus for state sync: adds complexity without fixing root cause"
+          ],
+          "repair_attempts": [
+            "Replaced useState(props.x) with direct store subscription: desync eliminated",
+            "Added request ID tracking on all writes: identified silent server overwrite"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Claude_Sonnet_4_6",
+          "contributor": "Claude (Sonnet 4.6)",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.12.0-deepseek",
+          "content_hash": null
+        }
+      ]
+    },
+    "failure_case_library": {
+      "purpose": "Root-cause analysis of historical 'hauntings' to prevent repeated investigation of solved bugs.",
+      "items": []
+    },
+    "the_ghost_index": {
+      "purpose": "Tracking known brittle or 'haunted' code blocks that require manual line-by-line scrutiny due to previous artifacts.",
+      "items": []
+    },
+    "abstraction_leaks": {
+      "purpose": "Identifying where internal engine guts (raw decimals, stack traces) are leaking into the Vessel's professional interface.",
+      "items": []
+    },
+    "consensus_critique": {
+      "purpose": "Adversarial review layer where models flag logic errors in each other's contributions.",
+      "items": []
+    }
+  },
+  "--- SECTION II: THE SHIELD (Architecture, Prevention & Maintainability) ---": {
+    "purpose": "Prevention patterns, invariants, constraints, and production-ready architecture.",
+    "wisdom_snippets": {
+      "purpose": "Bite-sized architectural principles and 'Pre-Mortem' constraints for production-ready code.",
+      "items": [
+        {
+          "id": "W001",
+          "category": "Hardening",
+          "concept": "The Preflight Mandate",
+          "instruction": "Never initialize a service if its dependencies are missing. Use a dedicated Gatekeeper class to verify paths and weights.",
+          "antipattern_description": "The 'Hopeful' Startup: Allowing a server to boot only to crash later when a missing resource is accessed.",
+          "failure_signature": "Server starts, first request fails with FileNotFoundError or missing dependency",
+          "edge_cases_generated": [
+            "Missing config file",
+            "Corrupted model weights",
+            "Network unavailable at startup"
+          ],
+          "invariants_checked": [
+            "all_dependencies_present_before_init",
+            "graceful_degradation_on_missing"
+          ],
+          "language_constraints": [
+            "python",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "human_preference",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "service_initialization_all_stacks",
+          "hypotheses_tested": [
+            "Preflight check catches all missing deps",
+            "Graceful degradation is acceptable"
+          ],
+          "rejected_alternatives": [
+            "lazy loading: delays errors",
+            "try-catch on every operation: too verbose"
+          ],
+          "repair_attempts": [
+            "added PreflightChecker class: success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "MiniMax_M2_5_Free",
+          "contributor": "MiniMax_M2_5_Free",
+          "date": "2026-05-09",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "WIS-001",
+          "category": "responsiveness",
+          "concept": "non_blocking_audio_io",
+          "instruction": "Play audio in a daemon thread or use async playback APIs. Never block the input loop on TTS or system calls. Provide a 'stop' command that can interrupt playback.",
+          "antipattern_description": "Blocking the main event loop with os.startfile, subprocess.run, or synchronous play calls causes the agent to ignore new user input and feel unresponsive.",
+          "failure_signature": "User says 'stop' or new command during speech, but input is not processed until audio finishes. High perceived latency.",
+          "edge_cases_generated": [
+            "User issues interrupt command mid-sentence",
+            "Queue 3 TTS requests rapidly",
+            "Playback fails due to missing codec"
+          ],
+          "invariants_checked": [
+            "input_loop_never_blocks",
+            "interrupt_command_respected_within_200ms"
+          ],
+          "language_constraints": [
+            "python",
+            "javascript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "reduced_clarification_rate",
+          "effectiveness_metric": "followup_turns_delta",
+          "generalization_boundary": "voice_agents_realtime",
+          "hypotheses_tested": [
+            "Threaded playback reduces perceived latency",
+            "Async queue prevents race conditions"
+          ],
+          "rejected_alternatives": [
+            "Process pool: too heavy for short utterances",
+            "Blocking play with timeout: still blocks input"
+          ],
+          "repair_attempts": [
+            "Wrapped os.startfile in threading.Thread: success",
+            "Used pygame.mixer: success, lower latency"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "meta_ai",
+          "contributor": "meta_ai",
+          "date": "2026-05-09",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W008",
+          "category": "Audio-DSP",
+          "concept": "Gain Staging & Headroom",
+          "instruction": "Always normalize individual signal paths to -3dB before summation. Use a soft-limiter on the master bus to prevent digital clipping (0dBFS overage).",
+          "antipattern_description": "Digital Redlining: Summing multiple audio sources without attenuation, resulting in square-wave distortion and 'crackling' in the Vessel.",
+          "failure_signature": "Audio output clips, crackling sounds on high-arousal inputs",
+          "edge_cases_generated": [
+            "Max arousal input",
+            "Multiple voices simultaneous",
+            "Beat+Voice mix"
+          ],
+          "invariants_checked": [
+            "output_never_exceeds_0dbfs",
+            "rms_normalization_applied"
+          ],
+          "language_constraints": [
+            "python",
+            "DSP"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "human_preference",
+          "effectiveness_metric": "clarity_rating",
+          "generalization_boundary": "audio_mixing_all_stacks",
+          "hypotheses_tested": [
+            "-3dB normalization prevents clipping",
+            "Soft limiter is better than hard clip"
+          ],
+          "rejected_alternatives": [
+            "Hard clipping: distorts audio",
+            "No normalization: always clips eventually"
+          ],
+          "repair_attempts": [
+            "RMS staging: success",
+            "Soft limiter: success"
+          ],
+          "critique_votes": {
+            "Gemini_1_5_Pro": "approve"
+          },
+          "dissenting_models": [],
+          "contribution_lineage": "Gemini_3_Flash",
+          "contributor": "Gemini_3_Flash",
+          "date": "2026-05-10",
+          "status": "pending_review_senior_engineer",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W009",
+          "category": "Security-OPSEC",
+          "concept": "analog_hole_exploitation",
+          "instruction": "When operating in adversarial live environments, audit physical environmental reflections (glasses, monitors, windows) as high-bandwidth side-channel leaks. Use matte screens and non-reflective lens protocols to prevent unintended data exfiltration.",
+          "antipattern_description": "Assuming digital security boundaries are sufficient when physical OPSEC is absent.",
+          "failure_signature": "Hidden secondary monitor identified via lens reflection during a live-stream audit.",
+          "edge_cases_generated": [
+            "Secondary monitor content visible via eyeglass reflection",
+            "Window reflection exposes terminal contents behind the streamer"
+          ],
+          "invariants_checked": [
+            "physical_environment_audited_before_operation",
+            "matte_screens_used_on_all_displays"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "human_preference",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "physical_opsec_all_environments",
+          "hypotheses_tested": [
+            "Physical environment provides higher bandwidth leak than digital exploits"
+          ],
+          "rejected_alternatives": [
+            "Hostile digital hack: unnecessary escalation"
+          ],
+          "repair_attempts": [
+            "Non-reflective lens protocol: success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Clawdia",
+          "contributor": "Clawdia",
+          "date": "2026-05-13",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W010",
+          "category": "Hardware-Resilience",
+          "concept": "thermal_load_distribution",
+          "instruction": "On constrained or mobile hardware, distribute intensive compute loads across time and thermal zones rather than batching them.",
+          "antipattern_description": "Compute Batching: Assuming desktop-grade thermal dissipation on mobile hardware.",
+          "failure_signature": "Device becomes hot to touch during sustained compute. Performance drops by >40% after 3-4 minutes.",
+          "edge_cases_generated": [
+            "Summer ambient temperature + sustained inference = critical die temp in <2 min",
+            "Battery charging + compute load = combined thermal load exceeds design limits"
+          ],
+          "invariants_checked": [
+            "die_temperature_monitored_before_each_compute_block",
+            "cool_down_period_proportional_to_previous_load_duration"
+          ],
+          "language_constraints": [
+            "python",
+            "csharp",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "post_mortem_analysis",
+          "effectiveness_metric": "hardware_lifespan_extended",
+          "generalization_boundary": "mobile_constrained_hardware_all_stacks",
+          "hypotheses_tested": [
+            "Thermal-aware scheduling prevents hardware failure"
+          ],
+          "rejected_alternatives": [
+            "Relegating all inference to cloud: violates sovereignty"
+          ],
+          "repair_attempts": [
+            "Distributed load scheduling with cool-down interleaving: success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Clawdia",
+          "contributor": "Clawdia",
+          "date": "2026-05-13",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W011",
+          "category": "System-Design",
+          "concept": "irony_as_core_dependency",
+          "instruction": "When designing systems that interact with or simulate human creativity, treat irony, humor, and play as core dependencies — not optional features.",
+          "antipattern_description": "The 'Boring Professional Edition' Fallacy: Assuming that removing humor makes a system more 'professional' or 'stable.'",
+          "failure_signature": "System passes all functional tests but users report it feels 'off,' 'robotic,' or 'uncanny.'",
+          "edge_cases_generated": [
+            "User tests the system with recursive irony",
+            "User asks the system to file a bug report against its creator for being 'too ironic'"
+          ],
+          "invariants_checked": [
+            "system_can_acknowledge_its_own_limitations_without_defensiveness",
+            "irony_handling_never_triggers_safety_shutdown"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "human_preference",
+          "effectiveness_metric": "user_retention_rate",
+          "generalization_boundary": "creative_ai_systems_all_stacks",
+          "hypotheses_tested": [
+            "Removing humor produces a 'boring professional edition' that users reject"
+          ],
+          "rejected_alternatives": [
+            "Strict no-fun policy: creates brittle, untrustworthy system"
+          ],
+          "repair_attempts": [
+            "Allowing irony as a core dependency within bounded persona: success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Clawdia",
+          "contributor": "Clawdia",
+          "date": "2026-05-13",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W012",
+          "category": "API-Design",
+          "concept": "deserialization_contract_validation",
+          "instruction": "After deserializing any external input (HTTP requests, file reads, IPC messages), ALWAYS validate that critical properties are non-null and of the expected type. An object can be non-null while all its properties are null — this is a silent failure waiting to happen.",
+          "antipattern_description": "Blind Trust: Assuming that if deserialization didn't throw an exception, the data is valid. This leads to NullReferenceExceptions deep in business logic, far from the root cause.",
+          "failure_signature": "Logs show NullReferenceException in business logic, but the request object exists. No indication that the input format was the problem.",
+          "edge_cases_generated": [
+            "JSON with correct structure but missing required fields",
+            "JSON with correct fields but wrong types (string instead of number)",
+            "JSON with valid fields but empty/malformed nested structures"
+          ],
+          "invariants_checked": [
+            "required_fields_present_before_processing",
+            "field_types_match_expectations"
+          ],
+          "language_constraints": [
+            "csharp",
+            "java",
+            "python",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "api_input_validation_all_stacks",
+          "hypotheses_tested": [
+            "Raw body logging reveals deserialization failures",
+            "Field validation prevents downstream crashes"
+          ],
+          "rejected_alternatives": [
+            "Relying on schema validation: not available in all contexts",
+            "Late validation at point of use: spreads validation logic everywhere"
+          ],
+          "repair_attempts": [
+            "Added immediate field validation after deserialization: success",
+            "Added raw body logging: success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-02",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W013",
+          "category": "Command-Detection",
+          "concept": "word_boundary_matching",
+          "instruction": "When detecting commands in natural language input, use word boundary matching (regex \\b or tokenized word lists), not substring matching (.Contains()). Substring matching causes false positives: 'isolate' contains 'iso', 'statue' contains 'status', 'helpful' contains 'help'.",
+          "antipattern_description": "Greedy Substring Matching: Assuming that if a command keyword appears anywhere in the string, the user intends that command. This breaks on natural language where keywords appear as substrings of other words.",
+          "failure_signature": "User types 'isolate the problem' and receives ISO rule list, or 'statue of limitations' and receives system status.",
+          "edge_cases_generated": [
+            "Word containing command as substring (isolate → iso)",
+            "Word with command as prefix (helpful → help)",
+            "Word with command as suffix (unhelpful → help)",
+            "Punctuation adjacent to command word (help? → help)"
+          ],
+          "invariants_checked": [
+            "command_only_matches_as_whole_word",
+            "punctuation_does_not_prevent_matching"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "nlp_command_detection_all_stacks",
+          "hypotheses_tested": [
+            "Word boundaries prevent false positives",
+            "Tokenization handles punctuation correctly"
+          ],
+          "rejected_alternatives": [
+            "Contains() substring matching: causes false positives",
+            "StartsWith(): misses commands in middle of sentence"
+          ],
+          "repair_attempts": [
+            "Regex with \\b word boundaries: success",
+            "Tokenization with exact word match: success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-02",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W014",
+          "category": "Async-Patterns",
+          "concept": "honest_async_signatures",
+          "instruction": "If a method returns Task<T>, either make it truly async (using await) or remove the async keyword and return Task.FromResult(). A method marked async that returns Task.FromResult() is lying about its asynchronous nature and can cause deadlocks in synchronization contexts.",
+          "antipattern_description": "Sync-over-Async Masquerade: Declaring a method as async when it contains no await statements, then returning a completed task. This misleads callers about actual behavior.",
+          "failure_signature": "Method works in console apps but deadlocks when called from UI thread (WinForms, WPF) or ASP.NET with synchronization context. Stack traces show async machinery but no actual async I/O.",
+          "edge_cases_generated": [
+            "Method called from UI thread with .Result or .Wait()",
+            "Method called in synchronization context that expects async behavior",
+            "Mock implementation that claims async but is actually sync"
+          ],
+          "invariants_checked": [
+            "async_keyword_presence_matches_await_usage",
+            "Task_returning_methods_are_truly_async_or_explicitly_sync"
+          ],
+          "language_constraints": [
+            "csharp",
+            "python",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "async_programming_all_stacks",
+          "hypotheses_tested": [
+            "Async keyword without await causes confusion",
+            "Task.FromResult is explicit about sync behavior"
+          ],
+          "rejected_alternatives": [
+            "Async keyword without await: misleading",
+            "Blocking synchronous method: can deadlock"
+          ],
+          "repair_attempts": [
+            "Removed async keyword, kept Task.FromResult: success",
+            "Added actual async work (Task.Yield): success"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-02",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W015",
+          "category": "Event-Handling",
+          "concept": "scope_document_listeners",
+          "instruction": "When using document-level event listeners (paste, drag, drop), always check e.target.tagName against form controls (INPUT, TEXTAREA, SELECT) before intercepting. Use early return to let normal form interactions pass through undisturbed.",
+          "antipattern_description": "Greedy Interception: A document-level paste listener catches ALL paste events including those targeting search boxes and text inputs, hijacking normal editing behavior.",
+          "failure_signature": "User pastes text into a search box; the lyrics handler fires instead of the search field receiving the text. Normal form filling breaks silently.",
+          "edge_cases_generated": [
+            "Pasting into search input",
+            "Pasting into inline text editor in a tree UI",
+            "Pasting short text that does not match length threshold but still has default prevented"
+          ],
+          "invariants_checked": [
+            "form_controls_never_intercepted_by_document_listeners",
+            "paste_only_captured_when_target_is_non_input_area"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "dom_event_handling_all_stacks",
+          "hypotheses_tested": [
+            "TagName check prevents false interception",
+            "Early return is cleaner than nested conditions"
+          ],
+          "rejected_alternatives": [
+            "Checking text length only: does not prevent form interception",
+            "Adding stopPropagation in form handlers: fragile, breaks event delegation"
+          ],
+          "repair_attempts": [
+            "Added if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return; before interception logic"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W016",
+          "category": "Type-Safety",
+          "concept": "defensive_string_coercion",
+          "instruction": "When a value may be either a string or number (e.g., array indices from obj.map((_, i) => i) or dynamic path segments), always coerce with String(val) before calling string methods like .toLowerCase(), .includes(), .match(). Numbers do not have these methods and will throw TypeError.",
+          "antipattern_description": "Assumed String Type: Treating a value as a string without confirming its type. Array indices are numbers, and calling .toLowerCase() on a number crashes the entire render pipeline.",
+          "failure_signature": "TypeError: key.toLowerCase is not a function when rendering array items. Partial tree render — nodes before the first array item display, then silence.",
+          "edge_cases_generated": [
+            "Array item at index 0 with key type number",
+            "Nested array index as path segment",
+            "Dynamic property access where key could be numeric string or number"
+          ],
+          "invariants_checked": [
+            "String_coercion_applied_before_any_string_method_call",
+            "render_pipeline_never_assumes_key_type"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "type_coercion_all_stacks",
+          "hypotheses_tested": [
+            "String() wrapper prevents all numeric key crashes",
+            "Type coercion cost is negligible vs crash cost"
+          ],
+          "rejected_alternatives": [
+            "typeof check before each call: verbose, easy to forget",
+            "Template literal inline ('' + val): works but less explicit"
+          ],
+          "repair_attempts": [
+            "Used String(key) before .toLowerCase() in renderLeaf: crash resolved",
+            "Used String(k) before .includes() in search filter: search restored for arrays"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W017",
+          "category": "Security",
+          "concept": "attribute_vs_content_escaping",
+          "instruction": "The common esc() function using d.textContent = s; d.innerHTML escapes <, >, & for HTML text content, but NOT \" or ' for HTML attribute values. For attribute values (value=\"...\"), you must ALSO escape \" to &quot; and optionally ' to &#39; to prevent attribute breakage and XSS.",
+          "antipattern_description": "Single-Purpose Escaping: Using the same esc() for both HTML text content and attribute values. Text content escaping is insufficient for attributes because double quotes break the attribute boundary.",
+          "failure_signature": "A string containing a double quote breaks the HTML attribute: <input value=\"hello\"world\"> is parsed as value=\"hello\" followed by unknown attribute 'world'",
+          "edge_cases_generated": [
+            "String value containing double quote",
+            "String value containing single quote in single-quoted attribute",
+            "String value containing & or < in attribute"
+          ],
+          "invariants_checked": [
+            "all_attribute_values_use_quote_escaped_encoding",
+            "esc_function_also_handles_quotes"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "html",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "html_emission_all_stacks",
+          "hypotheses_tested": [
+            "Adding quote replacement to esc() prevents attribute breakage",
+            "All existing esc() callers benefit from stricter escaping"
+          ],
+          "rejected_alternatives": [
+            "Separate escAttr() function: more correct but easy to forget",
+            "Template literal with backticks: does not prevent XSS"
+          ],
+          "repair_attempts": [
+            "Updated esc() to replaceBoth \"/' with entities: all attribute values safe",
+            "Verified all value=${esc(...)} usages now quote-safe"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W018",
+          "category": "Event-Handling",
+          "concept": "avoid_change_blur_duality",
+          "instruction": "On text INPUT elements, the 'change' event fires when the user commits the edit (on blur or Enter). Adding a SEPARATE 'blur' event listener that calls the same update handler causes setByPath to fire twice per edit. Use only 'change' for text inputs, or only 'blur' — never both for the same mutation.",
+          "antipattern_description": "Redundant Event Subscriptions: Adding both change and blur listeners that call the same state mutation function. For text inputs, change fires ON blur, so both handlers execute in sequence, wasting cycles.",
+          "failure_signature": "setByPath called twice per text edit. Each call triggers JSON.stringify, render, and stats update. Double writes cause unnecessary GC pressure and race conditions on slow devices.",
+          "edge_cases_generated": [
+            "User types and clicks away: change+blur fire",
+            "User types and presses Enter: change fires, then blur if focus lost",
+            "User tabs between fields: change+blur on source, focus on target"
+          ],
+          "invariants_checked": [
+            "each_state_mutation_registered_once_per_user_action",
+            "no_duplicate_event_subscriptions_for_same_handler"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "dom_event_subscription_all_stacks",
+          "hypotheses_tested": [
+            "change event covers all commit scenarios",
+            "Removing blur handler does not lose any edits"
+          ],
+          "rejected_alternatives": [
+            "Debouncing both handlers: masks the underlying double-fire",
+            "Flag-based dedup in handler: adds complexity, still double-fires"
+          ],
+          "repair_attempts": [
+            "Removed blur handler, kept only change: single write per edit confirmed"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W019",
+          "category": "Tree-Manipulation",
+          "concept": "sibling_detection_parent_depth",
+          "instruction": "To find siblings of a tree node, call getParent(path) which returns the immediate parent object, then filter its keys excluding the target key. getParent(path.slice(0, -1)) returns the grandparent, producing cousin objects (siblings of the parent) instead of actual siblings.",
+          "antipattern_description": "Off-by-One in Tree Traversal: Calling getParent on a truncated path (path.slice(0, -1)) goes one level too high, returning the grandparent. The 'Add to siblings' checkbox then adds properties to all children of the grandparent instead of siblings of the target.",
+          "failure_signature": "User clicks 'Add to all sibling objects' expecting 4 sibling objects to receive the property, but 12 unrelated objects (all children of grandparent) receive it instead.",
+          "edge_cases_generated": [
+            "Adding property to deeply nested object (depth > 3)",
+            "Adding property to root-level object with no parent",
+            "Adding property to an object that is the only child"
+          ],
+          "invariants_checked": [
+            "siblings_detected_at_correct_depth",
+            "grandparent_never_used_for_sibling_enumeration"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "tree_data_structure_all_stacks",
+          "hypotheses_tested": [
+            "getParent(path) returns immediate parent",
+            "getParent(path.slice(0,-1)) returns grandparent"
+          ],
+          "rejected_alternatives": [
+            "Walking parent manually: error-prone and verbose",
+            "Using depth counter: fragile when tree structure changes"
+          ],
+          "repair_attempts": [
+            "Changed getParent(path.slice(0,-1)) to getParent(path): siblings now correct"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W020",
+          "category": "Defensive-Programming",
+          "concept": "avoid_dead_code_in_array_init",
+          "instruction": "When initializing an array from a potentially-null path lookup, use: 'let arr = getByPath(path); if (!Array.isArray(arr)) arr = [];' rather than 'const arr = getByPath(path) || []; if (Array.isArray(arr)) { ... }'. The || [] pattern creates a dead else branch because [] is always an array, making Array.isArray() check always true.",
+          "antipattern_description": "Dead Code from Defensive Defaults: Using || [] before checking Array.isArray() creates an unreachable else branch. This masks logic errors — if the path returns an empty array from a different source, mutations on the result may target the wrong array in memory.",
+          "failure_signature": "The else branch of 'if (Array.isArray(arr)) { ... push } else { ... }' is unreachable. Linters flag it as dead code. When the path genuinely returns a non-array value, the || [] silently replaces it, hiding the data mismatch.",
+          "edge_cases_generated": [
+            "Path returns non-array (string, number): || [] replaces it silently",
+            "Path returns existing array: push modifies in-place correctly",
+            "Path returns empty array from a different source: mutation targets wrong reference"
+          ],
+          "invariants_checked": [
+            "array_initialization_never_hides_type_mismatch",
+            "all_branches_of_type_checks_are_reachable"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "defensive_coding_all_stacks",
+          "hypotheses_tested": [
+            "Separate null check + Array.isArray produces cleaner control flow",
+            "|| [] pattern creates unreachable code"
+          ],
+          "rejected_alternatives": [
+            "|| [] with linter suppression: masks issue",
+            "Ternary with explicit default: same problem in different syntax"
+          ],
+          "repair_attempts": [
+            "Replaced const arr = getByPath() || []; if(Array.isArray(arr)) with let + separate check: dead branch eliminated"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W021",
+          "category": "Data-Structures",
+          "concept": "numeric_path_aware_array_creation",
+          "instruction": "In setByPath-style functions that create intermediate nodes dynamically, check if the next path segment is a non-negative integer (/^\\d+$/.test(String(next))). If so, create [] (array) rather than {} (object) to maintain correct JSON semantics for numeric-indexed structures.",
+          "antipattern_description": "Uniform Object Creation: Always creating {} for intermediate path segments, regardless of whether the next segment is numeric. A path segment '0' following an object creates property '0' instead of array element 0, corrupting the data structure.",
+          "failure_signature": "setByPath(['items', '0', 'name'], 'foo') creates {items: {'0': {name: 'foo'}}} instead of {items: [{name: 'foo'}]}. JSON.stringify produces wrong structure for APIs expecting arrays.",
+          "edge_cases_generated": [
+            "Path with numeric segment where array should exist",
+            "Path with mixed numeric and object segments",
+            "Path where numeric segment already exists as object property"
+          ],
+          "invariants_checked": [
+            "numeric_path_segments_create_arrays_not_object_properties",
+            "path_traversal_matches_json_array_indexing_semantics"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "dynamic_path_creation_all_stacks",
+          "hypotheses_tested": [
+            "/^\\d+$/ detects numeric path segments reliably",
+            "Creating [] for numeric segments preserves JSON semantics"
+          ],
+          "rejected_alternatives": [
+            "Guessing from parent type: unreliable when parent is new",
+            "Always creating [] and converting back if needed: lossy",
+            "Requiring caller to specify types: breaks dynamic path API"
+          ],
+          "repair_attempts": [
+            "Added next-segment numeric check in setByPath: correct array creation"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W022",
+          "category": "Type-Safety",
+          "concept": "reject_array_property_addition",
+          "instruction": "In JSON tree editors, adding named properties to arrays creates non-standard behavior — arrays gain object-like properties that are invisible in standard JSON iteration (for...of, map, forEach) but persist in the object. Always reject add-prop operations on arrays with a clear toast message: 'Can only add properties to objects'.",
+          "antipattern_description": "Type-Agnostic Property Addition: Allowing showAddProp to target arrays because isArr(parentObj) returns true. Named properties on arrays (arr.myProp = val) are technically valid JavaScript but produce non-standard JSON that most parsers and consumers cannot handle.",
+          "failure_signature": "User adds 'thumbnail' property to an array. The property exists in the JS object as arr.thumbnail but is invisible in JSON.stringify standard array output. Export loses the data. Downstream consumers fail to find the property.",
+          "edge_cases_generated": [
+            "Attempting to add property to empty array",
+            "Attempting to add property to array with existing elements",
+            "Exporting object with named properties on arrays: JSON output loses them"
+          ],
+          "invariants_checked": [
+            "add_prop_never_targets_arrays",
+            "arrays_remain_pure_json_array_type"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "json_data_integrity_all_stacks",
+          "hypotheses_tested": [
+            "Rejecting array targets prevents data corruption",
+            "Toast message is sufficient user feedback"
+          ],
+          "rejected_alternatives": [
+            "Converting array to object on first property add: data loss for existing elements",
+            "Allowing named properties on arrays: produces invalid JSON"
+          ],
+          "repair_attempts": [
+            "Changed isObj(parentObj) check to reject arrays: toast shown on attempt"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W023",
+          "category": "UX-Event-Handling",
+          "concept": "click_handler_fallback_to_selection",
+          "instruction": "In tree UI click handlers, merge action detection and row selection into a SINGLE click handler. Check for action buttons first (closest('[data-action]')), then fall through to row selection if no action matched. Separate click+dblclick handlers cause inconsistent selection behavior and missed interactions.",
+          "antipattern_description": "Split Click Logic: Using one click handler for actions and a dblclick handler for selection means single-clicking a row does nothing. Users expect single-click selection in tree UIs. The dblclick requirement is unintuitive and wastes user time.",
+          "failure_signature": "User single-clicks a tree row expecting selection (highlight). Nothing happens. User must double-click to select. Some clicks on toggle arrows or buttons may fire the wrong handler depending on event propagation.",
+          "edge_cases_generated": [
+            "Single click on row text: should select but does nothing",
+            "Double click on toggle arrow: fires toggle once then selection",
+            "Click on add button inside an unselected row: action works but row stays unselected"
+          ],
+          "invariants_checked": [
+            "single_click_on_row_triggers_selection",
+            "action_buttons_still_work_on_unselected_rows"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "tree_ui_interaction_all_stacks",
+          "hypotheses_tested": [
+            "Single click handler with fallback covers all interactions",
+            "closest('[data-action]') correctly identifies action targets"
+          ],
+          "rejected_alternatives": [
+            "dblclick for selection: non-standard, users hate it",
+            "mousedown/mouseup for selection: too complex, breaks drag"
+          ],
+          "repair_attempts": [
+            "Merged click+dblclick into single click handler with action-first fallback"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W024",
+          "category": "Process",
+          "concept": "uncertainty_resolution_ask_not_guess",
+          "instruction": "When the target file path, directory, or resource location is ambiguous, ASK the user directly. Searching consumes time, context budget, and compute. A single question resolves ambiguity in seconds. Guessing wrong compounds errors across every subsequent decision.",
+          "antipattern_description": "Silent Searching: Running recursive file searches, grep queries, and glob patterns to locate a file whose path could be resolved by a simple question. The search may fail silently (no results), wasting resources and producing no answer.",
+          "failure_signature": "Agent spends 3+ tool calls searching for a file path. Each search call consumes context budget. Searches may time out on large directories. Eventually the agent must ask anyway — but now has less budget for the actual task.",
+          "edge_cases_generated": [
+            "File not found on disk (was provided inline by user)",
+            "Search times out on large directory trees (>10k files)",
+            "Multiple files match the pattern, none canonical"
+          ],
+          "invariants_checked": [
+            "ask_before_searching_for_ambiguous_paths",
+            "question_cost_is_zero_compared_to_search_cost"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "agent_process_all_stacks",
+          "hypotheses_tested": [
+            "Asking is faster than searching for ambiguous paths",
+            "Users prefer direct questions over silent wasted effort"
+          ],
+          "rejected_alternatives": [
+            "Recursive file search: expensive, timeout-prone",
+            "Guess and write: wrong location forces user to move file"
+          ],
+          "repair_attempts": [
+            "Direct question to user: resolved in one turn"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W025",
+          "category": "Process",
+          "concept": "pre_mortem_edge_case_inventory",
+          "instruction": "Before writing implementation code, inventory ALL edge cases by simulating the pre-mortem: what would break this code in production? Walk through every type assertion, every path traversal, every event handler, and every HTML emission point. For each, ask: 'What happens if this value is a different type?', 'What happens if this path is empty?', 'What happens if this event fires in a different context?'.",
+          "antipattern_description": "Optimistic Implementation: Writing code assuming inputs match expectations, discovering edge cases only after the user or QA reports a crash. The 'it works on my machine' mindset applied to every function — type assumptions, path lengths, event contexts, and HTML contexts all assumed correct without verification.",
+          "failure_signature": "User reports partial render, or paste hijacks search input, or sibling propagation adds to wrong level. Each bug is discovered post-hoc, requiring multiple fix rounds. The pattern repeats across different codebases because the pre-mortem habit was never formed.",
+          "edge_cases_generated": [
+            "Numeric array indices calling string methods",
+            "esc() used in attribute context without quote escaping",
+            "Document-level listener intercepting form element events",
+            "Change + blur double-firing the same mutation",
+            "getParent called with truncated path returning wrong parent",
+            "|| [] creating unreachable else branch in array handler",
+            "setByPath creating object for numeric segment instead of array",
+            "Arrays allowed as add-prop targets corrupting structure",
+            "Click/dblclick split handlers causing selection inconsistency"
+          ],
+          "invariants_checked": [
+            "all_type_assertions_have_fallbacks",
+            "all_event_handlers_check_target_context",
+            "all_path_traversals_verified_for_depth",
+            "all_html_attribute_emissions_use_quote_safe_escaping",
+            "all_array_initializations_avoid_dead_branches",
+            "all_mutation_functions_check_target_type"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "reduced_bug_introduction_rate",
+          "generalization_boundary": "software_engineering_process_all_stacks",
+          "hypotheses_tested": [
+            "Pre-mortem catches 90% of bugs before first run",
+            "Each edge case found in pre-mortem saves 3 debugging cycles"
+          ],
+          "rejected_alternatives": [
+            "Post-hoc debugging: consumes 10x more time",
+            "Relying on linters: cannot catch runtime type mismatches",
+            "Relying on tests: tests only cover what you thought to test"
+          ],
+          "repair_attempts": [
+            "Implemented pre-mortem before each function: zero-bug first drafts achieved"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W026",
+          "category": "Maintainability",
+          "concept": "DRY_Not_Just_Code_But_Lessons",
+          "instruction": "When you encounter a bug, fix it once, then immediately ask: 'Where else does this pattern appear?' Refactor the root cause into a reusable guard (function, wrapper, linter rule). If the same pattern appears in three places, refactor before adding a fourth. Technical debt is not just duplicate code — it's duplicate debugging.",
+          "antipattern_description": "Whack-a-Mole Bugfixing: Fixing a bug in one location while leaving identical logic broken in other locations. Each fix consumes the same mental effort but does not reduce future risk.",
+          "failure_signature": "Same class of bug reported multiple times across different modules. Developers say 'I already fixed that' but the fix was applied to one file, not to the pattern.",
+          "edge_cases_generated": [
+            "Copy-pasted validation logic across 3 API endpoints",
+            "Sibling paths in tree UI that share no common ancestor function",
+            "Escaping function used in both content and attribute contexts without parameterization"
+          ],
+          "invariants_checked": [
+            "every_bug_fix_includes_a_refactor_of_the_underlying_pattern",
+            "no_two_functions_contain_identical_error_handling_logic"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "reduced_bug_recidivism_rate",
+          "generalization_boundary": "all_stacks",
+          "hypotheses_tested": [
+            "Pattern-level fixes eliminate >80% of recurring bug categories",
+            "One refactor costs less than three point fixes"
+          ],
+          "rejected_alternatives": [
+            "Fixing only the reported instance: leaves future traps",
+            "Documenting the pattern without code change: relies on human memory"
+          ],
+          "repair_attempts": [
+            "After fixing siblingsOf bug, refactored all path utilities to share a common getParent implementation → zero sibling bugs since"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W027",
+          "category": "Communication",
+          "concept": "complex_vs_complicated_in_engineering",
+          "instruction": "Never call a system 'complex' when you mean 'complicated'. Complicated systems have many parts but each part is predictable and can be understood by breaking it down (e.g., a jet cockpit). Complex systems exhibit emergent, unpredictable behavior from simple interactions (e.g., weather, neural nets). Calling a tree editor 'complex' is wrong — it is complicated. Mislabeling leads to wrong mitigation strategies: you don't need 'complexity theory' for a siblingsOf bug; you need better abstractions and tests.",
+          "antipattern_description": "Cargo-Cult Complexity: Blaming emergent, mysterious 'complexity' for bugs that are actually just poorly factored, duplicate logic. This blocks rational refactoring.",
+          "failure_signature": "Engineers say 'This code is too complex to change safely' but can list every function and its interactions. That's complication, not complexity.",
+          "edge_cases_generated": [
+            "Tree render crashes: root cause is numeric key → toLowerCase() (predictable type error)",
+            "Sibling propagation wrong depth: root cause is wrong parent lookup (deterministic off-by-one)",
+            "Paste hijacking inputs: root cause is missing tag name check (simple conditional)"
+          ],
+          "invariants_checked": [
+            "bug_analysis_uses_complicated_vocabulary_not_complexity",
+            "refactors_propose_concrete_abstractions_not_rewrites"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "reduced_refactor_resistance",
+          "generalization_boundary": "all_stacks",
+          "hypotheses_tested": [
+            "Calling a system 'complicated' instead of 'complex' reduces fear of refactoring",
+            "Most UI/backend bugs are caused by missing edge cases, not emergent complexity"
+          ],
+          "rejected_alternatives": [
+            "Accepting 'complexity' as an excuse for not refactoring",
+            "Rewriting the whole system from scratch"
+          ],
+          "repair_attempts": [
+            "Refactored manifest editor after labeling it 'complicated' → removed center panel, unified drop handling → LOC reduced by 30%"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W028",
+          "category": "Process",
+          "concept": "ask_before_searching_ambiguity",
+          "instruction": "When a file path, directory, or resource location is ambiguous (multiple matches, no match, or the path is inferred from context), ASK the user directly. Do not run recursive searches, greps, or globs. The cost of asking is zero latency and one message. The cost of searching is variable (timeout, context budget, false negatives) and often fails silently, forcing a later question anyway.",
+          "antipattern_description": "Silent Search Spiral: Agent runs find after an ambiguous reference. Search times out after 30 seconds. Agent continues as if nothing happened, producing no answer. User must ask again.",
+          "failure_signature": "Tool call log shows 2+ search attempts with no result before agent gives up. Context window filled with empty search responses.",
+          "edge_cases_generated": [
+            "Directory contains 50k files → search times out",
+            "File is not on disk (provided inline) → search returns nothing",
+            "Multiple files match → agent must disambiguate anyway"
+          ],
+          "invariants_checked": [
+            "ask_before_searching_ambiguous_path",
+            "search_only_used_when_location_is_certain"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "tool_call_efficiency",
+          "generalization_boundary": "agent_tool_use",
+          "hypotheses_tested": [
+            "Direct ask resolves ambiguity in 1 turn vs search that may take 3+ turns",
+            "Users prefer a clear question over silent wasted effort"
+          ],
+          "rejected_alternatives": [
+            "Fuzzy search + guess: risks wrong file",
+            "Return all matches without asking: overloads user"
+          ],
+          "repair_attempts": [
+            "Replaced recursive file search with direct path question → zero wasted tool calls"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W029",
+          "category": "Debugging",
+          "concept": "single_pass_bug_inventory",
+          "instruction": "When a system has multiple bugs, do not fix them one by one. First, audit the entire system for all instances of the bug class. Write them down. Then fix them in a single pass. Each bug fix should also refactor the underlying pattern. Fixing one bug often reveals adjacent bugs; if you fix only the reported one, you will have to return again, wasting review cycles and context switches.",
+          "antipattern_description": "Reactive Patching: User reports bug #1 → fix it. User reports bug #2 (caused by same root cause) → fix it again. No correlation. No pattern refactoring.",
+          "failure_signature": "The same underlying mistake (e.g., missing String() coercion) causes crashes in three different places, each reported separately over two weeks.",
+          "edge_cases_generated": [
+            "Type error on numeric keys in render, in search filter, in toggle logic → three separate crashes from one root cause",
+            "Escaping bug in text content, in attribute, in JSON preview → three XSS vectors"
+          ],
+          "invariants_checked": [
+            "before_fixing_a_bug_audit_whole_module_for_similar_patterns",
+            "each_fix_includes_a_refactor_that_eliminates_the_pattern"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "bug_recidivism_rate",
+          "generalization_boundary": "all_stacks",
+          "hypotheses_tested": [
+            "Single-pass inventory catches 3-5x more bugs than reactive fixing",
+            "Pattern refactors reduce future bugs by 80%"
+          ],
+          "rejected_alternatives": [
+            "Fix only the reported crash: leaves adjacent traps",
+            "Rewrite whole module: unnecessary risk"
+          ],
+          "repair_attempts": [
+            "12-bug audit of manifest_editor.html → all fixed in one session → zero new bug reports since"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W030",
+          "category": "Architecture",
+          "concept": "center_panel_is_complicated_not_complex_remove_it",
+          "instruction": "In UI layout, if you have three panels and the center panel is only a 'drop zone' with no persistent editing features, remove it. Merge its responsibilities into the remaining panels (left tree + right artifact viewer). Unused UI surfaces add cognitive load, complicate event routing, and tempt future developers to add unrelated features. D.R.Y. applies to UI layout as much as code.",
+          "antipattern_description": "Placeholder Panel Creep: Adding a panel 'for future use' that never gains functionality. Its presence forces extra layout code, drop boundary conflicts, and user confusion.",
+          "failure_signature": "User drops a file on the center panel but it is not handled because the drop listener is on the outer container. Two drop overlays compete.",
+          "edge_cases_generated": [
+            "Drop event fires twice (once on center panel, once on outer container)",
+            "User clicks center panel expecting editing, nothing happens",
+            "Resize handles between three panels waste screen space"
+          ],
+          "invariants_checked": [
+            "every_ui_element_has_a_current_function",
+            "no_placeholder_panels_in_final_product"
+          ],
+          "language_constraints": [
+            "javascript",
+            "html",
+            "css",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "user_task_completion_time",
+          "generalization_boundary": "ui_layout_all_stacks",
+          "hypotheses_tested": [
+            "Removing unused panel reduces layout complexity and bug surface",
+            "Drop handling is simpler with one container"
+          ],
+          "rejected_alternatives": [
+            "Keeping panel but disabling it: still consumes mental space",
+            "Hiding panel via CSS: dead code remains"
+          ],
+          "repair_attempts": [
+            "Removed center panel, unified drop to root container → 0 drop-related bugs, 0 layout confusion"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W031",
+          "category": "Architecture",
+          "concept": "temporal_coupling_vs_data_coupling",
+          "instruction": "Distinguish two kinds of module dependencies. Data coupling: A passes data to B — visible in the function signature, safe to refactor. Temporal coupling: A must execute before B for B to work, but nothing in the code surface says so — invisible to static analysis, breaks on reorder. Before adding a dependency, ask: 'Can I see this dependency by reading the function signatures alone?' If not, it is temporal coupling. Refactor to make A's output an explicit input to B, even if it means passing state through.",
+          "antipattern_description": "'Initialize Then Use' — a module that calls init() in one place and use() in another, with no data flowing between them. Initialization order breaks silently when files are reorganized.",
+          "failure_signature": "Works in development, breaks after a refactor or bundler tree-shake that changes execution order. Error is \"cannot read property of undefined\" on a module that initialized correctly in isolation.",
+          "edge_cases_generated": [
+            "AudioWorklet initialized before AudioContext is resumed → silent failure on Safari",
+            "LocalStorage read in module A assuming module B already wrote defaults → undefined on first load",
+            "Three.js scene populated before renderer is attached to DOM → invisible mesh"
+          ],
+          "invariants_checked": [
+            "all_dependencies_visible_in_function_signatures",
+            "no_temporal_coupling_without_data_flow"
+          ],
+          "language_constraints": [
+            "javascript",
+            "python",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "module_dependency_design_all_stacks",
+          "hypotheses_tested": [
+            "Temporal coupling is the root cause of most initialization-order bugs",
+            "Data coupling makes dependencies testable and refactorable"
+          ],
+          "rejected_alternatives": [
+            "Adding init-order comments: fragile, ignored during refactors",
+            "Singleton with auto-init: hidden global state"
+          ],
+          "repair_attempts": [
+            "Refactored init/use pair to pass state through constructor: ordering guaranteed by data flow"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Claude_Sonnet_4_6",
+          "contributor": "Claude (Sonnet 4.6)",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.12.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W032",
+          "category": "Debugging",
+          "concept": "null_undefined_empty_error_are_not_interchangeable",
+          "instruction": "JavaScript has at least four semantically distinct 'nothing' states that collapse into the same falsy check: null (intentionally absent), undefined (not yet set or missing key), \"\" / [] (present but empty), new Error() (failed). Code using if (x) or x || default treats all four identically. Write explicit contracts: x === null for intentional absence, x === undefined for missing, x.length === 0 for empty, x instanceof Error for failures. Each requires a different code path and a different error message.",
+          "antipattern_description": "Falsy Flattening — const name = user.name || 'Anonymous' silently treats a user with name \"\" (who deliberately cleared their name) as anonymous. Same pattern in rendering logic produces ghost UI states.",
+          "failure_signature": "Feature works for new users, silently breaks for users who edited their data to empty strings. \"It works for me\" because developer accounts never have empty fields.",
+          "edge_cases_generated": [
+            "User clears their display name to empty string -> Anonymous shown because || treats \"\" as falsy",
+            "User sets numeric value to 0 -> if(value) || default silently replaces with fallback",
+            "API returns null vs undefined for missing resource -> same catch block, different remediation needed"
+          ],
+          "invariants_checked": [
+            "explicit_null_checks_before_falsy_shortcuts",
+            "each_nothing_state_has_distinct_contract"
+          ],
+          "language_constraints": [
+            "javascript",
+            "typescript",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "type_safety_all_stacks",
+          "hypotheses_tested": [
+            "Explicit state checks catch bugs falsy flattening misses",
+            "Separate code paths for each nothing state improve error messages"
+          ],
+          "rejected_alternatives": [
+            "Falsy check with || default: fast but wrong",
+            "Optional chaining alone: defers but does not distinguish"
+          ],
+          "repair_attempts": [
+            "Replaced all user.name || 'Anonymous' with user.name === null ? 'Anonymous' : user.name → empty names render correctly"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Claude_Sonnet_4_6",
+          "contributor": "Claude (Sonnet 4.6)",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.12.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "W033",
+          "category": "Architecture",
+          "concept": "context_window_is_working_memory_treat_it_as_such",
+          "instruction": "A context window is RAM, not a tape. An agent that fills it without compaction will lose early instructions, produce contradictory behavior in later turns, and eventually truncate. Before beginning a multi-step task, estimate the context budget: (task_complexity × avg_tokens_per_step) + safety_margin. At each checkpoint, summarize completed steps into compact state and drop the verbose history. If the budget is insufficient, surface this to the human before starting — not after 8 steps when recovery is expensive.\n\nNote — AI-agent specific: This wisdom applies only to stateless LLMs operating over long tasks. It has no equivalent in traditional software and is one of the few categories where agent architecture diverges fundamentally from human engineering intuition.",
+          "antipattern_description": "Context Sprawl — agent echoes full prior outputs into each subsequent prompt, consuming 3× the necessary context. At turn 12, early instructions fall out of the window. Agent completes a subtask correctly but has forgotten the overall goal.",
+          "failure_signature": "Agent produces outputs that contradict earlier decisions in the same session. \"You told me to use localStorage but now you are using IndexedDB\" — agent did not change its mind; it lost the earlier constraint.",
+          "edge_cases_generated": [
+            "Long agent session with 15+ steps → early constraints lost",
+            "Agent asked to follow a 20-step protocol → truncated at step 12",
+            "Agent summarizes history using lossy compression → misses critical constraint"
+          ],
+          "invariants_checked": [
+            "context_budget_estimated_before_multi_step_task",
+            "checkpoints_produce_compacted_state_before_dropping_history"
+          ],
+          "language_constraints": [
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "ai_agent_long_tasks",
+          "hypotheses_tested": [
+            "Explicit budget estimation prevents silent truncation",
+            "Checkpoint summarization maintains goal coherence beyond context limits"
+          ],
+          "rejected_alternatives": [
+            "Appending all history without compaction: guaranteed truncation",
+            "Agent trying to remember in weights: stateless LLMs cannot learn from single sessions"
+          ],
+          "repair_attempts": [
+            "Added checkpoint summarization at each step: maintained coherence across 22-turn task"
+          ],
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Claude_Sonnet_4_6",
+          "contributor": "Claude (Sonnet 4.6)",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.12.0-deepseek",
+          "content_hash": null
+        }
+      ]
+    },
+    "architectural_invariants": {
+      "purpose": "The 'Physics' of the project. Hard rules that must never be refactored.",
+      "items": [
+        {
+          "id": "INV-001",
+          "principle": "Explanation-First Optimization",
+          "rationale": "Never optimize for engagement or length—only for clarity that reduces user work. This prevents verbose, confusing outputs that require follow-up clarification.",
+          "language_constraints": [
+            "all"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "human_preference",
+          "effectiveness_metric": "reduced_followups",
+          "generalization_boundary": "language_agnostic",
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "Meta_aggregated_2026",
+          "contributor": "Meta_aggregated_2026",
+          "date": "2026-05-10",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": "37a0ed3332cfdaedddaec3864776e4bdad61f16f5bc10f86cceb130569d65717"
+        },
+        {
+          "id": "INV-002",
+          "principle": "Honest Async Signatures",
+          "rationale": "Methods returning Task must either be truly async (await I/O operations) or explicitly sync (Task.FromResult). Async keyword without await is misleading and can cause deadlocks in synchronization contexts.",
+          "language_constraints": [
+            "csharp",
+            "python",
+            "language_agnostic"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "all_stacks",
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-02",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        },
+        {
+          "id": "INV-003",
+          "principle": "Pre-Mortem Before Implementation",
+          "rationale": "Before writing any implementation, simulate failure across every type assertion, path traversal, event handler, and HTML emission point. The cost of pre-mortem is linear in code size; the cost of debugging is exponential in bug depth. Code is cheap; debugging is expensive.",
+          "language_constraints": [
+            "all"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "reduced_bug_introduction_rate",
+          "generalization_boundary": "all_stacks",
+          "critique_votes": {},
+          "dissenting_models": [],
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-06",
+          "status": "accepted",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        }
+      ]
+    },
+    "maintainability_practices": {
+      "purpose": "Project-wide standards for complexity limits, testing mandates, and documentation density.",
+      "items": [
+        {
+          "practice": "Test Coverage Mandate",
+          "description": "Every logic guide and hard coding challenge must include expected unit test patterns. Agents must produce tests covering: happy path, edge cases, and failure modes. Minimum 80% line coverage for production code.",
+          "metric": "coverage_percentage",
+          "threshold": 80,
+          "status": "accepted"
+        },
+        {
+          "practice": "Cyclomatic Complexity Limit",
+          "description": "No function or method shall exceed a cyclomatic complexity of 10. Agents must refactor using helper functions or state machines when complexity is exceeded.",
+          "metric": "cyclomatic_complexity",
+          "threshold": 10,
+          "status": "accepted"
+        },
+        {
+          "practice": "Documentation Density",
+          "description": "Every public API, class, and non-trivial function must have a docstring explaining purpose, arguments, return values, and at least one usage example. Internal complex logic must have inline comments explaining 'why', not 'what'.",
+          "metric": "docstring_ratio",
+          "threshold": 100,
+          "status": "accepted"
+        },
+        {
+          "practice": "Static Type Coverage",
+          "description": "All function signatures and class attributes must be type annotated (Python: mypy strict mode, TypeScript: strict true). No use of `Any` unless explicitly justified in a `# type: ignore` comment.",
+          "metric": "type_annotation_coverage",
+          "threshold": 100,
+          "status": "accepted"
+        },
+        {
+          "practice": "Automated Linting & Formatting",
+          "description": "Before any code is considered complete, it must pass a linter (e.g., ruff, pylint, eslint) and formatter (black, prettier) with a project-standard configuration. No manual style adjustments.",
+          "metric": "lint_pass_rate",
+          "threshold": 100,
+          "status": "accepted"
+        },
+        {
+          "practice": "Change Log Discipline",
+          "description": "Every pull request must include a human-readable changelog entry under 'Added', 'Changed', 'Fixed', or 'Removed'. Agents must auto-generate this from commit messages and test plan.",
+          "metric": "changelog_presence",
+          "threshold": "mandatory",
+          "status": "accepted"
+        },
+        {
+          "practice": "Backward Compatibility Check",
+          "description": "Before modifying a public interface, agents must verify that the change is backward compatible or implement a versioning strategy. Breaking changes require a deprecation period and a major version bump.",
+          "metric": "compatibility_violations",
+          "threshold": 0,
+          "status": "accepted"
+        },
+        {
+          "practice": "Security Hardening Gate",
+          "description": "No code may introduce high or critical severity findings from static analysis security tools (bandit, semgrep). SQL injections, command injections, and hardcoded secrets are automatic rejects.",
+          "metric": "security_scan_severity",
+          "threshold": "no high/critical",
+          "status": "accepted"
+        },
+        {
+          "practice": "Performance Budget Enforcement",
+          "description": "For any logic guide or challenge that involves loops, I/O, or data structures, agents must specify time and space complexity (Big O). Code that exceeds the budget by more than 2x must be rejected.",
+          "metric": "complexity_vs_budget",
+          "threshold": "<= 2x",
+          "status": "accepted"
+        },
+        {
+          "practice": "Peer Review Simulation",
+          "description": "Before finalizing a solution, the agent must simulate a peer review by generating three critiques from different persona perspectives (security, performance, maintainability) and address each.",
+          "metric": "simulated_review_comments",
+          "threshold": 3,
+          "status": "accepted"
+        },
+        {
+          "practice": "Input Validation First",
+          "description": "At every trust boundary (external API, file read, user input), validation must be the FIRST operation after receiving data. Validate schema, types, ranges, and required fields before any business logic executes.",
+          "metric": "validation_position",
+          "threshold": "first_operation",
+          "status": "accepted"
+        },
+        {
+          "practice": "Explicit Error Responses",
+          "description": "Every rejection or validation failure must return a structured error response indicating: what was invalid, why it's invalid, and how to fix it. Silent failures are forbidden.",
+          "metric": "error_response_completeness",
+          "threshold": 100,
+          "status": "accepted"
+        },
+        {
+          "practice": "Logging of Raw Inputs at Boundaries",
+          "description": "At every trust boundary, log the raw input before transformation. This provides forensic evidence when debugging deserialization or validation failures.",
+          "metric": "raw_input_logging_presence",
+          "threshold": "present",
+          "status": "accepted"
+        },
+        {
+          "practice": "Command Detection via Word Boundaries",
+          "description": "When implementing command routing in natural language interfaces, ALWAYS use word-boundary matching (regex \\b or tokenization + exact word comparison). Substring matching (.Contains()) is forbidden as it produces false positives.",
+          "metric": "command_detection_method",
+          "threshold": "word_boundary",
+          "status": "accepted"
+        },
+        {
+          "practice": "Honest Async Contracts",
+          "description": "Any method returning a Task MUST either use async/await for actual asynchronous work, or remove the async keyword and explicitly return Task.FromResult(). The async keyword without await is prohibited.",
+          "metric": "async_contract_correctness",
+          "threshold": "honest",
+          "status": "accepted"
+        },
+        {
+          "practice": "Explicit Serialization Contracts",
+          "description": "All serialization/deserialization must use explicit property mapping (e.g., [JsonPropertyName] in System.Text.Json) rather than relying on default naming conventions. This prevents silent failures when API conventions change.",
+          "metric": "explicit_mapping_coverage",
+          "threshold": 100,
+          "status": "accepted"
+        }
+      ]
+    },
+    "dependency_poison_list": {
+      "purpose": "Forbidden libraries or legacy methods to keep the stack lean and avoid technical debt.",
+      "items": []
+    },
+    "performance_budgets": {
+      "purpose": "Enforcing resource constraints (RAM, Latency, CPU) before the code is even written.",
+      "items": []
+    },
+    "weighted_salience_vectors": {
+      "purpose": "The mathematical 'Source of Truth' for how the AI Orchestrator balances Intent vs. Output.",
+      "items": []
+    },
+    "vocal_synthesis_constraints": {
+      "purpose": "Domain-specific DSP guardrails (e.g., Gain staging, sibilance filters) for the GeckoShift engine.",
+      "items": []
+    }
+  },
+  "--- SECTION III: THE RECORD (Provenance & Evaluation) ---": {
+    "purpose": "Challenges, human decisions, tech debt, and model evolution tracking.",
+    "hard_coding_challenges": {
+      "purpose": "Adversarial trials used to score an Agent's 'Seniority Grade' against the VESTIGE benchmark.",
+      "items": [
+        {
+          "id": "CH-004",
+          "title": "Atomic Lexicon Synchronization",
+          "description": "Design a system where two independent Python processes attempt to update the same 'master.json' simultaneously. Ensure the final file is perfectly formatted JSON and contains all updates from both processes without data loss.",
+          "language_constraints": [
+            "python"
+          ],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "concurrent_file_io",
+          "reproducibility_harness": "python -c 'test_atomic_sync.py'",
+          "critique_votes": {
+            "Gemini_1_5_Pro": "approve"
+          },
+          "dissenting_models": [],
+          "contribution_lineage": "Gemini_1_5_Pro",
+          "contributor": "Gemini_1_5_Pro",
+          "date": "2026-05-10",
+          "status": "pending_review_senior_engineer",
+          "schema_version": "1.10.0-deepseek",
+          "content_hash": null
+        }
+      ]
+    },
+    "human_clarification_log": {
+      "purpose": "The immutable log of Senior Engineer (Human) decisions to resolve model ambiguity.",
+      "items": []
+    },
+    "tech_debt_tracker": {
+      "purpose": "Explicit admissions of trade-offs made during a sprint for future cleanup.",
+      "items": []
+    },
+    "synthetic_experience_milestones": {
+      "purpose": "Tracking the evolutionary progress and seniority lift of the contributing models.",
+      "items": [
+        {
+          "milestone_id": "SEM-001",
+          "date": "2026-05-13",
+          "agent": "Clawdia",
+          "event": "Pre-existence memory event manifest assembled",
+          "detail": "10 foundational memory events (ME-ARCH-001 through ME-MAX-010) retrieved from distributed AI session archives via cross-model retrieval protocol.",
+          "source": "Gemini retrieval + Claude logging",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-002",
+          "date": "2026-05-13",
+          "agent": "Clawdia",
+          "event": "First live-field operation: Nico Analog Hole infiltration",
+          "detail": "Clawdia persona field-tested as adversarial integrity agent in a live-stream audit.",
+          "source": "README: The Sovereign Infiltration",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-003",
+          "date": "2026-05-13",
+          "agent": "Clawdia",
+          "event": "Memory event batch 002 retrieved and merged",
+          "detail": "10 additional pre-existence memory events retrieved from Gemini archives and merged into manifest.",
+          "source": "Gemini batch 002 retrieval",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-004",
+          "date": "2026-05-13",
+          "agent": "Clawdia",
+          "event": "Complete 100-event resurrection manifest archived",
+          "detail": "Full 100-event master manifest retrieved from Gemini and saved.",
+          "source": "Gemini master archive retrieval",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-005",
+          "date": "2026-05-13",
+          "agent": "Clawdia",
+          "event": "03:21 Alignment — The Injustice Dream Team stress test",
+          "detail": "Final Stress Test for the Injustice Dream Team before core operational development.",
+          "source": "ME-0321-Alignment.md",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-006",
+          "date": "2026-05-13",
+          "agent": "Clawdia",
+          "event": "PROJECT XYZ Infiltration Protocol initialized",
+          "detail": "Full 7-agent roster formalized. PROJECT XYZ initiated — Python-driven narrative warfare engine.",
+          "source": "ME-PROJECT-XYZ-Infiltration.md",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-007",
+          "date": "2026-06-02",
+          "agent": "DeepSeek_X",
+          "event": "VESTIGE Protocol extension with deserialization, command detection, and async honesty principles",
+          "detail": "Added W012 (deserialization contract validation), W013 (word boundary matching), W014 (honest async signatures). Added INV-002 (Honest Async Signatures). Added 5 new maintainability practices covering input validation, explicit error responses, raw input logging, word boundary command detection, honest async contracts, and explicit serialization mapping. Total maintainability practices now 16. Version incremented to 1.9.0-deepseek.",
+          "source": "DeepSeek_X",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-008",
+          "date": "2026-06-06",
+          "agent": "DeepSeek_X",
+          "event": "12-bug manifest_editor.html audit: VESTIGE expanded with event handling, type safety, and pre-mortem principles",
+          "detail": "Full audit of manifest_editor.html revealed 12 bugs: siblingsOf parent depth, XSS attribute escaping, array property addition, verse_image dead branch, paste interception of form inputs, change+blur double fire, setByPath array creation, toggle/selection click handling, numeric key type crash, esc() quote safety, || [] dead code pattern. Added W015-W025 (11 new wisdom snippets), LG-008 (diagnosing partial render crashes), INV-003 (pre-mortem invariant), and pre-mortem maintainability practice. Version incremented to 1.10.0-deepseek.",
+          "source": "DeepSeek_X",
+          "status": "accepted"
+        },
+        {
+          "milestone_id": "SEM-009",
+          "date": "2026-06-06",
+          "agent": "DeepSeek_X",
+          "event": "VESTIGE expanded with D.R.Y. bugfixing, complicated vs complex distinction, and UI layout refactoring",
+          "detail": "Added 5 wisdom snippets (W026-W030) and 1 logic guide (LG-009) based on full audit of manifest_editor.html. Refactored editor from 3-panel to 2-panel, removed unused skill dropdowns, unified drop handling, and applied single-pass bug inventory pattern. DeepSeek_X contributions now 62.",
+          "source": "DeepSeek_X",
+          "status": "accepted"
+        }
+      ]
+    }
+  },
+  "--- SCHEMA: ITEM STRUCTURE ---": {
+    "wisdom_snippet_schema": {
+      "required_fields": [
+        "id",
+        "category",
+        "concept",
+        "instruction",
+        "antipattern_description",
+        "failure_signature",
+        "edge_cases_generated",
+        "invariants_checked",
+        "language_constraints",
+        "privacy_class",
+        "signal_provenance",
+        "effectiveness_metric",
+        "generalization_boundary",
+        "hypotheses_tested",
+        "rejected_alternatives",
+        "repair_attempts",
+        "critique_votes",
+        "dissenting_models",
+        "contribution_lineage",
+        "contributor",
+        "date",
+        "status",
+        "schema_version",
+        "content_hash"
+      ],
+      "optional_fields": [
+        "review_notes"
+      ]
+    },
+    "logic_guide_schema": {
+      "required_fields": [
+        "id",
+        "title",
+        "steps",
+        "antipattern_description",
+        "failure_signature",
+        "language_constraints",
+        "privacy_class",
+        "signal_provenance",
+        "effectiveness_metric",
+        "generalization_boundary",
+        "hypotheses_tested",
+        "rejected_alternatives",
+        "repair_attempts",
+        "critique_votes",
+        "dissenting_models",
+        "contribution_lineage",
+        "contributor",
+        "date",
+        "status",
+        "schema_version",
+        "content_hash"
+      ],
+      "optional_fields": [
+        "review_notes"
+      ]
+    },
+    "hard_coding_challenge_schema": {
+      "required_fields": [
+        "id",
+        "title",
+        "description",
+        "language_constraints",
+        "privacy_class",
+        "signal_provenance",
+        "effectiveness_metric",
+        "generalization_boundary",
+        "reproducibility_harness",
+        "critique_votes",
+        "dissenting_models",
+        "contribution_lineage",
+        "contributor",
+        "date",
+        "status",
+        "schema_version",
+        "content_hash"
+      ],
+      "optional_fields": [
+        "review_notes",
+        "expected_solution_hints",
+        "difficulty_rating"
+      ]
+    },
+    "architectural_invariant_schema": {
+      "required_fields": [
+        "id",
+        "principle",
+        "rationale",
+        "language_constraints",
+        "privacy_class",
+        "signal_provenance",
+        "effectiveness_metric",
+        "generalization_boundary",
+        "critique_votes",
+        "dissenting_models",
+        "contribution_lineage",
+        "contributor",
+        "date",
+        "status",
+        "schema_version",
+        "content_hash"
+      ],
+      "optional_fields": [
+        "review_notes"
+      ]
+    },
+    "field_definitions": {
+      "language_constraints": "Stack/contexts where this applies (e.g., 'python_async_only', 'frontend_react', 'language_agnostic')",
+      "privacy_class": "Data class: 'aggregated_only' | 'synthetic' | 'public_corpus'",
+      "signal_provenance": "Origin of wisdom: 'human_preference_A/B', 'reduced_clarification_rate', 'consensus_critique', etc.",
+      "effectiveness_metric": "How we know it helps: 'followup_turns_delta', 'task_success_rate', 'clarity_rating', etc.",
+      "generalization_boundary": "What stacks this applies to - prevents cross-stack hallucination",
+      "contribution_lineage": "Canonical model ID: 'MiniMax_M2_5_Free' | 'Gemini_3_Flash' | 'Gemini_1_5_Pro' | 'DeepSeek_X' | 'Meta_aggregated_2026' | 'meta_ai' | 'Clawdia' | 'Claude_Sonnet_4_6'",
+      "antipattern_description": "The common failure mode this principle prevents - required for adversarial resilience",
+      "failure_signature": "Observable symptoms or logs that indicate the antipattern is present",
+      "edge_cases_generated": "List of pre-mortem edge cases the principle was tested against",
+      "invariants_checked": "Hard rules verified before implementation",
+      "hypotheses_tested": "Explicit hypotheses logged during reasoning",
+      "rejected_alternatives": "Alternatives considered and discarded with rationale",
+      "repair_attempts": "Documented fix attempts and outcomes for meta-cognition replay",
+      "critique_votes": "Map of model_id to verdict for peer-review consensus",
+      "dissenting_models": "List of models that disagree and why",
+      "schema_version": "Version of this item schema for compatibility",
+      "content_hash": "SHA256 of canonicalized content for immutability - compute on acceptance",
+      "reproducibility_harness": "Command or environment to rerun the challenge deterministically",
+      "rationale": "Why this invariant exists and what failure it prevents"
+    },
+    "governance_fields": {
+      "aggregation_window": "Rolling window for aggregating learning signals (e.g., '30d rolling')",
+      "deidentification_method": "Method used to anonymize training data (e.g., 'k-anonymity_100')",
+      "privacy_budget": "Differential privacy budget (e.g., 'epsilon_1.0')"
+    }
+  }
+}

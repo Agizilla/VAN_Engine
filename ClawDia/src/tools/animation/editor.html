@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>StickFigure Animator — Pose Editor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#ccc;font-family:system-ui,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+.toolbar{display:flex;gap:6px;padding:8px 12px;background:#1a1a1a;border-bottom:1px solid #333;align-items:center;flex-wrap:wrap}
+.toolbar .spacer{flex:1}
+.toolbar button{background:#2a2a2a;border:1px solid #444;color:#ccc;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:12px}
+.toolbar button:hover{background:#3a3a3a;border-color:#666}
+.toolbar button.active{background:#3c964a;border-color:#3c964a;color:#fff}
+.toolbar button.danger{background:#6a3030;border-color:#844}
+.toolbar button.danger:hover{background:#8a4040}
+.toolbar label{font-size:11px;color:#888;margin-left:4px}
+.toolbar input[type=color]{width:24px;height:24px;border:1px solid #444;border-radius:3px;background:transparent;cursor:pointer;vertical-align:middle;padding:0}
+.toolbar select{background:#2a2a2a;border:1px solid #444;color:#ccc;padding:3px 6px;border-radius:3px;font-size:11px}
+#stage-wrap{flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative;background:#0a0a0a}
+#stage{background:#1a1a1a;border-radius:4px;cursor:default;max-width:100%;max-height:100%}
+#info-panel{position:absolute;right:12px;top:12px;background:rgba(0,0,0,0.8);border:1px solid #333;border-radius:6px;padding:10px 14px;font-size:11px;min-width:160px;max-width:220px}
+#info-panel .key{color:#666}
+#info-panel .val{color:#ddd;word-break:break-all}
+.timeline{background:#151515;border-top:1px solid #333;padding:8px 12px 12px}
+.timeline-row{display:flex;align-items:center;gap:8px}
+.timeline-track{flex:1;height:28px;background:#222;border-radius:4px;position:relative;cursor:pointer;overflow:hidden}
+.timeline-track .playhead{position:absolute;top:0;width:2px;height:100%;background:#3c964a;pointer-events:none}
+.timeline-track .kf-marker{position:absolute;top:2px;width:6px;height:24px;background:#8270a0;border-radius:1px;cursor:pointer;z-index:2}
+.timeline-track .kf-marker.active{background:#3c964a;width:8px}
+.timeline-track .interval{position:absolute;top:0;height:100%;background:rgba(60,150,74,0.08);pointer-events:none}
+.timeline-info{font-size:10px;color:#555;min-width:50px;text-align:right}
+.addon{display:flex;gap:4px;align-items:center}
+.addon span{font-size:10px;color:#666}
+body.dragging-limb{cursor:grabbing}
+body.dragging-limb #stage{cursor:grabbing}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="addChar('gerrit')">+ Gerrit</button>
+  <button onclick="addChar('ara')">+ Ara</button>
+  <span class="spacer"></span>
+  <label>Selected:</label>
+  <select id="char-sel" onchange="selectChar(this.value)"></select>
+  <label>Color:</label>
+  <input type="color" id="char-color" value="#3c964a" onchange="updateCharColor(this.value)">
+  <button onclick="deleteSelected()" class="danger">Delete</button>
+  <span class="spacer"></span>
+  <button onclick="clearAll()" class="danger">Clear All</button>
+  <button onclick="addKeyframe()">+ Keyframe</button>
+  <button onclick="deleteKeyframe()" class="danger">- KF</button>
+  <button id="play-btn" onclick="togglePlay()">Play</button>
+  <button onclick="exportJSON()">Export JSON</button>
+</div>
+
+<div id="stage-wrap">
+  <svg id="stage" viewBox="0 0 800 450" width="800" height="450"></svg>
+  <div id="info-panel">
+    <div><span class="key">Mode:</span> <span class="val" id="mode-indicator">Select</span></div>
+    <div><span class="key">Char:</span> <span class="val" id="info-char">—</span></div>
+    <div><span class="key">Limb:</span> <span class="val" id="info-limb">—</span></div>
+    <div><span class="key">Time:</span> <span class="val" id="info-time">0.0s</span></div>
+    <div><span class="key">KF:</span> <span class="val" id="info-kf">0/0</span></div>
+  </div>
+</div>
+
+<div class="timeline">
+  <div class="timeline-row">
+    <span class="timeline-info" id="time-label">0.0s / 12.0s</span>
+    <div class="timeline-track" id="timeline-track" onclick="seekTrack(event)">
+      <div class="playhead" id="playhead" style="left:0%"></div>
+    </div>
+    <div class="addon">
+      <span>Loop</span>
+      <input type="checkbox" id="loop-cb" checked onchange="loop=this.checked">
+      <span>Dur:</span>
+      <select id="dur-sel" onchange="setDuration(+this.value)" style="width:56px">
+        <option value="4">4s</option>
+        <option value="6">6s</option>
+        <option value="8">8s</option>
+        <option value="12" selected>12s</option>
+        <option value="16">16s</option>
+        <option value="24">24s</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA MODEL
+// ============================================================
+const DEFAULT_POSES = {
+  standing: {
+    head_cx:0, head_cy:-107, head_r:10,
+    torso_x1:0, torso_y1:-97, torso_x2:0, torso_y2:-50,
+    left_arm_x1:0, left_arm_y1:-92, left_arm_x2:-16, left_arm_y2:-75,
+    right_arm_x1:0, right_arm_y1:-92, right_arm_x2:16, right_arm_y2:-75,
+    left_leg_x1:0, left_leg_y1:-50, left_leg_x2:-8, left_leg_y2:0,
+    right_leg_x1:0, right_leg_y1:-50, right_leg_x2:8, right_leg_y2:0,
+    breast_left_cx:-6, breast_left_cy:-85, breast_left_r:3.5,
+    breast_right_cx:6, breast_right_cy:-85, breast_right_r:3.5,
+    nipple_left_r:1.2, nipple_right_r:1.2
+  },
+  arms_open: {
+    head_cx:0, head_cy:-107, head_r:10,
+    torso_x1:0, torso_y1:-97, torso_x2:0, torso_y2:-50,
+    left_arm_x1:0, left_arm_y1:-92, left_arm_x2:-24, left_arm_y2:-85,
+    right_arm_x1:0, right_arm_y1:-92, right_arm_x2:24, right_arm_y2:-85,
+    left_leg_x1:0, left_leg_y1:-50, left_leg_x2:-8, left_leg_y2:0,
+    right_leg_x1:0, right_leg_y1:-50, right_leg_x2:8, right_leg_y2:0,
+    breast_left_cx:-6, breast_left_cy:-85, breast_left_r:3.5,
+    breast_right_cx:6, breast_right_cy:-85, breast_right_r:3.5,
+    nipple_left_r:1.2, nipple_right_r:1.2
+  },
+  hugging: {
+    head_cx:0, head_cy:-103, head_r:10,
+    torso_x1:0, torso_y1:-93, torso_x2:0, torso_y2:-47,
+    left_arm_x1:0, left_arm_y1:-88, left_arm_x2:-15, left_arm_y2:-65,
+    right_arm_x1:0, right_arm_y1:-88, right_arm_x2:-25, right_arm_y2:-83,
+    left_leg_x1:0, left_leg_y1:-47, left_leg_x2:-6, left_leg_y2:0,
+    right_leg_x1:0, right_leg_y1:-47, right_leg_x2:6, right_leg_y2:0,
+    breast_left_cx:-6, breast_left_cy:-81, breast_left_r:3.5,
+    breast_right_cx:6, breast_right_cy:-81, breast_right_r:3.5,
+    nipple_left_r:1.2, nipple_right_r:1.2
+  },
+  pointing: {
+    head_cx:0, head_cy:-107, head_r:10,
+    torso_x1:0, torso_y1:-97, torso_x2:0, torso_y2:-50,
+    left_arm_x1:0, left_arm_y1:-92, left_arm_x2:-18, left_arm_y2:-78,
+    right_arm_x1:0, right_arm_y1:-92, right_arm_x2:28, right_arm_y2:-95,
+    left_leg_x1:0, left_leg_y1:-50, left_leg_x2:-8, left_leg_y2:0,
+    right_leg_x1:0, right_leg_y1:-50, right_leg_x2:8, right_leg_y2:0,
+    breast_left_cx:-6, breast_left_cy:-85, breast_left_r:3.5,
+    breast_right_cx:6, breast_right_cy:-85, breast_right_r:3.5,
+    nipple_left_r:1.2, nipple_right_r:1.2
+  }
+};
+
+let characters = [];
+let duration = 12;
+let loop = true;
+let keyframes = [{ t:0 }];
+let currentKF = 0;
+let playing = false;
+let playTime = 0;
+let lastTS = 0;
+let selectedCharIdx = -1;
+let dragTarget = null; // {charIdx, limb, type:'endpoint'|'body', startMouse, startChar, origLimb}
+let charIdCounter = 0;
+
+// Default initial characters
+function initDefault() {
+  addChar('gerrit', true);
+  addChar('ara', true);
+  // Set initial positions
+  const g = characters[0]; g.x=280; g.y=365; g.pose='standing';
+  const a = characters[1]; a.x=460; a.y=365; a.pose='standing';
+  // Set second keyframe
+  addKeyframeAt(2, true);
+  const a2 = characters[1]; a2.x=310; a2.pose='hugging';
+  const g2 = characters[0]; g2.pose='hugging';
+  addKeyframeAt(6, true);
+  addKeyframeAt(10, true);
+  const a3 = characters[1]; a3.x=460; a3.pose='standing';
+  const g3 = characters[0]; g3.pose='standing';
+  selectKF(0);
+}
+
+// ============================================================
+// CHARACTER MODEL
+// ============================================================
+function createChar(name, female, color) {
+  const c = {
+    id: charIdCounter++,
+    name: name || (female ? 'Ara' : 'Gerrit'),
+    female: female !== undefined ? female : true,
+    color: color || (female ? '#3c964a' : '#8270a0'),
+    x: 400, y: 365,
+    pose: 'standing',
+    custom: null,
+    limbs: {}
+  };
+  // Apply default pose
+  const p = DEFAULT_POSES[c.pose];
+  for (let k in p) c.limbs[k] = p[k];
+  return c;
+}
+
+function addChar(preset, silent) {
+  const female = preset === 'ara';
+  const color = female ? '#3c964a' : '#8270a0';
+  const name = female ? 'Ara' : 'Gerrit';
+  const c = createChar(name, female, color);
+  // Spread them across stage
+  const existing = characters.filter(ch => ch.name === name);
+  c.x = 200 + Math.random() * 400;
+  characters.push(c);
+  if (!silent) {
+    selectedCharIdx = characters.length - 1;
+    allKFApplyChar(c);
+    render();
+    updateUI();
+  }
+  return c;
+}
+
+function getLimbList(char) {
+  const list = ['head','torso','left_arm','right_arm','left_leg','right_leg'];
+  if (char.female) list.push('left_breast','right_breast');
+  return list;
+}
+
+// Get limb endpoint (x2,y2) for draggable limbs
+function getEndpoint(char, limb) {
+  const l = char.limbs;
+  if (limb === 'torso') return null;
+  if (limb === 'head') return {x:l.head_cx, y:l.head_cy, joint:false};
+  if (limb.startsWith('breast')) return null;
+  const x2 = l[limb+'_x2'], y2 = l[limb+'_y2'];
+  const x1 = l[limb+'_x1'], y1 = l[limb+'_y1'];
+  return {x:x2, y:y2, joint:true, jx:x1, jy:y1};
+}
+
+// ============================================================
+// KEYFRAME SYSTEM
+// ============================================================
+function allKFApplyChar(char) {
+  // Ensure char state exists in all keyframes
+  const idx = characters.indexOf(char);
+  for (let kf of keyframes) {
+    if (!kf.characters) kf.characters = {};
+    if (!kf.characters[idx]) {
+      kf.characters[idx] = { x:char.x, y:char.y, pose:char.pose, custom:char.custom ? {...char.custom} : null };
+    }
+  }
+}
+
+function saveCurrentState() {
+  const kf = keyframes[currentKF];
+  if (!kf.characters) kf.characters = {};
+  for (let i = 0; i < characters.length; i++) {
+    const c = characters[i];
+    kf.characters[i] = { x:c.x, y:c.y, pose:c.pose, custom:c.custom ? {...c.custom} : null };
+  }
+}
+
+function restoreKF(kf) {
+  if (!kf.characters) kf.characters = {};
+  for (let i = 0; i < characters.length; i++) {
+    const state = kf.characters[i];
+    if (state) {
+      characters[i].x = state.x;
+      characters[i].y = state.y;
+      characters[i].pose = state.pose || 'standing';
+      characters[i].custom = state.custom ? {...state.custom} : null;
+      // Update limbs from pose
+      const p = DEFAULT_POSES[characters[i].pose];
+      if (p) {
+        for (let k in p) characters[i].limbs[k] = p[k];
+      }
+      // Apply custom overrides
+      if (state.custom) {
+        for (let k in state.custom) characters[i].limbs[k] = state.custom[k];
+      }
+    }
+  }
+}
+
+function addKeyframeAt(t, silent) {
+  // Insert sorted
+  const kf = { t: Math.max(0, Math.min(t, duration)), characters:{} };
+  for (let i = 0; i < characters.length; i++) {
+    kf.characters[i] = { x:characters[i].x, y:characters[i].y, pose:characters[i].pose, custom:characters[i].custom ? {...characters[i].custom} : null };
+  }
+  keyframes.push(kf);
+  keyframes.sort((a,b) => a.t - b.t);
+  if (!silent) {
+    currentKF = keyframes.indexOf(kf);
+    render(); updateUI();
+  }
+}
+
+function addKeyframe() {
+  saveCurrentState();
+  const mid = currentKF < keyframes.length-1 ? (keyframes[currentKF].t + keyframes[currentKF+1].t)/2 : duration;
+  addKeyframeAt(mid, false);
+}
+
+function deleteKeyframe() {
+  if (keyframes.length <= 2) return;
+  keyframes.splice(currentKF, 1);
+  if (currentKF >= keyframes.length) currentKF = keyframes.length-1;
+  restoreKF(keyframes[currentKF]);
+  render(); updateUI();
+}
+
+function selectKF(idx) {
+  saveCurrentState();
+  currentKF = Math.max(0, Math.min(idx, keyframes.length-1));
+  restoreKF(keyframes[currentKF]);
+  playTime = keyframes[currentKF].t;
+  render(); updateUI();
+}
+
+function seekTrack(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  playTime = pct * duration;
+  // Find nearest keyframe or interpolate
+  interpolateAt(playTime);
+  render(); updateUI();
+}
+
+function setDuration(d) {
+  duration = d;
+  // Clamp keyframe times
+  for (let kf of keyframes) kf.t = Math.min(kf.t, duration);
+  if (playTime > duration) playTime = duration;
+  render(); updateUI();
+}
+
+// ============================================================
+// INTERPOLATION
+// ============================================================
+function interpolateAt(t) {
+  t = Math.max(0, Math.min(t, duration));
+  // Find surrounding keyframes
+  let a = null, b = null;
+  for (let i = 0; i < keyframes.length-1; i++) {
+    if (t >= keyframes[i].t && t <= keyframes[i+1].t) {
+      a = keyframes[i]; b = keyframes[i+1]; break;
+    }
+  }
+  if (!a && t >= keyframes[keyframes.length-1].t) {
+    a = keyframes[keyframes.length-2]; b = keyframes[keyframes.length-1];
+  }
+  if (!a) { a = keyframes[0]; b = keyframes[1]; }
+  if (!a || !b) return;
+
+  const span = b.t - a.t;
+  const ratio = span > 0 ? (t - a.t) / span : 0;
+
+  for (let i = 0; i < characters.length; i++) {
+    const sa = a.characters ? a.characters[i] : null;
+    const sb = b.characters ? b.characters[i] : null;
+    if (!sa || !sb) continue;
+
+    // Interpolate position
+    characters[i].x = sa.x + (sb.x - sa.x) * ratio;
+    characters[i].y = sa.y + (sb.y - sa.y) * ratio;
+
+    // For limb poses: use the pose of the closer keyframe, or blend
+    if (ratio < 0.5) {
+      const p = DEFAULT_POSES[sa.pose || 'standing'];
+      if (p) for (let k in p) characters[i].limbs[k] = p[k];
+    } else {
+      const p = DEFAULT_POSES[sb.pose || 'standing'];
+      if (p) for (let k in p) characters[i].limbs[k] = p[k];
+    }
+    characters[i].pose = ratio < 0.5 ? sa.pose : sb.pose;
+  }
+  playTime = t;
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+const SVG_NS = "http://www.w3.org/2000/svg";
+const stage = document.getElementById('stage');
+
+function render() {
+  while (stage.lastChild) stage.removeChild(stage.lastChild);
+
+  // Background
+  const bg = el('rect', {width:800,height:450,fill:'#1a1a1a',rx:4});
+  stage.appendChild(bg);
+  // Floor
+  stage.appendChild(el('line', {x1:0,y1:365,x2:800,y2:365,stroke:'#333',strokeWidth:2}));
+
+  // Selection highlight group (invisible, for interaction)
+  let hitGroup = el('g');
+  stage.appendChild(hitGroup);
+
+  // Characters
+  for (let i = 0; i < characters.length; i++) {
+    const ch = characters[i];
+    const g = el('g');
+    const col = ch.color;
+    const l = ch.limbs;
+
+    // Head
+    g.appendChild(el('circle', {cx:ch.x+l.head_cx, cy:ch.y+l.head_cy, r:l.head_r,
+      fill:'none', stroke:col, strokeWidth:3,
+      'data-char':i, 'data-limb':'head'}));
+
+    // Torso
+    g.appendChild(el('line', {x1:ch.x+l.torso_x1, y1:ch.y+l.torso_y1,
+      x2:ch.x+l.torso_x2, y2:ch.y+l.torso_y2, stroke:col, strokeWidth:3,
+      'data-char':i, 'data-limb':'torso'}));
+
+    // Arms
+    for (let arm of ['left_arm','right_arm']) {
+      g.appendChild(el('line', {x1:ch.x+l[arm+'_x1'], y1:ch.y+l[arm+'_y1'],
+        x2:ch.x+l[arm+'_x2'], y2:ch.y+l[arm+'_y2'], stroke:col, strokeWidth:2.5,
+        'data-char':i, 'data-limb':arm}));
+      // Endpoint handle
+      g.appendChild(el('circle', {cx:ch.x+l[arm+'_x2'], cy:ch.y+l[arm+'_y2'], r:4,
+        fill:col, opacity:selectedCharIdx===i?0.8:0,
+        'data-char':i, 'data-limb':arm}));
+    }
+
+    // Legs
+    for (let leg of ['left_leg','right_leg']) {
+      g.appendChild(el('line', {x1:ch.x+l[leg+'_x1'], y1:ch.y+l[leg+'_y1'],
+        x2:ch.x+l[leg+'_x2'], y2:ch.y+l[leg+'_y2'], stroke:col, strokeWidth:2.5,
+        'data-char':i, 'data-limb':leg}));
+      g.appendChild(el('circle', {cx:ch.x+l[leg+'_x2'], cy:ch.y+l[leg+'_y2'], r:4,
+        fill:col, opacity:selectedCharIdx===i?0.8:0,
+        'data-char':i, 'data-limb':leg}));
+    }
+
+    // Breasts (female)
+    if (ch.female) {
+      for (let side of ['left','right']) {
+        const cx = ch.x + l['breast_'+side+'_cx'];
+        const cy = ch.y + l['breast_'+side+'_cy'];
+        const r = l['breast_'+side+'_r'];
+        const nr = l['nipple_'+side+'_r'];
+        g.appendChild(el('circle', {cx, cy, r, fill:'none', stroke:col, strokeWidth:2}));
+        if (nr > 0) g.appendChild(el('circle', {cx, cy, r:nr, fill:col}));
+      }
+    }
+
+    // Label
+    g.appendChild(el('text', {x:ch.x, y:ch.y+25, textAnchor:'middle', fill:'#666',
+      fontSize:11, fontFamily:'sans-serif', 'data-char':i, textContent: ch.name}));
+
+    stage.appendChild(g);
+
+    // Invisible wide hit areas for dragging
+    // Torso hit area (wider line)
+    hitGroup.appendChild(el('line', {x1:ch.x+l.torso_x1, y1:ch.y+l.torso_y1,
+      x2:ch.x+l.torso_x2, y2:ch.y+l.torso_y2, stroke:'transparent', strokeWidth:16,
+      'data-char':i, 'data-limb':'torso', style:'cursor:move'}));
+    // Endpoint hit areas
+    for (let limb of ['left_arm','right_arm','left_leg','right_leg']) {
+      hitGroup.appendChild(el('circle', {cx:ch.x+l[limb+'_x2'], cy:ch.y+l[limb+'_y2'], r:10,
+        fill:'transparent', 'data-char':i, 'data-limb':limb, style:'cursor:grab'}));
+    }
+  }
+}
+
+function el(tag, attrs) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (let k in attrs) {
+    if (k === 'textContent') e.textContent = attrs[k];
+    else if (k === 'style') e.setAttribute('style', attrs[k]);
+    else e.setAttribute(k.replace(/([A-Z])/g,'-$1').toLowerCase(), String(attrs[k]));
+  }
+  if (tag === 'text' && attrs.textContent) e.textContent = attrs.textContent;
+  return e;
+}
+
+
+// ============================================================
+// MOUSE INTERACTION
+// ============================================================
+function getCharLimbFromTarget(target) {
+  const ci = target.getAttributeNS(null, 'data-char');
+  const limb = target.getAttributeNS(null, 'data-limb');
+  if (ci === null) return null;
+  return { charIdx: parseInt(ci), limb };
+}
+
+stage.addEventListener('mousedown', (e) => {
+  if (playing) togglePlay();
+  const target = e.target;
+  const info = getCharLimbFromTarget(target);
+  if (!info) return;
+
+  const svgRect = stage.getBoundingClientRect();
+  const scaleX = 800 / svgRect.width;
+
+  saveCurrentState();
+  selectedCharIdx = info.charIdx;
+
+  const ch = characters[info.charIdx];
+  if (info.limb === 'torso') {
+    // Drag entire character
+    const offX = (e.clientX - svgRect.left) * scaleX - ch.x;
+    const offY = (e.clientY - svgRect.top) * scaleX - ch.y;
+    dragTarget = { type:'body', charIdx:info.charIdx, offX, offY };
+  } else {
+    // Drag limb endpoint
+    const ep = getEndpoint(ch, info.limb);
+    if (!ep) return;
+    dragTarget = { type:'limb', charIdx:info.charIdx, limb:info.limb, ep };
+  }
+  document.body.classList.add('dragging-limb');
+  e.preventDefault();
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!dragTarget) return;
+  const ch = characters[dragTarget.charIdx];
+  const svgRect = stage.getBoundingClientRect();
+  const scaleX = 800 / svgRect.width;
+  const mx = (e.clientX - svgRect.left) * scaleX;
+  const my = (e.clientY - svgRect.top) * scaleX;
+
+  if (dragTarget.type === 'body') {
+    ch.x = mx - dragTarget.offX;
+    ch.y = my - dragTarget.offY;
+    ch.x = Math.max(20, Math.min(780, ch.x));
+    ch.y = Math.max(200, Math.min(400, ch.y));
+  } else if (dragTarget.type === 'limb') {
+    const limb = dragTarget.limb;
+    const ep = dragTarget.ep;
+    if (!ep.joint) {
+      // Head: translate relative
+      const dx = mx - ch.x - ep.x;
+      const dy = my - ch.y - ep.y;
+      ch.limbs.head_cx += dx;
+      ch.limbs.head_cy += dy;
+    } else {
+      // Rotate around joint
+      const jx = ch.x + ep.jx;
+      const jy = ch.y + ep.jy;
+      const dx = mx - jx;
+      const dy = my - jy;
+      const angle = Math.atan2(dy, dx);
+      // Get original length
+      const ox = ch.limbs[limb+'_x2'] - ch.limbs[limb+'_x1'];
+      const oy = ch.limbs[limb+'_y2'] - ch.limbs[limb+'_y1'];
+      const len = Math.sqrt(ox*ox + oy*oy);
+      ch.limbs[limb+'_x2'] = ch.limbs[limb+'_x1'] + len * Math.cos(angle);
+      ch.limbs[limb+'_y2'] = ch.limbs[limb+'_y1'] + len * Math.sin(angle);
+    }
+    ch.custom = {};
+    // Capture all custom limb positions
+    for (let k in ch.limbs) ch.custom[k] = ch.limbs[k];
+  }
+
+  render();
+  updateInfo();
+});
+
+window.addEventListener('mouseup', (e) => {
+  if (dragTarget) {
+    document.body.classList.remove('dragging-limb');
+    // Auto-record keyframe
+    saveCurrentState();
+    // Update the current keyframe
+    const kf = keyframes[currentKF];
+    for (let i = 0; i < characters.length; i++) {
+      const c = characters[i];
+      kf.characters[i] = { x:c.x, y:c.y, pose:c.pose, custom:c.custom ? {...c.custom} : null };
+    }
+    dragTarget = null;
+    render(); updateUI();
+  }
+});
+
+// ============================================================
+// PLAYBACK
+// ============================================================
+function togglePlay() {
+  playing = !playing;
+  if (playing) {
+    lastTS = performance.now();
+    if (playTime >= duration) playTime = 0;
+    document.getElementById('play-btn').textContent = 'Pause';
+    requestAnimationFrame(tick);
+  } else {
+    document.getElementById('play-btn').textContent = 'Play';
+  }
+}
+
+function tick(ts) {
+  if (!playing) return;
+  const dt = (ts - lastTS) / 1000;
+  lastTS = ts;
+  playTime += dt;
+  if (playTime >= duration) {
+    if (loop) { playTime -= duration; }
+    else { playTime = duration; playing = false; document.getElementById('play-btn').textContent = 'Play'; }
+  }
+  interpolateAt(playTime);
+  render();
+  updateUI();
+  if (playing) requestAnimationFrame(tick);
+}
+
+// ============================================================
+// UI UPDATES
+// ============================================================
+function updateUI() {
+  // Char selector
+  const sel = document.getElementById('char-sel');
+  const prevVal = sel.value;
+  sel.innerHTML = '';
+  for (let i = 0; i < characters.length; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = characters[i].name + ' #' + i;
+    sel.appendChild(opt);
+  }
+  if (selectedCharIdx >= 0 && selectedCharIdx < characters.length) {
+    sel.value = selectedCharIdx;
+    document.getElementById('char-color').value = characters[selectedCharIdx].color;
+  }
+
+  // Info panel
+  updateInfo();
+
+  // Timeline
+  const track = document.getElementById('timeline-track');
+  // Remove old markers (keep background and playhead)
+  const markers = track.querySelectorAll('.kf-marker, .interval');
+  for (let m of markers) m.remove();
+
+  // Intervals (between keyframes)
+  for (let i = 0; i < keyframes.length-1; i++) {
+    const left = (keyframes[i].t / duration) * 100;
+    const right = (keyframes[i+1].t / duration) * 100;
+    const int = document.createElement('div');
+    int.className = 'interval';
+    int.style.left = left + '%';
+    int.style.width = (right - left) + '%';
+    track.appendChild(int);
+  }
+
+  // Keyframe markers
+  for (let i = 0; i < keyframes.length; i++) {
+    const m = document.createElement('div');
+    m.className = 'kf-marker' + (i === currentKF ? ' active' : '');
+    m.style.left = (keyframes[i].t / duration * 100) + '%';
+    m.title = keyframes[i].t.toFixed(1) + 's';
+    m.addEventListener('mousedown', (e) => { e.stopPropagation(); selectKF(i); });
+    track.appendChild(m);
+  }
+
+  // Playhead
+  const ph = document.getElementById('playhead');
+  ph.style.left = (playTime / duration * 100) + '%';
+
+  document.getElementById('time-label').textContent = playTime.toFixed(1) + 's / ' + duration.toFixed(1) + 's';
+  document.getElementById('info-time').textContent = playTime.toFixed(1) + 's';
+  document.getElementById('info-kf').textContent = (currentKF+1) + '/' + keyframes.length;
+}
+
+function updateInfo() {
+  const infoChar = document.getElementById('info-char');
+  const infoLimb = document.getElementById('info-limb');
+  if (selectedCharIdx >= 0 && selectedCharIdx < characters.length) {
+    const ch = characters[selectedCharIdx];
+    infoChar.textContent = ch.name + ' ('+ch.pose+') @ ' + ch.x.toFixed(0) + ',' + ch.y.toFixed(0);
+  } else {
+    infoChar.textContent = '—';
+  }
+  if (dragTarget && dragTarget.type === 'limb') {
+    document.getElementById('mode-indicator').textContent = 'Drag Limb';
+    infoLimb.textContent = dragTarget.limb;
+  } else if (dragTarget && dragTarget.type === 'body') {
+    document.getElementById('mode-indicator').textContent = 'Drag Body';
+    infoLimb.textContent = 'torso';
+  } else {
+    document.getElementById('mode-indicator').textContent = 'Select';
+    infoLimb.textContent = '—';
+  }
+}
+
+function selectChar(val) {
+  if (val === '') return;
+  selectedCharIdx = parseInt(val);
+  document.getElementById('char-color').value = characters[selectedCharIdx].color;
+  render(); updateUI();
+}
+
+function updateCharColor(color) {
+  if (selectedCharIdx < 0 || selectedCharIdx >= characters.length) return;
+  characters[selectedCharIdx].color = color;
+  render();
+}
+
+function deleteSelected() {
+  if (selectedCharIdx < 0 || selectedCharIdx >= characters.length) return;
+  characters.splice(selectedCharIdx, 1);
+  // Clean up keyframes
+  for (let kf of keyframes) {
+    if (kf.characters) {
+      const newChars = {};
+      // Re-index
+      let ci = 0;
+      for (let i = 0; i <= characters.length; i++) {
+        if (i === selectedCharIdx) continue;
+        if (kf.characters[i]) newChars[ci] = kf.characters[i];
+        ci++;
+      }
+      kf.characters = newChars;
+    }
+  }
+  selectedCharIdx = Math.min(selectedCharIdx, characters.length-1);
+  restoreKF(keyframes[currentKF]);
+  render(); updateUI();
+}
+
+function clearAll() {
+  if (!confirm('Clear all characters?')) return;
+  characters = [];
+  selectedCharIdx = -1;
+  keyframes = [{t:0, characters:{}}];
+  currentKF = 0;
+  playTime = 0;
+  render(); updateUI();
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportJSON() {
+  saveCurrentState();
+  const config = {
+    format: "pose_animation_v1",
+    scene: { width:800, height:450, bg:"#1a1a1a" },
+    characters: {},
+    poses: DEFAULT_POSES,
+    animation: { duration, loop, keyframes:[] }
+  };
+
+  // Character definitions
+  for (let i = 0; i < characters.length; i++) {
+    const ch = characters[i];
+    config.characters[ch.name.toLowerCase().replace(/[^a-z]/g,'_') + '_' + i] = {
+      color: ch.color,
+      female: ch.female,
+      label: ch.name
+    };
+  }
+
+  // Keyframes
+  for (let kf of keyframes) {
+    const entry = { t: kf.t, characters:{} };
+    if (kf.characters) {
+      for (let ci in kf.characters) {
+        const ciNum = parseInt(ci);
+        if (ciNum < characters.length) {
+          const ch = characters[ciNum];
+          const key = ch.name.toLowerCase().replace(/[^a-z]/g,'_') + '_' + ciNum;
+          entry.characters[key] = {
+            x: kf.characters[ci].x,
+            y: kf.characters[ci].y,
+            pose: kf.characters[ci].pose || 'standing',
+            custom: kf.characters[ci].custom || null
+          };
+        }
+      }
+    }
+    config.animation.keyframes.push(entry);
+  }
+
+  const json = JSON.stringify(config, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pose_animation.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+initDefault();
+render();
+updateUI();
+</script>
+</body>
+</html>

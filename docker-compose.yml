@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  van_engine:
+    build: .
+    ports:
+      - "11434:11434"
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - VAN_ENGINE_ROOT=/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+

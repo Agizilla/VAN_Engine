@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Jan van Deventer · Senior Full Stack Developer & AI Architect</title>
+    <!-- Google Fonts & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #eef2f5;
+            font-family: 'Inter', sans-serif;
+            color: #1e2a3a;
+            line-height: 1.5;
+            padding: 2rem 1.5rem;
+        }
+
+        /* main card container */
+        .cv-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        /* two column layout */
+        .cv-grid {
+            display: grid;
+            grid-template-columns: 34% 66%;
+        }
+
+        /* ========== SIDEBAR (left) ========== */
+        .sidebar {
+            background: #0f2b3d;
+            color: #e6edf2;
+            padding: 2rem 1.8rem;
+            height: 100%;
+        }
+
+        .profile h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: white;
+            margin-bottom: 0.4rem;
+            line-height: 1.2;
+        }
+
+        .profile .title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            background: rgba(255,255,255,0.12);
+            display: inline-block;
+            padding: 0.25rem 1rem;
+            border-radius: 40px;
+            margin: 0.75rem 0 1rem 0;
+            color: #cbdbe6;
+        }
+
+        .contact-info {
+            margin: 1.5rem 0 1.8rem 0;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            padding-top: 1.5rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: #cfdfe9;
+        }
+
+        .contact-item i {
+            width: 1.6rem;
+            font-size: 1rem;
+            text-align: center;
+            color: #7ab3c8;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 1.8rem 0 1rem 0;
+            color: #ffffff;
+            border-left: 3px solid #4f9da6;
+            padding-left: 0.8rem;
+        }
+
+        .skill-group {
+            margin-bottom: 1.4rem;
+        }
+
+        .skill-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            color: #d9e6f2;
+        }
+
+        .skill-bar-bg {
+            background: #1e4a62;
+            border-radius: 20px;
+            height: 6px;
+            overflow: hidden;
+        }
+
+        .skill-bar-fill {
+            background: #6fc2d0;
+            height: 6px;
+            border-radius: 20px;
+            width: 0%;
+        }
+
+        .skill-tag {
+            margin: 0.6rem 0 0.2rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #d9e6f2;
+        }
+
+        .soft-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .soft-skill {
+            background: rgba(111, 194, 208, 0.2);
+            padding: 0.25rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* ========== MAIN (right) ========== */
+        .main-content {
+            background: white;
+            padding: 2rem 2rem 2rem 2rem;
+        }
+
+        .main-section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f2b3d;
+            border-bottom: 3px solid #6fc2d0;
+            display: inline-block;
+            padding-bottom: 4px;
+            margin: 1.2rem 0 1.2rem 0;
+            letter-spacing: -0.2px;
+        }
+
+        .main-section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        /* work experience cards */
+        .job {
+            margin-bottom: 1.8rem;
+        }
+
+        .job-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.4rem;
+        }
+
+        .job-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f2b3d;
+        }
+
+        .company {
+            font-weight: 600;
+            color: #2c6e7e;
+        }
+
+        .job-date {
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #eef2f7;
+            padding: 0.2rem 0.7rem;
+            border-radius: 30px;
+            color: #2c5a6e;
+        }
+
+        .job-desc {
+            margin-top: 0.6rem;
+            padding-left: 0.2rem;
+        }
+
+        .job-desc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .job-desc li {
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            padding-left: 1.2rem;
+            position: relative;
+            line-height: 1.4;
+            color: #2d3e4b;
+        }
+
+        .job-desc li::before {
+            content: "▹";
+            position: absolute;
+            left: 0;
+            color: #4f9da6;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .education-item {
+            margin-bottom: 1rem;
+        }
+
+        .edu-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #0f2b3d;
+        }
+
+        .edu-meta {
+            font-size: 0.8rem;
+            color: #5b7a8c;
+            margin: 0.2rem 0 0.3rem;
+        }
+
+        hr {
+            margin: 1rem 0;
+            border: 0;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        /* AI Skills Section */
+        .ai-skills-section {
+            margin-top: 2rem;
+            background: #fafcff;
+            border-radius: 20px;
+            border: 1px solid #e2edf2;
+            padding: 1rem 0 0.8rem 0;
+        }
+        .ai-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            padding: 0 0.8rem;
+        }
+        .ai-badge {
+            background: #eef2fc;
+            color: #1e6f7f;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.25rem 0.8rem;
+            border-radius: 40px;
+            letter-spacing: 0.3px;
+        }
+        .ai-skill-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .ai-skill-item {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03);
+            transition: all 0.2s;
+            border-left: 4px solid #6fc2d0;
+        }
+        .ai-skill-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #0f2b3d;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.6rem;
+        }
+        .ai-skill-title i {
+            color: #4f9da6;
+            font-size: 1rem;
+        }
+        .ai-impl {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2c6e7e;
+            margin: 0.3rem 0 0.2rem;
+        }
+        .ai-result {
+            font-size: 0.8rem;
+            color: #3a6b7c;
+            margin-bottom: 0.6rem;
+            font-style: italic;
+        }
+        .ai-example {
+            background: #f4f9fe;
+            padding: 0.6rem 0.9rem;
+            border-radius: 14px;
+            font-size: 0.8rem;
+            margin-top: 0.6rem;
+            border: 1px solid #e3eff5;
+        }
+        .ai-example strong {
+            color: #1c5a6b;
+            font-weight: 700;
+        }
+        .ai-example code {
+            background: #e6f0f5;
+            padding: 0.1rem 0.3rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+        /* responsive */
+        @media (max-width: 780px) {
+            body {
+                padding: 1rem;
+            }
+            .cv-grid {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                padding: 1.8rem;
+            }
+            .main-content {
+                padding: 1.8rem;
+            }
+            .job-header {
+                flex-direction: column;
+                gap: 0.3rem;
+            }
+            .ai-skill-item {
+                padding: 0.9rem;
+            }
+        }
+
+        /* badges & misc */
+        .tech-badge {
+            display: inline-block;
+            background: #eef2fa;
+            color: #1c5c6e;
+            font-size: 0.7rem;
+            border-radius: 12px;
+            padding: 0.2rem 0.6rem;
+            margin-right: 0.4rem;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+
+        .inline-stack {
+            margin-top: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+<div class="cv-container">
+    <div class="cv-grid">
+        <!-- LEFT SIDEBAR (Personal & Skills) -->
+        <aside class="sidebar">
+            <div class="profile">
+                <h1>Jan Gerrit<br>van Deventer</h1>
+                <div class="title">Senior Full Stack Developer & AI Agentic Engineer</div>
+            </div>
+            <div class="contact-info">
+                <div class="contact-item"><i class="fas fa-map-marker-alt"></i> <span>Pretoria, South Africa</span></div>
+                <div class="contact-item"><i class="fas fa-envelope"></i> <span>jan.vd@devcareer.co.za</span></div>
+                <div class="contact-item"><i class="fab fa-linkedin"></i> <span>linkedin.com/in/jan-van-deventer</span></div>
+                <div class="contact-item"><i class="fab fa-github"></i> <span>github.com/janvandev</span></div>
+            </div>
+
+            <!-- Technical Skills (based on CV rating) -->
+            <div class="section-title"><i class="fas fa-code"></i> Core expertise</div>
+            <div class="skill-group">
+                <div class="skill-label">C# / .NET Core <span>5++ (expert)</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 100%"></div></div>
+            </div>
+            <div class="skill-group">
+                <div class="skill-label">JavaScript / TypeScript <span>5/5</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 100%"></div></div>
+            </div>
+            <div class="skill-group">
+                <div class="skill-label">Angular (6-11) <span>4/5</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 85%"></div></div>
+            </div>
+            <div class="skill-group">
+                <div class="skill-label">SQL Server / T-SQL <span>5/5</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 100%"></div></div>
+            </div>
+            <div class="skill-group">
+                <div class="skill-label">ASP.NET MVC / Core API <span>4.5/5</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 92%"></div></div>
+            </div>
+            <div class="skill-group">
+                <div class="skill-label">AWS (Lambda, IoT) / Docker <span>4/5</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 80%"></div></div>
+            </div>
+            <div class="skill-group">
+                <div class="skill-label">Blazor / Razor Pages <span>4/5</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 80%"></div></div>
+            </div>
+            <div class="skill-group">
+                <div class="skill-label">MongoDB / MySQL <span>4/5</span></div>
+                <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 85%"></div></div>
+            </div>
+            
+            <div class="section-title"><i class="fas fa-microchip"></i> Tech stack & tools</div>
+            <div class="inline-stack">
+                <span class="tech-badge">.NET 6/8</span><span class="tech-badge">Entity Framework</span>
+                <span class="tech-badge">RESTful APIs</span><span class="tech-badge">Azure DevOps</span>
+                <span class="tech-badge">Git/SVN</span><span class="tech-badge">Ionic</span>
+                <span class="tech-badge">Flutter</span><span class="tech-badge">Linux/Ubuntu</span>
+                <span class="tech-badge">Redis</span><span class="tech-badge">Microservices</span>
+            </div>
+
+            <div class="section-title"><i class="fas fa-user-check"></i> Soft skills</div>
+            <div class="soft-skills">
+                <span class="soft-skill">Problem solving (5/5)</span>
+                <span class="soft-skill">Technical communication (4/5)</span>
+                <span class="soft-skill">Leadership & mentoring</span>
+                <span class="soft-skill">Agile / Scrum</span>
+                <span class="soft-skill">Stress management</span>
+                <span class="soft-skill">Self-motivated</span>
+                <span class="soft-skill">Team player</span>
+                <span class="soft-skill">Attention to detail</span>
+            </div>
+
+            <div class="section-title"><i class="fas fa-language"></i> Languages</div>
+            <div class="skill-label">English <span>Native / Fluent</span></div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 100%"></div></div>
+            <div class="skill-label" style="margin-top: 8px;">Afrikaans <span>Native</span></div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 100%"></div></div>
+        </aside>
+
+        <!-- MAIN CONTENT (Experience, Education, AI Skills) -->
+        <main class="main-content">
+            <!-- short intro -->
+            <div style="margin-bottom: 1rem;">
+                <p style="font-size: 0.9rem; color: #2c5a6e; line-height: 1.4;">Senior full-stack engineer with 15+ years of experience across healthcare, IoT, fintech, and telematics. Expert in .NET ecosystems, legacy modernization, cloud architecture, and advanced AI agentic workflows.</p>
+            </div>
+
+            <!-- WORK EXPERIENCE -->
+            <div class="main-section-title"><i class="fas fa-briefcase"></i> Work experience</div>
+            
+            <!-- 1. Health Care Framework -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Senior Software Developer</span>
+                    <span class="job-date">2024 – Apr 2025</span>
+                </div>
+                <div class="company">Health Care Framework · Healthcare / Medical</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Led architectural review & stabilization of core Dotnet Core legacy systems, ensuring high availability and healthcare compliance.</li>
+                        <li>Full-stack evolution: frontend improvements in Angular, backend C# development without disrupting regulatory workflows.</li>
+                        <li>Optimized large-scale T-SQL schemas, stored procedures, and LINQ queries, reducing query response times by ~35%.</li>
+                        <li>Maintained and extended reporting views while modernizing legacy codebase under strict compliance (HIPAA-like standards).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2. GreyOnion -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Senior Fullstack Developer</span>
+                    <span class="job-date">Oct 2022 – Jan 2024</span>
+                </div>
+                <div class="company">GreyOnion · IoT / Telematics</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Modernization strategy: ported legacy Razor pages to Blazor WebAssembly, improving client-side responsiveness and deployment layers.</li>
+                        <li>Cloud & IoT infrastructure: maintained .NET Core APIs and AWS Lambdas handling high-throughput real-time telematics streams.</li>
+                        <li>Database design and backend integration for scalable telematics solutions; used AWS IoT core and serverless patterns.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 3. Western Cape Blood Services -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Senior C# Developer</span>
+                    <span class="job-date">May 2021 – Dec 2021</span>
+                </div>
+                <div class="company">Western Cape Blood Services · Medical</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Designed RESTful APIs and backend services using .NET Core, Angular (11), and Ionic for cross-platform tools.</li>
+                        <li>Integrated with CouchDB and IBM Universe database, optimizing data access for blood service operations.</li>
+                        <li>Led modernization efforts, refactoring legacy modules and ensuring high reliability in clinical environment.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 4. Freelance / Self-employed (JVD Tax Consulting) -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Freelance Full Stack Developer</span>
+                    <span class="job-date">Mar 2020 – Apr 2021</span>
+                </div>
+                <div class="company">Self-employed · Consulting & Dev</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Delivered software solutions via Upwork & Freelancer.com (C#, full-stack, WinForms consulting).</li>
+                        <li>Explored cutting-edge tech: React, Vue, AI/OpenAI, blockchain applications in health & education domains.</li>
+                        <li>Provided technical consulting, UI/UX design (99Designs), and business advice to international clients.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 5. Net1 Applied Technologies -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Senior Developer (C# Backend)</span>
+                    <span class="job-date">Jun 2019 – Nov 2019</span>
+                </div>
+                <div class="company">Net1 Applied Technologies · Finance / Telecoms</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Built microservices with .NET Core, Docker, and MS SQL; API design and backend integration for high-volume financial systems.</li>
+                        <li>Implemented cloud-ready components and contributed to system scalability.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 6. Retro Rabbit -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Senior Web Developer</span>
+                    <span class="job-date">2018 – Mar 2019</span>
+                </div>
+                <div class="company">Retro Rabbit · Consulting / Dev Shop</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Developed enterprise web apps using Angular 6, TypeScript, Firebase, and Flutter for prototyping.</li>
+                        <li>Database design and UI implementation across multiple client projects.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 7. URUP.com -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Senior Web Developer</span>
+                    <span class="job-date">Jan 2015 – Mar 2017</span>
+                </div>
+                <div class="company">URUP.com · Advertising / User Engagement</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Full-stack development with C# (MVC, ASP.NET), Ruby on Rails, JavaScript/jQuery, SQL Server, and MongoDB.</li>
+                        <li>Designed database schemas, implemented responsive frontend (Bootstrap, HTML5/CSS3) and technical specifications.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 8. Neo-Trac (Vehicle Tracking) -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Senior Architect / Team Lead</span>
+                    <span class="job-date">2007 – 2009</span>
+                </div>
+                <div class="company">Neo-Trac · Vehicle & Asset Tracking</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>System architecture, database & protocol design; led vehicle recovery division projects.</li>
+                        <li>Collaborated with global clients: Lockheed Martin, Savi, Ministry of Defence UK, Unipart.</li>
+                        <li>On-site user training, technical documentation, and team leadership.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 9. Zadic Innovations (Early career) -->
+            <div class="job">
+                <div class="job-header">
+                    <span class="job-title">Junior Software Developer</span>
+                    <span class="job-date">2005 – 2006</span>
+                </div>
+                <div class="company">Zadic Innovations</div>
+                <div class="job-desc">
+                    <ul>
+                        <li>Application support & maintenance using VB.NET, C#, SQL Server; RAD (Rapid Application Development) and POC development.</li>
+                        <li>Database administration, UML/ERD documentation, and refactoring.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- EDUCATION + ACADEMIC HIGHLIGHTS -->
+            <div class="main-section-title"><i class="fas fa-graduation-cap"></i> Education</div>
+            <div class="education-item">
+                <div class="edu-title">BSc Information Technology (Information & Knowledge Systems)</div>
+                <div class="edu-meta">University of Pretoria · 2001 – 2005 · Graduated: May 2006</div>
+                <div><span class="tech-badge" style="background:#e9f0f5;">Computer Science avg 68%</span> <span class="tech-badge">Software Engineering 90%</span> <span class="tech-badge">Artificial Intelligence (C++/QT)</span></div>
+                <div style="margin-top: 8px; font-size: 0.8rem; color: #2c6e7e;">Multimedia & web modules: ASP.NET, SQL Server, XML/XSLT, Flash, Adobe Suite. Business electives: Marketing, Business Management, Informatics (75%+).</div>
+            </div>
+            <div class="education-item">
+                <div class="edu-title">Matric (Hoërskool Die Wilgers)</div>
+                <div class="edu-meta">2000 · Distinction in English</div>
+            </div>
+
+            <!-- NEW: KEY AI SKILL MATRIX (2026) with examples -->
+            <div class="ai-skills-section">
+                <div class="ai-header">
+                    <div class="main-section-title" style="margin:0 0 0.2rem 0; border-bottom: 2px solid #6fc2d0;">Key AI Skills & Agentic Engineering (2026)</div>
+                    <div class="ai-badge"><i class="fas fa-robot"></i> Multi‑agent workflows · LLM orchestration</div>
+                </div>
+                <div class="ai-skill-grid">
+                    <!-- 1. Specification Precision -->
+                    <div class="ai-skill-item">
+                        <div class="ai-skill-title"><i class="fas fa-bullseye"></i> Specification Precision & Intent Architecture</div>
+                        <div class="ai-impl"><i class="fas fa-cogs"></i> Implementation: Architected VLC_AudioStudio ecosystem with high-fidelity "Intent-to-Vessel" workflows.</div>
+                        <div class="ai-result"><i class="fas fa-chart-line"></i> Result: Reduced "Specification Drift" by 78% via strict "No-Assumption" protocol, forcing systems to verify intent before execution.</div>
+                        <div class="ai-example">
+                            <strong><i class="fas fa-comment-dots"></i> Example prompt / workflow:</strong><br>
+                            <code>“Generate a modular audio processing pipeline. Before writing any code, output a verification checklist: 1) Input format validation, 2) Intended output structure, 3) Edge‑case silence detection. Only after I confirm intent, proceed with implementation.”</code> — Used in VLC_AudioStudio to align 100% with project goals.
+                        </div>
+                    </div>
+                    <!-- 2. Multi-Agent Decomposition -->
+                    <div class="ai-skill-item">
+                        <div class="ai-skill-title"><i class="fas fa-project-diagram"></i> Multi-Agent Decomposition & Delegation</div>
+                        <div class="ai-impl"><i class="fas fa-cogs"></i> Implementation: Developed Clawdia, an offline AI task runner & sprint manager.</div>
+                        <div class="ai-result"><i class="fas fa-chart-line"></i> Result: Decomposed high-level creative visions into actionable sub-tasks; managed Planner Agent (Clawdia) to oversee complex development cycles.</div>
+                        <div class="ai-example">
+                            <strong><i class="fas fa-tasks"></i> Workflow example:</strong> “Clawdia, decompose the ‘Voice-to-MIDI transcription engine’ into 3 sprints: (1) audio pre‑processing spec, (2) ML model integration, (3) latency optimization. Assign each to dedicated sub‑agents and produce weekly estimates.” Achieved 40% faster iteration on offline builds.
+                        </div>
+                    </div>
+                    <!-- 3. Agentic Evaluation & Quality Judgment -->
+                    <div class="ai-skill-item">
+                        <div class="ai-skill-title"><i class="fas fa-check-double"></i> Agentic Evaluation & Quality Judgment</div>
+                        <div class="ai-impl"><i class="fas fa-cogs"></i> Implementation: Designed User Data Correction Ledger to audit AI output in real‑time.</div>
+                        <div class="ai-result"><i class="fas fa-chart-line"></i> Result: Established standard for Functional Correctness over Semantic Fluency, using "Image Integrity" checks and manual override loops to eliminate hallucinations.</div>
+                        <div class="ai-example">
+                            <strong><i class="fas fa-clipboard-list"></i> Evaluation rubric prompt:</strong><br>
+                            “For each generated code block, execute a mock test and compare against expected behaviour. Flag any semantic mismatch. If hallucination probability >5%, trigger human‑in‑the‑loop review.” Used in production OCR/audio engines, reducing faulty commits by 63%.
+                        </div>
+                    </div>
+                    <!-- 4. Context Architecture -->
+                    <div class="ai-skill-item">
+                        <div class="ai-skill-title"><i class="fas fa-database"></i> Context Architecture & Knowledge Management</div>
+                        <div class="ai-impl"><i class="fas fa-cogs"></i> Implementation: Engineered "Memory Event" system using comprehensive readme.md architectures to sync state between AI sessions.</div>
+                        <div class="ai-result"><i class="fas fa-chart-line"></i> Result: Created "Dewey Decimal System" for agentic context, enabling agents to traverse persistent & session data without degradation.</div>
+                        <div class="ai-example">
+                            <strong><i class="fas fa-code-branch"></i> Context management pattern:</strong> Structured project memory as <code>/context/decision_log.md</code>, <code>/context/active_sprint.json</code>. Example prompt: “Recall previous architectural decision about audio buffer size (session 2026-03-15).” Agents retrieved exact specs, eliminating context drift.
+                        </div>
+                    </div>
+                    <!-- 5. Failure Pattern Recognition -->
+                    <div class="ai-skill-item">
+                        <div class="ai-skill-title"><i class="fas fa-bug"></i> Failure Pattern Recognition & Debugging</div>
+                        <div class="ai-impl"><i class="fas fa-cogs"></i> Implementation: Specialized in diagnosing Silent Failures & Sycophantic Confirmation in OCR/audio engines.</div>
+                        <div class="ai-result"><i class="fas fa-chart-line"></i> Result: Combined audio/image data compression to extend OCR accuracy; identified edge‑case failures that LLM‑only approaches miss.</div>
+                        <div class="ai-example">
+                            <strong><i class="fas fa-microphone-alt"></i> Debug workflow:</strong> “Analyse this OCR failure: text contains ‘rn’ instead of ‘m’. Instead of trusting the LLM’s confidence score, run a pixel‑level compression check and regenerate with adjusted preprocessing.” Resulted in 22% accuracy uplift on distorted documents.
+                        </div>
+                    </div>
+                    <!-- 6. Trust & Guardrails -->
+                    <div class="ai-skill-item">
+                        <div class="ai-skill-title"><i class="fas fa-shield-alt"></i> Trust, Security & Guardrail Design</div>
+                        <div class="ai-impl"><i class="fas fa-cogs"></i> Implementation: Implemented Human‑in‑the‑Loop authorization layers for sensitive creative & professional tasks.</div>
+                        <div class="ai-result"><i class="fas fa-chart-line"></i> Result: Ensured agentic outputs stay within ethical containers, democratizing talent without compromising privacy.</div>
+                        <div class="ai-example">
+                            <strong><i class="fas fa-user-lock"></i> Guardrail pattern:</strong> “Before generating any user‑facing content containing personal identifiers, require explicit manual approval via signed commit. Maintain immutable audit trail.” Applied to healthcare & identity‑sensitive projects.
+                        </div>
+                    </div>
+                    <!-- 7. Token Economics -->
+                    <div class="ai-skill-item">
+                        <div class="ai-skill-title"><i class="fas fa-chart-simple"></i> Token Economics & ROI Analysis</div>
+                        <div class="ai-impl"><i class="fas fa-cogs"></i> Implementation: Managed blended model workflows optimizing cost‑per‑task for full‑stack builds.</div>
+                        <div class="ai-result"><i class="fas fa-chart-line"></i> Result: Balanced frontier models (GPT‑4, Claude) with efficient offline task runner (Clawdia) to minimize token burn while maximizing output value.</div>
+                        <div class="ai-example">
+                            <strong><i class="fas fa-coins"></i> Cost‑optimization strategy:</strong> “Route high‑reasoning tasks (architecture, security) to GPT‑4; route routine refactoring and unit test generation to Clawdia (local LLM).” Reduced monthly LLM costs by 48% without quality degradation.
+                        </div>
+                    </div>
+                </div>
+                <div style="padding: 0.5rem 1rem 1rem 1rem; font-size: 0.7rem; color: #5a7e8c; border-top: 1px solid #e2edf2; margin-top: 0.5rem;">
+                    <i class="fas fa-brain"></i> Proven track record in agentic orchestration, LLM evaluation frameworks, and production‑grade AI integrations — beyond standard prompt engineering.
+                </div>
+            </div>
+
+            <hr>
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem;">
+                <div><i class="fas fa-trophy" style="color:#4f9da6;"></i> <span style="font-size: 0.8rem;">Final year project (Software Engineering): 90%</span></div>
+                <div><i class="fas fa-cloud-upload-alt"></i> <span style="font-size: 0.8rem;">AWS Lambdas · IoT Core</span></div>
+                <div><i class="fas fa-database"></i> <span style="font-size: 0.8rem;">SQL Server performance tuning expert</span></div>
+            </div>
+            <div style="margin-top: 1rem; background: #F8FAFE; border-radius: 20px; padding: 0.7rem 1rem; font-size: 0.75rem; color: #2c5a6e; border: 1px solid #e0edf2;">
+                <i class="fas fa-certificate"></i> <strong>Legacy modernization & cloud transformation</strong> — Proven track record in migrating monolithic systems to modern stacks (Blazor, Angular, microservices) while ensuring zero-downtime compliance.
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

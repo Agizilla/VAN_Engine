@@ -1,0 +1,33 @@
+{
+  "lexicon": [
+    { "token": "chaos", "syllables": 2, "stressPattern": "10", "energyScore": 0.92, "archetype": "Chaos", "rhymeFamily": "aos", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "codex", "syllables": 2, "stressPattern": "10", "energyScore": 0.65, "archetype": "Codex", "rhymeFamily": "ex", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "shadow", "syllables": 2, "stressPattern": "10", "energyScore": 0.45, "archetype": "Chaos", "rhymeFamily": "ow", "plosiveCount": 0, "fricativeCount": 2, "pos": "CONTENT" },
+    { "token": "fire", "syllables": 1, "stressPattern": "1", "energyScore": 0.88, "archetype": "Chaos", "rhymeFamily": "ire", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "rising", "syllables": 2, "stressPattern": "10", "energyScore": 0.72, "archetype": "Codex", "rhymeFamily": "ing", "plosiveCount": 0, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "broken", "syllables": 2, "stressPattern": "10", "energyScore": 0.68, "archetype": "Chaos", "rhymeFamily": "en", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "healing", "syllables": 2, "stressPattern": "10", "energyScore": 0.55, "archetype": "Butler", "rhymeFamily": "ing", "plosiveCount": 0, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "storm", "syllables": 1, "stressPattern": "1", "energyScore": 0.85, "archetype": "Chaos", "rhymeFamily": "orm", "plosiveCount": 0, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "light", "syllables": 1, "stressPattern": "1", "energyScore": 0.50, "archetype": "Codex", "rhymeFamily": "ight", "plosiveCount": 1, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "pain", "syllables": 1, "stressPattern": "1", "energyScore": 0.70, "archetype": "Chaos", "rhymeFamily": "ain", "plosiveCount": 1, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "break", "syllables": 1, "stressPattern": "1", "energyScore": 0.82, "archetype": "Chaos", "rhymeFamily": "eak", "plosiveCount": 1, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "rage", "syllables": 1, "stressPattern": "1", "energyScore": 0.90, "archetype": "Chaos", "rhymeFamily": "age", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "truth", "syllables": 1, "stressPattern": "1", "energyScore": 0.60, "archetype": "Codex", "rhymeFamily": "uth", "plosiveCount": 0, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "forge", "syllables": 1, "stressPattern": "1", "energyScore": 0.68, "archetype": "Codex", "rhymeFamily": "orge", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "crown", "syllables": 1, "stressPattern": "1", "energyScore": 0.55, "archetype": "Codex", "rhymeFamily": "own", "plosiveCount": 0, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "void", "syllables": 1, "stressPattern": "1", "energyScore": 0.75, "archetype": "Chaos", "rhymeFamily": "oid", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "bleed", "syllables": 1, "stressPattern": "1", "energyScore": 0.78, "archetype": "Chaos", "rhymeFamily": "eed", "plosiveCount": 1, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "dream", "syllables": 1, "stressPattern": "1", "energyScore": 0.42, "archetype": "Butler", "rhymeFamily": "eam", "plosiveCount": 0, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "dawn", "syllables": 1, "stressPattern": "1", "energyScore": 0.38, "archetype": "Butler", "rhymeFamily": "awn", "plosiveCount": 1, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "ghost", "syllables": 1, "stressPattern": "1", "energyScore": 0.72, "archetype": "Chaos", "rhymeFamily": "ost", "plosiveCount": 1, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "witness", "syllables": 2, "stressPattern": "10", "energyScore": 0.48, "archetype": "Codex", "rhymeFamily": "ess", "plosiveCount": 0, "fricativeCount": 1, "pos": "CONTENT" },
+    { "token": "silence", "syllables": 2, "stressPattern": "10", "energyScore": 0.35, "archetype": "Butler", "rhymeFamily": "ence", "plosiveCount": 0, "fricativeCount": 2, "pos": "CONTENT" },
+    { "token": "reckoning", "syllables": 3, "stressPattern": "100", "energyScore": 0.62, "archetype": "Codex", "rhymeFamily": "ing", "plosiveCount": 1, "fricativeCount": 0, "pos": "CONTENT" },
+    { "token": "survive", "syllables": 2, "stressPattern": "01", "energyScore": 0.65, "archetype": "Chaos", "rhymeFamily": "ive", "plosiveCount": 0, "fricativeCount": 1, "pos": "CONTENT" }
+  ],
+  "glueWords": [
+    "the", "and", "of", "to", "a", "in", "that", "is", "it", "for",
+    "on", "with", "as", "by", "at", "from", "or", "an", "be", "are",
+    "was", "were", "have", "has", "had", "not", "but", "so", "if", "then"
+  ]
+}

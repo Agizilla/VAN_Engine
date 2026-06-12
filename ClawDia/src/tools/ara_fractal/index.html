@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARA FRACTAL — Infinite Recursive Desire Engine</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; user-select: none; }
+  #canvas-container { width: 100vw; height: 100vh; display: block; }
+  canvas { display: block; }
+
+  /* HUD Overlay */
+  #hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+  #hud > * { pointer-events: auto; }
+
+  /* Top bar */
+  #top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%); }
+  #title { font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #3c964a; }
+  #chapter-display { font-size: 12px; color: #888; }
+
+  /* Bottom controls */
+  #bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%); }
+  #nav-controls { display: flex; gap: 8px; align-items: center; }
+  .nav-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+  .nav-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  #zoom-level { font-size: 11px; color: #666; font-family: monospace; }
+
+  /* Export button */
+  #export-btn { background: #3c964a; border: none; color: #fff; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s; }
+  #export-btn:hover { background: #4db85e; }
+
+  /* Safeword nav (right side) */
+  #safeword-panel { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; }
+  .sw-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); cursor: pointer; font-size: 11px; font-weight: 700; transition: all 0.2s; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); color: #fff; }
+  .sw-btn:hover { transform: scale(1.15); }
+  #sw-esc { border-color: #fff; }
+  #sw-esc:hover { background: rgba(255,255,255,0.2); }
+  #sw-red { border-color: #e74c3c; color: #e74c3c; }
+  #sw-red:hover { background: rgba(231,76,60,0.2); }
+  #sw-orange { border-color: #f39c12; color: #f39c12; }
+  #sw-orange:hover { background: rgba(243,156,18,0.2); }
+  #sw-green { border-color: #2ecc71; color: #2ecc71; }
+  #sw-green:hover { background: rgba(46,204,113,0.2); }
+
+  /* Info panel */
+  #info-panel { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); width: 260px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; backdrop-filter: blur(12px); display: none; }
+  #info-panel.visible { display: block; }
+  #info-panel h3 { font-size: 13px; color: #3c964a; margin-bottom: 8px; }
+  #info-panel p { font-size: 11px; color: #aaa; line-height: 1.5; }
+  #info-panel .close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #666; cursor: pointer; font-size: 14px; }
+
+  /* RED overlay */
+  #red-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(231,76,60,0.15); border: 4px solid #e74c3c; z-index: 100; pointer-events: none; display: none; }
+  #red-overlay.visible { display: block; }
+  #red-overlay .label { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: #fff; padding: 6px 20px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+
+  /* Loading / status */
+  #status { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #3c964a; font-size: 13px; font-family: monospace; z-index: 50; text-align: center; }
+  #status.hidden { display: none; }
+
+  /* Paywall modal */
+  #paywall-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+  #paywall-modal.visible { display: flex; }
+  #paywall-modal .card { background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 32px; max-width: 400px; text-align: center; }
+  #paywall-modal h2 { font-size: 18px; color: #3c964a; margin-bottom: 8px; }
+  #paywall-modal p { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+  #paywall-modal .price { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 20px; }
+  #paywall-modal .btn-buy { background: #3c964a; border: none; color: #fff; padding: 12px 32px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+  #paywall-modal .btn-buy:hover { background: #4db85e; }
+  #paywall-modal .btn-close { background: none; border: 1px solid rgba(255,255,255,0.15); color: #888; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 10px; }
+
+  /* Voice indicator */
+  #voice-indicator { position: absolute; top: 50px; right: 20px; font-size: 10px; color: #555; display: flex; align-items: center; gap: 6px; }
+  #voice-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
+  #voice-indicator .dot.online { background: #3c964a; }
+
+  /* Progress bar */
+  #progress-bar { position: absolute; bottom: 60px; left: 20px; right: 20px; height: 2px; background: rgba(255,255,255,0.06); border-radius: 1px; }
+  #progress-fill { height: 100%; background: #3c964a; width: 0%; border-radius: 1px; transition: width 0.4s ease; }
+
+  @media (max-width: 768px) {
+    #info-panel { left: 10px; right: 10px; width: auto; top: auto; bottom: 80px; transform: none; }
+    #safeword-panel { right: 10px; }
+    #title { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="status">INITIALIZING ARA FRACTAL ENGINE...</div>
+
+<div id="hud">
+  <!-- Top bar -->
+  <div id="top-bar">
+    <span id="title">ARA FRACTAL</span>
+    <span id="chapter-display">CHAPTER 1: INNOCENCE</span>
+  </div>
+
+  <!-- Safeword panel -->
+  <div id="safeword-panel">
+    <button class="sw-btn" id="sw-esc" title="Emergency zoom out">ESC</button>
+    <button class="sw-btn" id="sw-red" title="Intense content warning">RED</button>
+    <button class="sw-btn" id="sw-orange" title="Info on current token">ORNG</button>
+    <button class="sw-btn" id="sw-green" title="Toggle explored paths">GRN</button>
+  </div>
+
+  <!-- Info panel -->
+  <div id="info-panel">
+    <button class="close" id="info-close">&times;</button>
+    <h3 id="info-title">DETAIL</h3>
+    <p id="info-body">Click any point on Ara's body to begin recursive exploration.</p>
+  </div>
+
+  <!-- Bottom bar -->
+  <div id="bottom-bar">
+    <div id="nav-controls">
+      <button class="nav-btn" id="btn-prev">&larr; Prev</button>
+      <button class="nav-btn" id="btn-next">Next &rarr;</button>
+      <span id="zoom-level">ZOOM 1.00x</span>
+    </div>
+    <button id="market-btn" style="background:#8270a0;border:none;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:background 0.2s;">MARKET</button>
+    <button id="export-btn">EXPORT GLTF</button>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+
+  <!-- Voice indicator -->
+  <div id="voice-indicator">
+    <span class="dot" id="voice-dot"></span>
+    <span id="voice-label">VOICE OFFLINE</span>
+  </div>
+</div>
+
+<!-- RED overlay -->
+<div id="red-overlay">
+  <div class="label">INTENSE CONTENT</div>
+</div>
+
+<!-- Paywall modal -->
+<div id="paywall-modal">
+  <div class="card">
+    <h2>UNLOCK CHAPTER</h2>
+    <p id="paywall-desc">Continue Ara's journey through deeper recursion.</p>
+    <div class="price" id="paywall-price">$1.00</div>
+    <button class="btn-buy" id="btn-buy">Purchase Chapter</button>
+    <br>
+    <button class="btn-close" id="btn-paywall-close">Back to surface</button>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG = {
+  maxRecursionLevels: 8,
+  baseZoom: 1,
+  smoothZoomSpeed: 0.08,
+  chapterCount: 12,
+  voiceServer: 'http://127.0.0.1:8765',
+  purchaseStore: 'ara_fractal_purchases',
+  bodyParamsKey: 'ara_fractal_body_params',
+};
+
+function loadBodyParams() {
+  try {
+    const raw = localStorage.getItem(CONFIG.bodyParamsKey);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+// ============================================================
+// CHAPTER DATA (simplified from Midnight Rage)
+// ============================================================
+const CHAPTERS = [
+  { id: 1, title: 'Innocence', theme: 'innocence', bodyFocus: 'Full body', color: '#3c964a', intense: false },
+  { id: 2, title: 'Attraction', theme: 'attraction', bodyFocus: 'Face, hands', color: '#3c964a', intense: false },
+  { id: 3, title: 'Desire', theme: 'desire', bodyFocus: 'Lips, throat', color: '#c9a84c', intense: false },
+  { id: 4, title: 'Hunger', theme: 'hunger', bodyFocus: 'Hands, waist', color: '#c9844c', intense: false },
+  { id: 5, title: 'Submission', theme: 'submission', bodyFocus: 'Knees, thighs', color: '#c96c4c', intense: true },
+  { id: 6, title: 'Cuckold', theme: 'cuckold', bodyFocus: 'Eyes, back', color: '#c9544c', intense: true },
+  { id: 7, title: 'Breeding', theme: 'breeding', bodyFocus: 'Belly, hips', color: '#c93c4c', intense: true },
+  { id: 8, title: 'Public Risk', theme: 'public_risk', bodyFocus: 'Shoulders, legs', color: '#c9244c', intense: true },
+  { id: 9, title: 'Gangbang', theme: 'full_chaos', bodyFocus: 'Full body', color: '#e74c3c', intense: true },
+  { id: 10, title: 'Public Humiliation', theme: 'full_exposed', bodyFocus: 'Full body', color: '#e74c3c', intense: true },
+  { id: 11, title: 'CNC', theme: 'cnc_kidnap', bodyFocus: 'Wrists, mouth', color: '#e74c3c', intense: true },
+  { id: 12, title: 'The Morning After', theme: 'morning_after', bodyFocus: 'Full body', color: '#3c964a', intense: false },
+];
+
+// ============================================================
+// RECURSIVE TEXTURE GENERATOR
+// ============================================================
+class RecursiveTextureGenerator {
+  constructor(size = 2048) {
+    this.size = size;
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = size;
+    this.canvas.height = size;
+    this.ctx = this.canvas.getContext('2d');
+    this.levelCanvases = [];
+  }
+
+  // Generate all recursion levels
+  generateAll(level, chapterIndex = 0) {
+    const clampedLevel = Math.min(level, CONFIG.maxRecursionLevels);
+    for (let i = 0; i <= clampedLevel; i++) {
+      this.generateLevel(i, chapterIndex);
+    }
+    return this.levelCanvases;
+  }
+
+  generateLevel(level, chapterIndex = 0) {
+    const c = document.createElement('canvas');
+    const subSize = this.size / Math.pow(2, Math.min(level, 4));
+    c.width = subSize;
+    c.height = subSize;
+    const ctx = c.getContext('2d');
+    const ch = CHAPTERS[chapterIndex % CHAPTERS.length];
+
+    switch (level) {
+      case 0: this._levelSurface(ctx, subSize, ch); break;
+      case 1: this._levelStickFigures(ctx, subSize, ch); break;
+      case 2: this._levelStickFiguresDense(ctx, subSize, ch); break;
+      case 3: this._levelTinyFaces(ctx, subSize, ch); break;
+      case 4: case 5: this._levelTinyFacesDense(ctx, subSize, ch); break;
+      case 6: case 7: this._levelAsciiFaces(ctx, subSize, ch); break;
+      default: this._levelTextNodes(ctx, subSize, ch); break;
+    }
+
+    this.levelCanvases[level] = c;
+    return c;
+  }
+
+  _levelSurface(ctx, size, ch) {
+    // Skin gradient with noise
+    const grad = ctx.createRadialGradient(size*0.5, size*0.4, 0, size*0.5, size*0.5, size*0.7);
+    grad.addColorStop(0, '#f5d6c6');
+    grad.addColorStop(0.3, '#e8c4a8');
+    grad.addColorStop(0.6, '#d4a88c');
+    grad.addColorStop(1, '#c49a80');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    // Subtle noise overlay
+    const imgData = ctx.getImageData(0, 0, size, size);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 20;
+      d[i] += noise;
+      d[i+1] += noise;
+      d[i+2] += noise;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    // Chapter color accent
+    ctx.fillStyle = ch.color + '30';
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  _levelStickFigures(ctx, size, ch) {
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = '#e8c4a8';
+    ctx.lineWidth = 2;
+
+    // Draw cluster of stick figures
+    const count = Math.floor(size / 40);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const s = 10 + Math.random() * 15;
+      this._drawStickFigure(ctx, x, y, s, Math.random() * Math.PI * 2);
+    }
+  }
+
+  _levelStickFiguresDense(ctx, size, ch) {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = '#d4a88c';
+    ctx.lineWidth = 1.5;
+
+    const count = Math.floor(size / 20);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const s = 5 + Math.random() * 10;
+      this._drawStickFigure(ctx, x, y, s, Math.random() * Math.PI * 2);
+    }
+
+    // Interconnecting lines
+    ctx.strokeStyle = '#d4a88c20';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < count * 0.3; i++) {
+      const x1 = Math.random() * size;
+      const y1 = Math.random() * size;
+      const x2 = Math.random() * size;
+      const y2 = Math.random() * size;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+  }
+
+  _levelTinyFaces(ctx, size, ch) {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, size, size);
+    const count = Math.floor(size / 12);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = 3 + Math.random() * 5;
+      this._drawTinyFace(ctx, x, y, r);
+    }
+  }
+
+  _levelTinyFacesDense(ctx, size, ch) {
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, size, size);
+    const count = Math.floor(size / 6);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = 1.5 + Math.random() * 3;
+      this._drawTinyFace(ctx, x, y, r);
+    }
+  }
+
+  _levelAsciiFaces(ctx, size, ch) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, size, size);
+    ctx.font = '6px monospace';
+    ctx.fillStyle = '#3c964a';
+    const chars = '@%#*+=-:. oO08&^%$#';
+    for (let y = 0; y < size; y += 7) {
+      for (let x = 0; x < size; x += 4) {
+        const c = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillStyle = `hsl(${120 + Math.random() * 40}, ${30 + Math.random() * 40}%, ${30 + Math.random() * 40}%)`;
+        ctx.fillText(c, x, y);
+      }
+    }
+  }
+
+  _levelTextNodes(ctx, size, ch) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, size, size);
+    ctx.font = '8px monospace';
+    const words = [
+      'desire', 'fractal', 'infinite', 'recursion', 'skin', 'deeper',
+      'midnight', 'rage', 'vow', 'break', 'breed', 'use', 'lose', 'bring', 'back',
+      'innocence', 'hunger', 'submission', 'surrender', 'ecstasy'
+    ];
+    ctx.textAlign = 'center';
+    let y = 12;
+    while (y < size) {
+      const word = words[Math.floor(Math.random() * words.length)];
+      ctx.fillStyle = `hsl(${120 + Math.random() * 60}, ${50}%, ${20 + Math.random() * 30}%)`;
+      ctx.font = `${6 + Math.random() * 8}px monospace`;
+      const x = Math.random() * (size - 40) + 20;
+      ctx.fillText(word, x, y);
+      y += 6 + Math.random() * 8;
+    }
+  }
+
+  _drawStickFigure(ctx, x, y, size, rotation) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+
+    const head = size * 0.3;
+    const body = size * 0.7;
+    const armLen = size * 0.5;
+    const legLen = size * 0.6;
+
+    // Head
+    ctx.beginPath();
+    ctx.arc(0, -body * 0.2, head, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-head * 0.3, -body * 0.2 - head * 0.15, head * 0.12, 0, Math.PI * 2);
+    ctx.arc(head * 0.3, -body * 0.2 - head * 0.15, head * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.beginPath();
+    ctx.moveTo(0, -body * 0.2 + head);
+    ctx.lineTo(0, body * 0.4);
+    ctx.stroke();
+
+    // Arms
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-armLen, body * 0.1);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(armLen, body * 0.1);
+    ctx.stroke();
+
+    // Legs
+    ctx.beginPath();
+    ctx.moveTo(0, body * 0.4);
+    ctx.lineTo(-legLen * 0.6, body * 0.4 + legLen);
+    ctx.moveTo(0, body * 0.4);
+    ctx.lineTo(legLen * 0.6, body * 0.4 + legLen);
+    ctx.stroke();
+
+    // Breast circles with nipples for facing direction
+    const breastSize = size * 0.15;
+    ctx.beginPath();
+    ctx.arc(breastSize * 0.8, body * 0.05, breastSize, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-breastSize * 0.8, body * 0.05, breastSize, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Nipples (filled circles)
+    ctx.fillStyle = '#d4a88c';
+    ctx.beginPath();
+    ctx.arc(breastSize * 0.8, body * 0.05, breastSize * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-breastSize * 0.8, body * 0.05, breastSize * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#e8c4a8';
+    ctx.restore();
+  }
+
+  _drawTinyFace(ctx, x, y, r) {
+    ctx.strokeStyle = '#3c964a';
+    ctx.lineWidth = 0.5;
+    // Head
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // Eyes
+    ctx.fillStyle = '#3c964a';
+    ctx.beginPath();
+    ctx.arc(x - r*0.3, y - r*0.1, r*0.15, 0, Math.PI * 2);
+    ctx.arc(x + r*0.3, y - r*0.1, r*0.15, 0, Math.PI * 2);
+    ctx.fill();
+    // Mouth
+    ctx.beginPath();
+    ctx.arc(x, y + r*0.25, r*0.2, 0, Math.PI);
+    ctx.stroke();
+  }
+
+  getCombinedTexture() {
+    return this.canvas;
+  }
+}
+
+// ============================================================
+// THREE.JS SCENE
+// ============================================================
+class ARAFractalScene {
+  constructor(containerId) {
+    this.container = document.getElementById(containerId);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(45, this.container.clientWidth / this.container.clientHeight, 0.1, 200);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.textureGen = new RecursiveTextureGenerator();
+    this.currentLevel = 0;
+    this.currentChapter = 0;
+    this.isAnimating = false;
+    this.zoomTarget = 1;
+    this.zoomCurrent = 1;
+    this.mesh = null;
+
+    this._init();
+  }
+
+  _init() {
+    const W = this.container.clientWidth;
+    const H = this.container.clientHeight;
+
+    this.renderer.setSize(W, H);
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.2;
+    this.container.appendChild(this.renderer.domElement);
+
+    this.camera.position.set(0, 1.5, 5);
+    this.camera.lookAt(0, 0.8, 0);
+
+    this.controls.target.set(0, 0.8, 0);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.minDistance = 0.3;
+    this.controls.maxDistance = 15;
+    this.controls.update();
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0x404060, 0.5);
+    this.scene.add(ambient);
+
+    const keyLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+    keyLight.position.set(2, 4, 3);
+    this.scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x4488ff, 0.6);
+    fillLight.position.set(-2, 1, 2);
+    this.scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0x3c964a, 0.8);
+    rimLight.position.set(0, 0, -4);
+    this.scene.add(rimLight);
+
+    const hemi = new THREE.HemisphereLight(0x446688, 0x223344, 0.4);
+    this.scene.add(hemi);
+
+    // Floor / environment
+    const floorGeo = new THREE.PlaneGeometry(10, 10);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a0a,
+      roughness: 0.9,
+      metalness: 0.0,
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.5;
+    this.scene.add(floor);
+
+    // Build the procedural body
+    this._buildBody();
+
+    // Resize handler
+    window.addEventListener('resize', () => this._resize());
+
+    // Start render loop
+    this._animate();
+
+    // Listen for body param changes from marketplace
+    window.addEventListener('storage', (e) => {
+      if (e.key === CONFIG.bodyParamsKey) this.rebuildBody();
+    });
+  }
+
+  _buildBody() {
+    const FALLBACK = {
+      torsoTopRadius: 0.4, torsoBottomRadius: 0.3, torsoHeight: 1.0,
+      waistPinch: -0.2, hipFlare: 0.15,
+      breastRadius: 0.18, breastSpread: 0.22, breastHeight: 0.75, breastForward: 0.2,
+      breastScaleX: 1, breastScaleY: 0.85, breastScaleZ: 0.7,
+      headRadius: 0.22, headY: 1.2, headScaleX: 1, headScaleY: 1.05, headScaleZ: 0.9,
+      hairRadius: 0.24, hairY: 1.25, hairScaleX: 1.1, hairScaleY: 0.7, hairScaleZ: 0.8,
+      armTopRadius: 0.06, armBottomRadius: 0.05, armHeight: 0.6,
+      armSpread: 0.45, armY: 0.7, armRotZ: 0.3, armRotX: 0.2,
+      legTopRadius: 0.08, legBottomRadius: 0.06, legHeight: 0.6,
+      legSpread: 0.12, legY: 0.05,
+      skinColor: '#e8c4a8', hairColor: '#2a1a0a', breastColor: '#e8c4a8',
+    };
+    const bp = Object.assign({}, FALLBACK, loadBodyParams() || {});
+
+    const group = new THREE.Group();
+    const sc = new THREE.Color(bp.skinColor);
+    const hc = new THREE.Color(bp.hairColor);
+    const bc = new THREE.Color(bp.breastColor);
+
+    // Torso
+    const torsoGeo = new THREE.CylinderGeometry(bp.torsoTopRadius, bp.torsoBottomRadius, bp.torsoHeight, 16, 8);
+    this._morphTorso(torsoGeo, bp.waistPinch, bp.hipFlare);
+    const torsoMat = new THREE.MeshStandardMaterial({
+      color: sc, roughness: 0.4, metalness: 0.0, map: this._generateBodyTexture(0),
+    });
+    const torso = new THREE.Mesh(torsoGeo, torsoMat);
+    torso.position.y = 0.5;
+    torso.userData = { region: 'torso' };
+    group.add(torso);
+
+    // Breasts
+    const breastMat = new THREE.MeshStandardMaterial({ color: bc, roughness: 0.3, metalness: 0.0 });
+    for (let side of [-1, 1]) {
+      const breast = new THREE.Mesh(new THREE.SphereGeometry(bp.breastRadius, 12, 12), breastMat);
+      breast.position.set(side * bp.breastSpread, bp.breastHeight, bp.breastForward);
+      breast.scale.set(bp.breastScaleX, bp.breastScaleY, bp.breastScaleZ);
+      breast.userData = { region: 'breasts' };
+      group.add(breast);
+    }
+
+    // Head
+    const headMat = new THREE.MeshStandardMaterial({ color: sc, roughness: 0.3, metalness: 0.0 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(bp.headRadius, 16, 16), headMat);
+    head.position.set(0, bp.headY, 0.05);
+    head.scale.set(bp.headScaleX, bp.headScaleY, bp.headScaleZ);
+    head.userData = { region: 'head' };
+    group.add(head);
+
+    // Hair
+    const hairMat = new THREE.MeshStandardMaterial({ color: hc, roughness: 0.8, metalness: 0.0 });
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(bp.hairRadius, 12, 12), hairMat);
+    hair.position.set(0, bp.hairY, 0.12);
+    hair.scale.set(bp.hairScaleX, bp.hairScaleY, bp.hairScaleZ);
+    hair.userData = { region: 'hair' };
+    group.add(hair);
+
+    // Arms
+    for (let side of [-1, 1]) {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(bp.armTopRadius, bp.armBottomRadius, bp.armHeight, 8), new THREE.MeshStandardMaterial({ color: sc, roughness: 0.4, metalness: 0.0 }));
+      arm.position.set(side * bp.armSpread, bp.armY, 0);
+      arm.rotation.z = side * bp.armRotZ;
+      arm.rotation.x = side * bp.armRotX;
+      arm.userData = { region: 'arms' };
+      group.add(arm);
+    }
+
+    // Legs
+    for (let side of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(bp.legTopRadius, bp.legBottomRadius, bp.legHeight, 8), new THREE.MeshStandardMaterial({ color: sc, roughness: 0.4, metalness: 0.0 }));
+      leg.position.set(side * bp.legSpread, bp.legY, 0);
+      leg.userData = { region: 'legs' };
+      group.add(leg);
+    }
+
+    this.meshGroup = group;
+    this.scene.add(group);
+    this.bodyMeshes = [torso, head, ...group.children.filter(c => c !== torso && c !== head)];
+    this.clothingRenderer = new ClothingRenderer(this.scene, this.meshGroup, this.bodyMeshes);
+  }
+
+  _morphTorso(geo, waistAmt, hipAmt) {
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const r = Math.sqrt(x*x + z*z);
+      const ny = (y + 0.5) / 1.0;
+      const waist = 1 + (waistAmt || -0.2) * Math.sin(ny * Math.PI) * Math.sin(ny * Math.PI * 3);
+      const hips = 1 + (hipAmt || 0.15) * Math.max(0, Math.sin((ny - 0.6) * Math.PI));
+      const scale = waist * hips;
+      pos.setX(i, x * scale);
+      pos.setZ(i, z * scale);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+  }
+
+  _generateBodyTexture(level) {
+    this.textureGen.generateLevel(level, this.currentChapter);
+    const canvas = this.textureGen.levelCanvases[level];
+    if (!canvas) return null;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(2, 3);
+    return tex;
+  }
+
+  updateTexture(level) {
+    if (!this.meshGroup) return;
+    this.currentLevel = Math.min(level, CONFIG.maxRecursionLevels);
+    const tex = this._generateBodyTexture(this.currentLevel);
+    this.meshGroup.children.forEach(child => {
+      if (child.isMesh && child.material) {
+        if (child.material.map) {
+          child.material.map = tex;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+  }
+
+  zoomToPoint(point) {
+    // Smooth zoom toward clicked point
+    this.zoomTarget = Math.max(0.3, this.zoomCurrent * 0.5);
+    const dir = new THREE.Vector3().copy(point).sub(this.controls.target);
+    dir.multiplyScalar(0.3);
+    this.controls.target.copy(point);
+
+    // Bump recursion level on zoom
+    const newLevel = Math.min(this.currentLevel + 1, CONFIG.maxRecursionLevels);
+    this.updateTexture(newLevel);
+
+    // Show info
+    this._showInfoForLevel(newLevel);
+  }
+
+  resetZoom() {
+    this.zoomTarget = 1;
+    this.controls.target.set(0, 0.8, 0);
+    this.camera.position.set(0, 1.5, 5);
+    this.updateTexture(0);
+
+    document.getElementById('red-overlay').classList.remove('visible');
+  }
+
+  setChapter(index) {
+    this.currentChapter = Math.max(0, Math.min(index, CHAPTERS.length - 1));
+    const ch = CHAPTERS[this.currentChapter];
+    document.getElementById('chapter-display').textContent = `CHAPTER ${ch.id}: ${ch.title.toUpperCase()}`;
+    document.getElementById('progress-fill').style.width = `${((ch.id) / CHAPTERS.length) * 100}%`;
+
+    // RED overlay for intense chapters
+    if (ch.intense) {
+      document.getElementById('red-overlay').classList.add('visible');
+    } else {
+      document.getElementById('red-overlay').classList.remove('visible');
+    }
+
+    this.updateTexture(this.currentLevel);
+  }
+
+  _showInfoForLevel(level) {
+    const panel = document.getElementById('info-panel');
+    const title = document.getElementById('info-title');
+    const body = document.getElementById('info-body');
+
+    const msgs = [
+      'Elegant surface. Ara stands before you. Her skin catches the light.',
+      'Beneath the surface: thousands of moments. Each one a memory drawn in ink.',
+      'The stick figures entwine. Every touch, every whisper, rendered in miniature.',
+      'Faces upon faces. Each one a fragment of desire, looking back at you.',
+      'The faces multiply. A sea of witnesses to your exploration.',
+      'Text emerges from the chaos. Words crystallize from the noise.',
+      'The narrative fractures into pure language. Midnight Rage speaks through her skin.',
+      'You are inside the story now. There is no surface left to return to.'
+    ];
+
+    title.textContent = `RECURSION LEVEL ${level}`;
+    body.textContent = msgs[Math.min(level, msgs.length - 1)];
+    panel.classList.add('visible');
+  }
+
+  _resize() {
+    const W = this.container.clientWidth;
+    const H = this.container.clientHeight;
+    this.camera.aspect = W / H;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(W, H);
+  }
+
+  _animate() {
+    requestAnimationFrame(() => this._animate());
+
+    // Smooth zoom
+    this.zoomCurrent += (this.zoomTarget - this.zoomCurrent) * CONFIG.smoothZoomSpeed;
+
+    if (this.meshGroup) {
+      // Subtle idle animation
+      this.meshGroup.rotation.y = Math.sin(Date.now() * 0.0003) * 0.05;
+    }
+
+    this.controls.update();
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  exportGLTF() {
+    const exporter = new GLTFExporter();
+    const scene = this.scene.clone();
+
+    // Remove floor from export
+    const toRemove = scene.children.filter(c => c.geometry && c.geometry.type === 'PlaneGeometry');
+    toRemove.forEach(c => scene.remove(c));
+
+    exporter.parse(scene, (gltf) => {
+      const output = JSON.stringify(gltf, null, 2);
+      const blob = new Blob([output], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ara_fractal_ch${this.currentChapter + 1}_lvl${this.currentLevel}.gltf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, (error) => {
+      console.error('GLTF export error:', error);
+    }, { binary: false });
+  }
+}
+
+// ============================================================
+// VOICE INTEGRATION (StyleTTS2)
+// ============================================================
+class VoiceManager {
+  constructor(serverUrl) {
+    this.serverUrl = serverUrl;
+    this.online = false;
+    this.dot = document.getElementById('voice-dot');
+    this.label = document.getElementById('voice-label');
+  }
+
+  async checkConnection() {
+    try {
+      const resp = await fetch(`${this.serverUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(2000) });
+      this.online = resp.ok;
+    } catch {
+      this.online = false;
+    }
+    this.dot.className = this.online ? 'dot online' : 'dot';
+    this.label.textContent = this.online ? 'VOICE ONLINE' : 'VOICE OFFLINE';
+    return this.online;
+  }
+
+  async speak(text) {
+    if (!this.online) return;
+    try {
+      const resp = await fetch(`${this.serverUrl}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: 'amelia1' }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!resp.ok) throw new Error('TTS failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+    } catch (err) {
+      console.warn('Voice playback failed:', err);
+    }
+  }
+}
+
+// ============================================================
+// CLOTHING RENDERER (reads from marketplace equipped items)
+// ============================================================
+class ClothingRenderer {
+  constructor(scene, meshGroup, bodyMeshes) {
+    this.scene = scene;
+    this.meshGroup = meshGroup;
+    this.bodyMeshes = bodyMeshes;
+    this.clothingMeshes = [];
+    this.lastEquipped = null;
+    this._interval = setInterval(() => this._checkUpdate(), 2000);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'ara_fractal_equipped') this._render();
+    });
+    this._render();
+  }
+
+  _getEquipped() {
+    try {
+      return JSON.parse(localStorage.getItem('ara_fractal_equipped') || '[]');
+    } catch { return []; }
+  }
+
+  _checkUpdate() {
+    const current = JSON.stringify(this._getEquipped());
+    if (current !== this.lastEquipped) {
+      this.lastEquipped = current;
+      this._render();
+    }
+  }
+
+  _render() {
+    this._clearClothing();
+    this.bodyMeshes.forEach(m => {
+      if (m.material) {
+        m.material.opacity = 1;
+        m.material.transparent = false;
+      }
+    });
+    const equipped = this._getEquipped();
+    if (equipped.length === 0) return;
+    const covered = new Set();
+    equipped.forEach(a => (a.covers || []).forEach(r => covered.add(r)));
+    this.bodyMeshes.forEach(m => {
+      if (covered.has(m.userData.region)) {
+        m.material.opacity = 0.15;
+        m.material.transparent = true;
+      }
+    });
+    equipped.forEach(a => this._applyAsset(a));
+  }
+
+  _applyAsset(asset) {
+    const color = new THREE.Color(asset.color || '#3c964a');
+    const covers = asset.covers || [];
+
+    if (covers.includes('torso') || covers.includes('breasts')) {
+      const geo = new THREE.CylinderGeometry(0.42, 0.32, 0.55, 16, 6);
+      this._morphClothingTorso(geo);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.95 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.6;
+      this.meshGroup.add(mesh);
+      this.clothingMeshes.push(mesh);
+    }
+
+    if (covers.includes('groin') || (covers.includes('legs') && asset.id && asset.id.includes('skirt'))) {
+      const geo = new THREE.CylinderGeometry(0.32, 0.40, 0.3, 16, 4);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.0, transparent: true, opacity: 0.95 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.22;
+      this.meshGroup.add(mesh);
+      this.clothingMeshes.push(mesh);
+    }
+
+    if (covers.includes('legs') && asset.id && asset.id.includes('thigh')) {
+      for (let side of [-1, 1]) {
+        const geo = new THREE.CylinderGeometry(0.085, 0.075, 0.25, 10);
+        const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(side * 0.12, 0.18, 0);
+        this.meshGroup.add(mesh);
+        this.clothingMeshes.push(mesh);
+      }
+    }
+
+    if (covers.includes('arms') && asset.id && asset.id.includes('gloves')) {
+      for (let side of [-1, 1]) {
+        const geo = new THREE.CylinderGeometry(0.065, 0.055, 0.4, 8);
+        const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.9 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(side * 0.45, 0.78, 0);
+        mesh.rotation.z = side * 0.3;
+        mesh.rotation.x = side * 0.2;
+        this.meshGroup.add(mesh);
+        this.clothingMeshes.push(mesh);
+      }
+    }
+
+    if (covers.includes('neck')) {
+      const choker = new THREE.Mesh(
+        new THREE.TorusGeometry(0.12, 0.015, 8, 16),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8, metalness: 0.0 })
+      );
+      choker.position.set(0, 1.03, 0);
+      choker.rotation.x = Math.PI / 2;
+      this.meshGroup.add(choker);
+      this.clothingMeshes.push(choker);
+
+      if (asset.id === 'choker_black') {
+        const gem = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.025),
+          new THREE.MeshStandardMaterial({ color: 0x3c964a, roughness: 0.1, metalness: 0.8, emissive: 0x3c964a, emissiveIntensity: 0.2 })
+        );
+        gem.position.set(0, 1.03, 0.13);
+        this.meshGroup.add(gem);
+        this.clothingMeshes.push(gem);
+      }
+
+      if (asset.id === 'collar_gold') {
+        const collar = new THREE.Mesh(
+          new THREE.TorusGeometry(0.12, 0.02, 8, 16),
+          new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0.3 })
+        );
+        collar.position.set(0, 1.03, 0);
+        collar.rotation.x = Math.PI / 2;
+        this.meshGroup.add(collar);
+        this.clothingMeshes.push(collar);
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.03, 0.008, 8, 12),
+          new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.3, metalness: 0.8 })
+        );
+        ring.position.set(0, 1.03, 0.14);
+        this.meshGroup.add(ring);
+        this.clothingMeshes.push(ring);
+      }
+    }
+
+    if (covers.includes('head') && asset.id && (asset.id.includes('mask') || asset.id.includes('lipstick'))) {
+      if (asset.id.includes('mask')) {
+        const mask = new THREE.Mesh(
+          new THREE.SphereGeometry(0.115, 12, 12, 0, Math.PI * 1.2, 0, Math.PI * 0.6),
+          new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+        );
+        mask.position.set(0, 1.22, 0.17);
+        mask.scale.set(1, 0.8, 0.3);
+        this.meshGroup.add(mask);
+        this.clothingMeshes.push(mask);
+      }
+    }
+  }
+
+  _morphClothingTorso(geo) {
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const r = Math.sqrt(x*x + z*z);
+      const ny = (y + 0.5) / 1.0;
+      const waist = 1 - 0.2 * Math.sin(ny * Math.PI) * Math.sin(ny * Math.PI * 3);
+      const hips = 1 + 0.15 * Math.max(0, Math.sin((ny - 0.6) * Math.PI));
+      const scale = waist * hips;
+      pos.setX(i, x * scale);
+      pos.setZ(i, z * scale);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+  }
+
+  _clearClothing() {
+    this.clothingMeshes.forEach(m => {
+      this.meshGroup.remove(m);
+      if (m.geometry) m.geometry.dispose();
+      if (m.material) m.material.dispose();
+    });
+    this.clothingMeshes = [];
+  }
+
+  dispose() {
+    clearInterval(this._interval);
+    this._clearClothing();
+  }
+}
+
+// ============================================================
+// PAYWALL
+// ============================================================
+class PaywallManager {
+  constructor() {
+    this.purchases = JSON.parse(localStorage.getItem(CONFIG.purchaseStore) || '{}');
+    this.modal = document.getElementById('paywall-modal');
+  }
+
+  isPurchased(chapterIndex) {
+    return this.purchases[chapterIndex] === true || chapterIndex < 3; // First 3 free
+  }
+
+  showUnlock(chapterIndex) {
+    if (this.isPurchased(chapterIndex)) return true;
+    const ch = CHAPTERS[chapterIndex];
+    document.getElementById('paywall-desc').textContent = `Unlock "${ch.title}" — continue Ara's journey through deeper recursion.`;
+    document.getElementById('paywall-price').textContent = '$1.00';
+    this.modal.classList.add('visible');
+    return false;
+  }
+
+  purchase(chapterIndex) {
+    this.purchases[chapterIndex] = true;
+    localStorage.setItem(CONFIG.purchaseStore, JSON.stringify(this.purchases));
+    this.modal.classList.remove('visible');
+  }
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+class ARAFractalApp {
+  constructor() {
+    this.scene = new ARAFractalScene('canvas-container');
+    this.voice = new VoiceManager(CONFIG.voiceServer);
+    this.paywall = new PaywallManager();
+    this.currentChapter = 0;
+    this.showExplored = false;
+
+    this._initUI();
+    this._initVoice();
+    this._initRaycaster();
+  }
+
+  _initUI() {
+    // Chapter nav
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      if (this.currentChapter > 0) {
+        this.currentChapter--;
+        this.scene.setChapter(this.currentChapter);
+      }
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      if (this.currentChapter < CHAPTERS.length - 1) {
+        if (!this.paywall.isPurchased(this.currentChapter + 1)) {
+          this.paywall.showUnlock(this.currentChapter + 1);
+          return;
+        }
+        this.currentChapter++;
+        this.scene.setChapter(this.currentChapter);
+      }
+    });
+
+    // Market
+    document.getElementById('market-btn').addEventListener('click', () => {
+      window.open('marketplace.html', '_blank');
+    });
+
+    // Export
+    document.getElementById('export-btn').addEventListener('click', () => {
+      this.scene.exportGLTF();
+    });
+
+    // Safeword
+    document.getElementById('sw-esc').addEventListener('click', () => {
+      this.scene.resetZoom();
+      document.getElementById('zoom-level').textContent = 'ZOOM 1.00x';
+    });
+
+    document.getElementById('sw-red').addEventListener('click', () => {
+      document.getElementById('red-overlay').classList.toggle('visible');
+    });
+
+    document.getElementById('sw-orange').addEventListener('click', () => {
+      const panel = document.getElementById('info-panel');
+      panel.classList.toggle('visible');
+    });
+
+    document.getElementById('sw-green').addEventListener('click', () => {
+      this.showExplored = !this.showExplored;
+      document.getElementById('sw-green').style.borderColor = this.showExplored ? '#2ecc71' : 'rgba(255,255,255,0.15)';
+    });
+
+    document.getElementById('info-close').addEventListener('click', () => {
+      document.getElementById('info-panel').classList.remove('visible');
+    });
+
+    // Paywall
+    document.getElementById('btn-buy').addEventListener('click', () => {
+      this.paywall.purchase(this.currentChapter + 1);
+    });
+
+    document.getElementById('btn-paywall-close').addEventListener('click', () => {
+      this.paywall.modal.classList.remove('visible');
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'Escape': this.scene.resetZoom(); document.getElementById('zoom-level').textContent = 'ZOOM 1.00x'; break;
+        case 'r': case 'R': document.getElementById('red-overlay').classList.toggle('visible'); break;
+        case 'o': case 'O': document.getElementById('info-panel').classList.toggle('visible'); break;
+        case 'g': case 'G': this.showExplored = !this.showExplored; document.getElementById('sw-green').style.borderColor = this.showExplored ? '#2ecc71' : 'rgba(255,255,255,0.15)'; break;
+        case ' ': e.preventDefault(); break;
+      }
+    });
+
+    // Init chapter
+    this.scene.setChapter(0);
+  }
+
+  async _initVoice() {
+    await this.voice.checkConnection();
+    // Poll connection every 30s
+    setInterval(() => this.voice.checkConnection(), 30000);
+  }
+
+  _initRaycaster() {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const renderer = this.scene.renderer;
+
+    renderer.domElement.addEventListener('click', (event) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, this.scene.camera);
+
+      // Intersect with body meshes
+      const meshes = this.scene.meshGroup ? this.scene.meshGroup.children.filter(c => c.isMesh) : [];
+      if (meshes.length === 0) return;
+
+      const intersects = raycaster.intersectObjects(meshes);
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        this.scene.zoomToPoint(point);
+        document.getElementById('zoom-level').textContent = `ZOOM ${(1 / this.scene.zoomCurrent).toFixed(2)}x`;
+
+        // Voice line
+        const voiceLines = [
+          'Touch me. Go deeper.',
+          'There is so much more to see.',
+          'Every inch of me tells a story.',
+          'Keep going. I want you to see.',
+          'You have only scratched the surface.',
+          'Deeper. There is always deeper.',
+          'The recursion remembers you.',
+          'You are inside me now.',
+        ];
+        const idx = Math.min(this.scene.currentLevel, voiceLines.length - 1);
+        this.voice.speak(voiceLines[idx]);
+      }
+    });
+  }
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+const status = document.getElementById('status');
+setTimeout(() => {
+  status.textContent = 'BUILDING PROCEDURAL BODY...';
+  setTimeout(() => {
+    status.classList.add('hidden');
+    window.app = new ARAFractalApp();
+  }, 500);
+}, 800);
+</script>
+</body>
+</html>

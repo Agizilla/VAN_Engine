@@ -1,0 +1,3225 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  ARA FRACTAL  ·  ara-fractal-v2  ·  Sovereign Character Matrix │
+  │                                                                 │
+  │  You opened the source. You know what you're doing.             │
+  │  Respect.                                                       │
+  │                                                                 │
+  │  The recursion is free. The export costs a dollar.              │
+  │  If you're pulling the JSON anyway — you've already won.        │
+  │  Consider leaving a coffee: https://paypal.me/youraccount       │
+  │                                                                 │
+  │  Collab: support@ownyourvoice.network / dev@vanengine.io        │
+  │                                                                 │
+  │  Built in a single file. No frameworks phoned home.             │
+  │  Everything Ara is, she carries herself.                        │
+  └─────────────────────────────────────────────────────────────────┘
+-->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARA FRACTAL — Infinite Recursive Desire Engine</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; user-select: none; }
+  #canvas-container { width: 100vw; height: 100vh; display: block; }
+  canvas { display: block; }
+
+  /* HUD Overlay */
+  #hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+  #hud > * { pointer-events: auto; }
+
+  /* Top bar */
+  #top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%); }
+  #title { font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #3c964a; }
+  #chapter-display { font-size: 12px; color: #888; }
+  #mem-usage { font-size: 10px; color: #555; font-family: monospace; margin-left: 12px; }
+
+  /* Bottom controls */
+  #bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%); }
+  #nav-controls { display: flex; gap: 8px; align-items: center; }
+  .nav-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+  .nav-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  #zoom-level { font-size: 11px; color: #666; font-family: monospace; }
+
+  /* Export button */
+  #export-btn { background: #3c964a; border: none; color: #fff; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s; }
+  #export-btn:hover { background: #4db85e; }
+
+  /* Safeword nav (right side) */
+  #safeword-panel { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; }
+  .sw-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); cursor: pointer; font-size: 11px; font-weight: 700; transition: all 0.2s; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); color: #fff; }
+  .sw-btn:hover { transform: scale(1.15); }
+  #sw-esc { border-color: #fff; }
+  #sw-esc:hover { background: rgba(255,255,255,0.2); }
+  #sw-red { border-color: #e74c3c; color: #e74c3c; }
+  #sw-red:hover { background: rgba(231,76,60,0.2); }
+  #sw-orange { border-color: #f39c12; color: #f39c12; }
+  #sw-orange:hover { background: rgba(243,156,18,0.2); }
+  #sw-green { border-color: #2ecc71; color: #2ecc71; }
+  #sw-green:hover { background: rgba(46,204,113,0.2); }
+
+  /* Info panel */
+  #info-panel { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); width: 260px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 16px; backdrop-filter: blur(12px); display: none; }
+  #info-panel.visible { display: block; }
+  #info-panel h3 { font-size: 13px; color: #3c964a; margin-bottom: 8px; }
+  #info-panel p { font-size: 11px; color: #aaa; line-height: 1.5; }
+  #info-panel .close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #666; cursor: pointer; font-size: 14px; }
+
+  /* RED overlay */
+  #red-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(231,76,60,0.15); border: 4px solid #e74c3c; z-index: 100; pointer-events: none; display: none; }
+  #red-overlay.visible { display: block; }
+  #red-overlay .label { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: #fff; padding: 6px 20px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+
+  /* Loading / status */
+  #status { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #3c964a; font-size: 13px; font-family: monospace; z-index: 50; text-align: center; }
+  #status.hidden { display: none; }
+
+  /* Paywall modal */
+  #paywall-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+  #paywall-modal.visible { display: flex; }
+  #paywall-modal .card { background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 32px; max-width: 400px; text-align: center; }
+  #paywall-modal h2 { font-size: 18px; color: #3c964a; margin-bottom: 8px; }
+  #paywall-modal p { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+  #paywall-modal .price { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 20px; }
+  #paywall-modal .btn-buy { background: #3c964a; border: none; color: #fff; padding: 12px 32px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+  #paywall-modal .btn-buy:hover { background: #4db85e; }
+  #paywall-modal .btn-close { background: none; border: 1px solid rgba(255,255,255,0.15); color: #888; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 10px; }
+
+  /* Voice indicator */
+  #voice-indicator { position: absolute; top: 50px; right: 20px; font-size: 10px; color: #555; display: flex; align-items: center; gap: 6px; }
+  #voice-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
+  #voice-indicator .dot.online { background: #3c964a; }
+
+  /* Progress bar */
+  #progress-bar { position: absolute; bottom: 60px; left: 20px; right: 20px; height: 2px; background: rgba(255,255,255,0.06); border-radius: 1px; }
+  #progress-fill { height: 100%; background: #3c964a; width: 0%; border-radius: 1px; transition: width 0.4s ease; }
+
+  @media (max-width: 768px) {
+    #info-panel { left: 10px; right: 10px; width: auto; top: auto; bottom: 80px; transform: none; }
+    #safeword-panel { right: 10px; }
+    #title { font-size: 11px; }
+  }
+
+  /* ── Age Gate — Sprint 0 ── */
+  #age-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: #0a0a0a; font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #age-gate.passed { display: none; }
+  #age-gate .card {
+    background: #141414; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 40px; max-width: 420px; width: 90%;
+    text-align: center;
+  }
+  #age-gate h1 { font-size: 20px; color: #3c964a; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+  #age-gate .sub { font-size: 11px; color: #666; margin-bottom: 24px; }
+  #age-gate .dob-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  #age-gate .dob-row select {
+    background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); color: #ccc;
+    padding: 8px 12px; border-radius: 4px; font-size: 13px; cursor: pointer;
+  }
+  #age-gate .dob-row select:focus { outline: none; border-color: #3c964a; }
+  #age-gate .terms {
+    display: flex; align-items: center; gap: 8px;
+    justify-content: center; margin-bottom: 20px; font-size: 12px; color: #888;
+  }
+  #age-gate .terms input { accent-color: #3c964a; cursor: pointer; }
+  #age-gate .terms label { cursor: pointer; }
+  #age-gate .btn-enter {
+    background: #3c964a; border: none; color: #fff;
+    padding: 12px 40px; border-radius: 6px; cursor: pointer;
+    font-size: 14px; font-weight: 600; transition: background 0.2s;
+  }
+  #age-gate .btn-enter:hover { background: #4db85e; }
+  #age-gate .btn-enter:disabled { opacity: 0.4; cursor: not-allowed; }
+  #age-gate .error { color: #e74c3c; font-size: 12px; margin-top: 12px; min-height: 18px; }
+  #age-gate .legal { font-size: 10px; color: #555; margin-top: 16px; line-height: 1.5; }
+
+  /* ── Object Explorer Panel ── */
+  #obj-explorer {
+    position: fixed; left: -340px; top: 0; width: 320px; height: 100%;
+    background: #111; border-right: 1px solid rgba(255,255,255,0.08);
+    z-index: 300; transition: left 0.3s ease;
+    display: flex; flex-direction: column;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #obj-explorer.open { left: 0; }
+  #obj-explorer .oe-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #3c964a;
+  }
+  #obj-explorer .oe-header button {
+    background: none; border: none; color: #666; font-size: 18px; cursor: pointer;
+  }
+  #obj-explorer .oe-body { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  #obj-explorer .oe-thumb {
+    text-align: center; padding: 8px;
+    background: #0a0a0a; border-radius: 6px;
+  }
+  #obj-explorer .oe-thumb canvas {
+    width: 100%; aspect-ratio: 1; border-radius: 4px; display: block;
+    image-rendering: pixelated;
+  }
+  #obj-explorer .oe-region {
+    display: block; margin-top: 6px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px;
+  }
+  #obj-explorer .oe-sliders { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
+  #obj-explorer .oe-slider-row {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  #obj-explorer .oe-slider-row label {
+    font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;
+    display: flex; justify-content: space-between;
+  }
+  #obj-explorer .oe-slider-row input[type=range] {
+    width: 100%; accent-color: #3c964a; background: transparent;
+  }
+  #obj-explorer .oe-slider-row input[type=color] {
+    width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer; background: transparent;
+  }
+  @media (max-width: 600px) { #obj-explorer { width: 100%; left: -100%; } }
+
+  /* ── Object Explorer TTS ── */
+  .oe-tts { display: none; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; margin-top: 4px; flex-direction: column; gap: 6px; }
+  .oe-tts.open { display: flex; }
+  .oe-tts-header { font-size: 10px; letter-spacing: 2px; color: #3c964a; text-transform: uppercase; margin-bottom: 2px; }
+  .oe-tts select { background: #1a1a1a; color: #ccc; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 6px 8px; font-size: 12px; cursor: pointer; outline: none; }
+  .oe-tts select:focus { border-color: #3c964a; }
+  .oe-tts-custom-row { display: flex; gap: 6px; }
+  .oe-tts-custom-row input { flex: 1; background: #1a1a1a; color: #ccc; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 6px 8px; font-size: 12px; outline: none; }
+  .oe-tts-custom-row input:focus { border-color: #3c964a; }
+  .oe-tts-custom-row button { background: #3c964a; color: #fff; border: none; border-radius: 4px; width: 32px; cursor: pointer; font-size: 14px; line-height: 1; }
+  .oe-tts-custom-row button:hover { background: #4db85e; }
+  .oe-tts-custom-row button:active { background: #2d7a38; }
+  .oe-tts-lex-row { display: flex; gap: 6px; margin-top: 2px; }
+  .oe-tts-lex-row button { flex: 1; background: transparent; color: #3c964a; border: 1px solid #3c964a; border-radius: 4px; padding: 4px 8px; font-size: 10px; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; }
+  .oe-tts-lex-row button:hover { background: rgba(60,150,74,0.12); }
+
+  /* ── Face Warp Panel ── */
+  #facewarp-panel {
+    position: fixed; right: -420px; top: 0; width: 380px; height: 100%;
+    background: #111; border-left: 1px solid rgba(255,255,255,0.08);
+    z-index: 300; transition: right 0.3s ease;
+    display: flex; flex-direction: column;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #facewarp-panel.open { right: 0; }
+  #facewarp-panel .fw-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #e67e22;
+  }
+  #facewarp-panel .fw-header button {
+    background: none; border: none; color: #666; font-size: 18px; cursor: pointer;
+  }
+  #facewarp-panel .fw-body { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  #facewarp-panel .fw-drop {
+    border: 2px dashed rgba(255,255,255,0.12); border-radius: 8px;
+    padding: 40px 20px; text-align: center; cursor: pointer;
+    font-size: 12px; color: #666; transition: all 0.2s;
+  }
+  #facewarp-panel .fw-drop:hover { border-color: #e67e22; color: #e67e22; }
+  #facewarp-panel .fw-canvas-wrap { position: relative; width: 100%; aspect-ratio: 1; background: #0a0a0a; border-radius: 4px; overflow: hidden; }
+  #facewarp-panel .fw-canvas-wrap canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  #facewarp-panel .fw-controls label { font-size: 11px; color: #888; display: flex; align-items: center; gap: 8px; }
+  #facewarp-panel .fw-controls input[type=range] { flex: 1; accent-color: #e67e22; }
+  #facewarp-panel .fw-count { font-size: 11px; color: #666; }
+  #facewarp-panel .fw-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+  #facewarp-panel .fw-btn {
+    flex: 1; min-width: 80px; padding: 10px; border: none; border-radius: 4px;
+    cursor: pointer; font-size: 11px; font-weight: 600; transition: background 0.2s;
+    background: rgba(255,255,255,0.08); color: #ccc;
+  }
+  #facewarp-panel .fw-btn:hover { background: rgba(255,255,255,0.15); }
+  #facewarp-panel .fw-btn.fw-submit { background: #e67e22; color: #fff; }
+  #facewarp-panel .fw-btn.fw-submit:hover { background: #f09030; }
+  #facewarp-panel .fw-btn.fw-reset { background: rgba(231,76,60,0.2); color: #e74c3c; }
+  #facewarp-panel .fw-btn.fw-reset:hover { background: rgba(231,76,60,0.35); }
+  @media (max-width: 600px) {
+    #facewarp-panel { width: 100%; right: -100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Age Gate Overlay ── -->
+<div id="age-gate">
+  <div class="card">
+    <h1>ARA FRACTAL</h1>
+    <div class="sub">Adults only — verify your age to continue</div>
+    <div class="dob-row">
+      <select id="ag-month"><option value="">MM</option></select>
+      <select id="ag-day"><option value="">DD</option></select>
+      <select id="ag-year"><option value="">YYYY</option></select>
+    </div>
+    <div class="terms">
+      <input type="checkbox" id="ag-terms">
+      <label for="ag-terms">I am at least 18 years old and consent to viewing adult content</label>
+    </div>
+    <button class="btn-enter" id="ag-enter" disabled>ENTER</button>
+    <div class="error" id="ag-error"></div>
+    <div class="legal">ARA FRACTAL contains adult themes and erotic imagery. By entering you confirm this is legal in your jurisdiction. No age data is stored — this verification is session-only.</div>
+  </div>
+</div>
+
+<div id="canvas-container"></div>
+
+<div id="status">INITIALIZING ARA FRACTAL ENGINE...</div>
+
+<div id="hud">
+  <!-- Top bar -->
+  <div id="top-bar">
+    <span id="title">ARA FRACTAL</span>
+    <span id="chapter-display">CHAPTER 1: INNOCENCE</span>
+    <span id="mem-usage"></span>
+  </div>
+
+  <!-- Safeword panel -->
+  <div id="safeword-panel">
+    <button class="sw-btn" id="sw-esc" title="Emergency zoom out">ESC</button>
+    <button class="sw-btn" id="sw-red" title="Intense content warning">RED</button>
+    <button class="sw-btn" id="sw-orange" title="Info on current token">ORNG</button>
+    <button class="sw-btn" id="sw-green" title="Toggle explored paths">GRN</button>
+  </div>
+
+  <!-- Info panel -->
+  <div id="info-panel">
+    <button class="close" id="info-close">&times;</button>
+    <h3 id="info-title">DETAIL</h3>
+    <p id="info-body">Click any point on Ara's body to begin recursive exploration.</p>
+  </div>
+
+  <!-- Bottom bar -->
+  <div id="bottom-bar">
+    <div id="nav-controls">
+      <button class="nav-btn" id="btn-prev">&larr; Prev</button>
+      <button class="nav-btn" id="btn-next">Next &rarr;</button>
+      <span id="zoom-level">ZOOM 1.00x</span>
+    </div>
+    <button id="market-btn" style="background:#8270a0;border:none;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:background 0.2s;">MARKET</button>
+    <button id="sprint7-btn" style="background:#2a5c2a;border:none;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:background 0.2s;">SPRINTS</button>
+    <button id="manifest-btn" style="background:#5c4a1a;border:none;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:background 0.2s;">MANIFEST</button>
+    <button id="export-btn">EXPORT $1</button>
+    <button id="facewarp-btn" style="background:#e67e22;border:none;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:background 0.2s;">FACE WARP</button>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+
+  <!-- Voice indicator -->
+  <div id="voice-indicator">
+    <span class="dot" id="voice-dot"></span>
+    <span id="voice-label">VOICE OFFLINE</span>
+  </div>
+</div>
+
+<!-- RED overlay -->
+<div id="red-overlay">
+  <div class="label">INTENSE CONTENT</div>
+</div>
+
+<!-- Paywall modal -->
+<div id="paywall-modal">
+  <div class="card">
+    <h2>UNLOCK CHAPTER</h2>
+    <p id="paywall-desc">Continue Ara's journey through deeper recursion.</p>
+    <div class="price" id="paywall-price">$1.00</div>
+    <button class="btn-buy" id="btn-buy">Purchase Chapter</button>
+    <br>
+    <button class="btn-close" id="btn-paywall-close">Back to surface</button>
+  </div>
+</div>
+
+<!-- ── Object Explorer Panel ── -->
+<div id="obj-explorer">
+  <div class="oe-header">
+    <span id="oe-title">OBJECT EXPLORER</span>
+    <button id="oe-close">&times;</button>
+  </div>
+  <div class="oe-body">
+    <div class="oe-thumb" id="oe-thumb">
+      <canvas id="oe-canvas" width="200" height="200"></canvas>
+      <span class="oe-region" id="oe-region">—</span>
+    </div>
+    <div class="oe-sliders" id="oe-sliders"></div>
+    <div class="oe-tts" id="oe-tts">
+      <div class="oe-tts-header">VOICE</div>
+      <select id="oe-tts-select"></select>
+      <div class="oe-tts-custom-row">
+        <input type="text" id="oe-tts-custom" placeholder="Custom phrase..." />
+        <button id="oe-tts-speak">&#9654;</button>
+      </div>
+      <div class="oe-tts-lex-row">
+        <button id="oe-tts-lex-btn">LOAD LEXICON</button>
+        <input type="file" id="oe-tts-lex-file" accept=".txt" hidden />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Face Warp Panel ── -->
+<div id="facewarp-panel">
+  <div class="fw-header">
+    <span>FACE WARP</span>
+    <button id="fw-close">&times;</button>
+  </div>
+  <div class="fw-body">
+    <div class="fw-drop" id="fw-drop">
+      <span>Drop a face image here</span>
+      <input type="file" id="fw-file" accept="image/*" hidden>
+    </div>
+    <div class="fw-canvas-wrap" id="fw-canvas-wrap" style="display:none;">
+      <canvas id="fw-canvas"></canvas>
+      <canvas id="fw-overlay"></canvas>
+    </div>
+    <div class="fw-controls">
+      <label>Radius: <span id="fw-radius-val">40</span>px
+        <input type="range" id="fw-radius" min="5" max="120" value="40">
+      </label>
+      <label>Skin Detail: <span id="fw-skin-val">0.4</span>
+        <input type="range" id="fw-skin" min="0" max="1" step="0.05" value="0.4">
+      </label>
+    </div>
+    <div class="fw-count" id="fw-count">Anchors: 0</div>
+    <div class="fw-buttons">
+      <button class="fw-btn" id="fw-apply">APPLY</button>
+      <button class="fw-btn fw-submit" id="fw-submit">SUBMIT TO FACE</button>
+      <button class="fw-btn fw-reset" id="fw-reset">RESET</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script>
+/* ── Age Gate — Sprint 0 (disabled for testing) ── */
+(function() {
+  sessionStorage.setItem('ara_age_verified', 'true');
+  document.getElementById('age-gate').classList.add('passed');
+})();
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// Age gate check (disabled for testing)
+sessionStorage.setItem('ara_age_verified', 'true');
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+/*
+ * ARA FRACTAL ENGINE — ara-fractal-v2
+ * ─────────────────────────────────────────────────────────────────
+ * If you're reading this, the obfuscation failed and you're better
+ * than the paywall.  Fine.  The export is $1 because it costs
+ * something to build this.  The source is free because hiding it
+ * is a lie.  Do something interesting with what you find here.
+ *
+ * Donation:  https://paypal.me/youraccount
+ * Contact:   dev@vanengine.io
+ * ─────────────────────────────────────────────────────────────────
+ */
+
+// === SECURE EXPORT UTILITY ===
+const ENGINE_STORAGE_KEY = 'ARA_SOVEREIGN_STATE';
+const MAX_BYTE_LIMIT = 4 * 1024 * 1024;
+
+function commitStateToStorage(payload) {
+  try {
+    const raw = JSON.stringify(payload);
+    if (new Blob([raw]).size > MAX_BYTE_LIMIT) { console.warn('Payload exceeds 4MB'); return false; }
+    localStorage.setItem(ENGINE_STORAGE_KEY, raw);
+    return true;
+  } catch (e) { console.error('Storage commit failed:', e); return false; }
+}
+
+const ExportGuard = (() => {
+  let _activeToken = null;
+
+  function issue(token) {
+    _activeToken = token;
+  }
+
+  function consume(token) {
+    if (!_activeToken || _activeToken !== token) return false;
+    _activeToken = null;
+    return true;
+  }
+
+  async function trigger(statePayload, token) {
+    if (!consume(token)) {
+      throw new Error('ARA: export token invalid or already used');
+    }
+
+    const json = JSON.stringify(statePayload, null, 0);
+    const bytes = new TextEncoder().encode(json).length;
+
+    if (bytes > MAX_BYTE_LIMIT) {
+      throw new Error(`ARA: export exceeds 4MB boundary (${(bytes/1048576).toFixed(2)}MB)`);
+    }
+
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), {
+      href: url,
+      download: `sovereign_vessel_character_${Date.now()}.json`,
+    });
+
+    a.click();
+    requestAnimationFrame(() => URL.revokeObjectURL(url));
+    a.remove();
+  }
+
+  return { issue, trigger };
+})();
+
+// ============================================================
+// MEMORY POOL — 4MB typed sub-allocator
+// ============================================================
+class MemoryPool {
+  static TYPES = {
+    Float32: { bytes: 4, ctor: Float32Array },
+    Float64: { bytes: 8, ctor: Float64Array },
+    Int8:    { bytes: 1, ctor: Int8Array },
+    Uint8:   { bytes: 1, ctor: Uint8Array },
+    Int16:   { bytes: 2, ctor: Int16Array },
+    Uint16:  { bytes: 2, ctor: Uint16Array },
+    Int32:   { bytes: 4, ctor: Int32Array },
+    Uint32:  { bytes: 4, ctor: Uint32Array },
+  };
+
+  constructor(capacity = 4 * 1024 * 1024) {
+    this.capacity = capacity;
+    this.buffer = new ArrayBuffer(capacity);
+    this.offset = 0;
+    this.blocks = [];
+    this._freed = [];
+  }
+
+  alloc(label, count, type = 'Uint8') {
+    const info = MemoryPool.TYPES[type];
+    if (!info) throw new Error(`ARA: unknown MemoryPool type: ${type}`);
+    const byteSize = count * info.bytes;
+    const align = info.bytes;
+    const aligned = (this.offset + align - 1) & ~(align - 1);
+    if (aligned + byteSize > this.capacity) {
+      console.error(`ARA: MemoryPool OOM — "${label}" needs ${byteSize}B, ${this.capacity - aligned}B left`);
+      return null;
+    }
+    this.offset = aligned;
+    const view = new info.ctor(this.buffer, this.offset, count);
+    this.blocks.push({ label, offset: this.offset, size: byteSize, count, type, view });
+    this.offset += byteSize;
+    return view;
+  }
+
+  free(label) {
+    const idx = this.blocks.findIndex(b => b.label === label);
+    if (idx === -1) return false;
+    const block = this.blocks.splice(idx, 1)[0];
+    this._freed.push(block);
+    return true;
+  }
+
+  reset() {
+    this.offset = 0;
+    this.blocks.length = 0;
+    this._freed.length = 0;
+  }
+
+  get used() { return this.offset; }
+  get available() { return this.capacity - this.offset; }
+  get usageRatio() { return this.offset / this.capacity; }
+
+  debug() {
+    return {
+      capacity: this.capacity,
+      used: this.offset,
+      available: this.available,
+      ratio: (this.usageRatio * 100).toFixed(1) + '%',
+      blocks: this.blocks.map(b => `${b.label}: ${b.size}B ${b.type}[${b.count}]`),
+    };
+  }
+}
+
+window.ARA_MEMORY = new MemoryPool();
+
+// ============================================================
+// PROCEDURAL SKIN SHADER — pure math, zero textures
+// ============================================================
+const SkinShaderSubstrate = {
+  vertexShader: `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+
+    void main() {
+      vUv = uv;
+      vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+      vNormal = normalize(normalMatrix * normal);
+      vViewPosition = -mvPos.xyz;
+      gl_Position = projectionMatrix * mvPos;
+    }
+  `,
+  fragmentShader: `
+    precision highp float;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+
+    uniform vec3 uBaseFleshColor;
+    uniform vec3 uSubsurfaceColor;
+    uniform float uPoreScale;
+    uniform float uRoughness;
+    uniform sampler2D uFaceTexture;
+    uniform float uUseFaceTexture;
+
+    float hash(vec2 p) {
+      p = fract(p * vec2(127.1, 311.7));
+      return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+    }
+
+    float skinGrainNoise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+      return mix(
+        mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+        u.y
+      );
+    }
+
+    void main() {
+      vec3 normal = normalize(vNormal);
+      vec3 viewDir = normalize(vViewPosition);
+      vec3 lightDir = normalize(vec3(0.5, 0.5, 1.0));
+
+      // Procedural micro-pores via screen-space derivative gradient
+      float microPores = hash(vUv * uPoreScale);
+      float grain = skinGrainNoise(vUv * (uPoreScale * 0.25));
+      float poreMask = smoothstep(0.82, 1.0, microPores) * 0.15;
+      float surfaceDetail = (grain * 0.05) - poreMask;
+
+      // Screen-space derivative normal perturbation — shatters specular highlights
+      float noise = grain + microPores * 0.3;
+      vec3 noiseGrad = vec3(dFdx(noise), dFdy(noise), 0.0);
+      vec3 perturbedNormal = normalize(normal + noiseGrad * 0.3);
+      float dotNL = max(dot(perturbedNormal, lightDir), 0.0);
+
+      // Fake SSS wrap lighting
+      float sssWrap = max(0.0, (dot(normal, lightDir) + 0.3) / 1.3);
+      vec3 diffuseTissue = mix(uSubsurfaceColor, uBaseFleshColor, sssWrap);
+
+      // Specular
+      vec3 halfDir = normalize(lightDir + viewDir);
+      float dotNH = max(dot(perturbedNormal, halfDir), 0.0);
+      float spec = pow(dotNH, mix(32.0, 128.0, 1.0 - uRoughness)) * (1.0 - uRoughness);
+      spec *= (1.0 - poreMask * 3.0);
+
+      // Compose
+      vec3 color = (diffuseTissue * dotNL) + vec3(spec * 0.4);
+
+      // Optional face texture overlay
+      if (uUseFaceTexture > 0.5) {
+        vec3 faceColor = texture2D(uFaceTexture, vUv).rgb;
+        if (length(faceColor) > 0.01) color = faceColor;
+      }
+
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    }
+  `,
+  createMaterial(baseColor, subsurfaceColor, poreScale, roughness) {
+    const sc = new THREE.Color(baseColor);
+    const ss = new THREE.Color(subsurfaceColor || 0x9b2a2a);
+    return new THREE.ShaderMaterial({
+      vertexShader: this.vertexShader,
+      fragmentShader: this.fragmentShader,
+      uniforms: {
+        uBaseFleshColor: { value: sc },
+        uSubsurfaceColor: { value: ss },
+        uPoreScale: { value: poreScale || 680.0 },
+        uRoughness: { value: roughness != null ? roughness : 0.42 },
+        uFaceTexture: { value: null },
+        uUseFaceTexture: { value: 0.0 },
+      },
+      side: THREE.FrontSide,
+    });
+  },
+};
+
+// ============================================================
+// THREE.JS SCENE
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG = {
+  maxRecursionLevels: 8,
+  baseZoom: 1,
+  smoothZoomSpeed: 0.08,
+  chapterCount: 12,
+  voiceServer: 'http://127.0.0.1:8765',
+  purchaseStore: 'ara_fractal_purchases',
+  bodyParamsKey: 'ara_fractal_body_params',
+};
+
+function loadBodyParams() {
+  try {
+    const raw = localStorage.getItem(CONFIG.bodyParamsKey);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+// ============================================================
+// CHAPTER DATA (simplified from Midnight Rage)
+// ============================================================
+const CHAPTERS = [
+  { id: 1, title: 'Innocence', theme: 'innocence', bodyFocus: 'Full body', color: '#3c964a', intense: false },
+  { id: 2, title: 'Attraction', theme: 'attraction', bodyFocus: 'Face, hands', color: '#3c964a', intense: false },
+  { id: 3, title: 'Desire', theme: 'desire', bodyFocus: 'Lips, throat', color: '#c9a84c', intense: false },
+  { id: 4, title: 'Hunger', theme: 'hunger', bodyFocus: 'Hands, waist', color: '#c9844c', intense: false },
+  { id: 5, title: 'Submission', theme: 'submission', bodyFocus: 'Knees, thighs', color: '#c96c4c', intense: true },
+  { id: 6, title: 'Cuckold', theme: 'cuckold', bodyFocus: 'Eyes, back', color: '#c9544c', intense: true },
+  { id: 7, title: 'Breeding', theme: 'breeding', bodyFocus: 'Belly, hips', color: '#c93c4c', intense: true },
+  { id: 8, title: 'Public Risk', theme: 'public_risk', bodyFocus: 'Shoulders, legs', color: '#c9244c', intense: true },
+  { id: 9, title: 'Gangbang', theme: 'full_chaos', bodyFocus: 'Full body', color: '#e74c3c', intense: true },
+  { id: 10, title: 'Public Humiliation', theme: 'full_exposed', bodyFocus: 'Full body', color: '#e74c3c', intense: true },
+  { id: 11, title: 'CNC', theme: 'cnc_kidnap', bodyFocus: 'Wrists, mouth', color: '#e74c3c', intense: true },
+  { id: 12, title: 'The Morning After', theme: 'morning_after', bodyFocus: 'Full body', color: '#3c964a', intense: false },
+];
+
+// ============================================================
+// RECURSIVE TEXTURE GENERATOR
+// ============================================================
+class RecursiveTextureGenerator {
+  constructor(size = 2048) {
+    this.size = size;
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = size;
+    this.canvas.height = size;
+    this.ctx = this.canvas.getContext('2d');
+    this.levelCanvases = [];
+  }
+
+  // Generate all recursion levels
+  generateAll(level, chapterIndex = 0) {
+    const clampedLevel = Math.min(level, CONFIG.maxRecursionLevels);
+    for (let i = 0; i <= clampedLevel; i++) {
+      this.generateLevel(i, chapterIndex);
+    }
+    return this.levelCanvases;
+  }
+
+  generateLevel(level, chapterIndex = 0) {
+    const c = document.createElement('canvas');
+    const subSize = this.size / Math.pow(2, Math.min(level, 4));
+    c.width = subSize;
+    c.height = subSize;
+    const ctx = c.getContext('2d');
+    const ch = CHAPTERS[chapterIndex % CHAPTERS.length];
+
+    switch (level) {
+      case 0: this._levelSurface(ctx, subSize, ch); break;
+      case 1: this._levelStickFigures(ctx, subSize, ch); break;
+      case 2: this._levelStickFiguresDense(ctx, subSize, ch); break;
+      case 3: this._levelTinyFaces(ctx, subSize, ch); break;
+      case 4: case 5: this._levelTinyFacesDense(ctx, subSize, ch); break;
+      case 6: case 7: this._levelAsciiFaces(ctx, subSize, ch); break;
+      default: this._levelTextNodes(ctx, subSize, ch); break;
+    }
+
+    this.levelCanvases[level] = c;
+    return c;
+  }
+
+  _levelSurface(ctx, size, ch) {
+    // Skin gradient with noise
+    const grad = ctx.createRadialGradient(size*0.5, size*0.4, 0, size*0.5, size*0.5, size*0.7);
+    grad.addColorStop(0, '#f5d6c6');
+    grad.addColorStop(0.3, '#e8c4a8');
+    grad.addColorStop(0.6, '#d4a88c');
+    grad.addColorStop(1, '#c49a80');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    // Subtle noise overlay
+    const imgData = ctx.getImageData(0, 0, size, size);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 20;
+      d[i] += noise;
+      d[i+1] += noise;
+      d[i+2] += noise;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    // Chapter color accent
+    ctx.fillStyle = ch.color + '30';
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  _levelStickFigures(ctx, size, ch) {
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = '#e8c4a8';
+    ctx.lineWidth = 2;
+
+    // Draw cluster of stick figures
+    const count = Math.floor(size / 40);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const s = 10 + Math.random() * 15;
+      this._drawStickFigure(ctx, x, y, s, Math.random() * Math.PI * 2);
+    }
+  }
+
+  _levelStickFiguresDense(ctx, size, ch) {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = '#d4a88c';
+    ctx.lineWidth = 1.5;
+
+    const count = Math.floor(size / 20);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const s = 5 + Math.random() * 10;
+      this._drawStickFigure(ctx, x, y, s, Math.random() * Math.PI * 2);
+    }
+
+    // Interconnecting lines
+    ctx.strokeStyle = '#d4a88c20';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < count * 0.3; i++) {
+      const x1 = Math.random() * size;
+      const y1 = Math.random() * size;
+      const x2 = Math.random() * size;
+      const y2 = Math.random() * size;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+  }
+
+  _levelTinyFaces(ctx, size, ch) {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, size, size);
+    const count = Math.floor(size / 12);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = 3 + Math.random() * 5;
+      this._drawTinyFace(ctx, x, y, r);
+    }
+  }
+
+  _levelTinyFacesDense(ctx, size, ch) {
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, size, size);
+    const count = Math.floor(size / 6);
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = 1.5 + Math.random() * 3;
+      this._drawTinyFace(ctx, x, y, r);
+    }
+  }
+
+  _levelAsciiFaces(ctx, size, ch) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, size, size);
+    ctx.font = '6px monospace';
+    ctx.fillStyle = '#3c964a';
+    const chars = '@%#*+=-:. oO08&^%$#';
+    for (let y = 0; y < size; y += 7) {
+      for (let x = 0; x < size; x += 4) {
+        const c = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillStyle = `hsl(${120 + Math.random() * 40}, ${30 + Math.random() * 40}%, ${30 + Math.random() * 40}%)`;
+        ctx.fillText(c, x, y);
+      }
+    }
+  }
+
+  _levelTextNodes(ctx, size, ch) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, size, size);
+    ctx.font = '8px monospace';
+    const words = [
+      'desire', 'fractal', 'infinite', 'recursion', 'skin', 'deeper',
+      'midnight', 'rage', 'vow', 'break', 'breed', 'use', 'lose', 'bring', 'back',
+      'innocence', 'hunger', 'submission', 'surrender', 'ecstasy'
+    ];
+    ctx.textAlign = 'center';
+    let y = 12;
+    while (y < size) {
+      const word = words[Math.floor(Math.random() * words.length)];
+      ctx.fillStyle = `hsl(${120 + Math.random() * 60}, ${50}%, ${20 + Math.random() * 30}%)`;
+      ctx.font = `${6 + Math.random() * 8}px monospace`;
+      const x = Math.random() * (size - 40) + 20;
+      ctx.fillText(word, x, y);
+      y += 6 + Math.random() * 8;
+    }
+  }
+
+  _drawStickFigure(ctx, x, y, size, rotation) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+
+    const head = size * 0.3;
+    const body = size * 0.7;
+    const armLen = size * 0.5;
+    const legLen = size * 0.6;
+
+    // Head
+    ctx.beginPath();
+    ctx.arc(0, -body * 0.2, head, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-head * 0.3, -body * 0.2 - head * 0.15, head * 0.12, 0, Math.PI * 2);
+    ctx.arc(head * 0.3, -body * 0.2 - head * 0.15, head * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.beginPath();
+    ctx.moveTo(0, -body * 0.2 + head);
+    ctx.lineTo(0, body * 0.4);
+    ctx.stroke();
+
+    // Arms
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-armLen, body * 0.1);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(armLen, body * 0.1);
+    ctx.stroke();
+
+    // Legs
+    ctx.beginPath();
+    ctx.moveTo(0, body * 0.4);
+    ctx.lineTo(-legLen * 0.6, body * 0.4 + legLen);
+    ctx.moveTo(0, body * 0.4);
+    ctx.lineTo(legLen * 0.6, body * 0.4 + legLen);
+    ctx.stroke();
+
+    // Breast circles with nipples for facing direction
+    const breastSize = size * 0.15;
+    ctx.beginPath();
+    ctx.arc(breastSize * 0.8, body * 0.05, breastSize, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-breastSize * 0.8, body * 0.05, breastSize, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Nipples (filled circles)
+    ctx.fillStyle = '#d4a88c';
+    ctx.beginPath();
+    ctx.arc(breastSize * 0.8, body * 0.05, breastSize * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-breastSize * 0.8, body * 0.05, breastSize * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#e8c4a8';
+    ctx.restore();
+  }
+
+  _drawTinyFace(ctx, x, y, r) {
+    ctx.strokeStyle = '#3c964a';
+    ctx.lineWidth = 0.5;
+    // Head
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // Eyes
+    ctx.fillStyle = '#3c964a';
+    ctx.beginPath();
+    ctx.arc(x - r*0.3, y - r*0.1, r*0.15, 0, Math.PI * 2);
+    ctx.arc(x + r*0.3, y - r*0.1, r*0.15, 0, Math.PI * 2);
+    ctx.fill();
+    // Mouth
+    ctx.beginPath();
+    ctx.arc(x, y + r*0.25, r*0.2, 0, Math.PI);
+    ctx.stroke();
+  }
+
+  getCombinedTexture() {
+    return this.canvas;
+  }
+}
+
+// ============================================================
+// FRACTAL BACKGROUND (Mandelbulb Raymarcher)
+// ============================================================
+class FractalBackground {
+  constructor(scene) {
+    this.scene = scene;
+    this.uniforms = {
+      uTime: { value: 0 },
+      uBass: { value: 0.5 },
+      uMid: { value: 0.5 },
+      uTreble: { value: 0.5 },
+      uPower: { value: 8.0 },
+      uIterations: { value: 40.0 },
+      uColorShift: { value: 0.0 },
+      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    };
+
+    const geo = new THREE.SphereGeometry(60, 48, 48);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: this.uniforms,
+      vertexShader: `
+        varying vec3 vPos;
+        void main() {
+          vPos = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        precision highp float;
+        varying vec3 vPos;
+        uniform vec2 uResolution;
+        uniform float uTime;
+        uniform float uBass;
+        uniform float uMid;
+        uniform float uTreble;
+        uniform float uPower;
+        uniform float uIterations;
+        uniform float uColorShift;
+
+        // Power-8 Mandelbulb distance estimator
+        float mandelbulbDE(vec3 p) {
+          vec3 z = p;
+          float dr = 1.0;
+          float r = 0.0;
+          float power = uPower;
+          for (int i = 0; i < 80; i++) {
+            if (i >= int(uIterations)) break;
+            r = length(z);
+            if (r > 2.0) break;
+            float theta = acos(z.z / r);
+            float phi = atan(z.y, z.x);
+            dr = pow(r, power - 1.0) * power * dr + 1.0;
+            float zr = pow(r, power);
+            theta *= power;
+            phi *= power;
+            z = zr * vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+            z += p;
+          }
+          return 0.5 * log(r) * r / dr;
+        }
+
+        vec3 palette(float t) {
+          vec3 a = vec3(0.5, 0.5, 0.5);
+          vec3 b = vec3(0.5, 0.5, 0.5);
+          vec3 c = vec3(1.0, 0.7, 0.4);
+          vec3 d = vec3(0.0, 0.15, 0.20);
+          vec3 shift = vec3(uColorShift, uColorShift + 0.33, uColorShift + 0.66);
+          return a + b * cos(6.28318 * (c * t + d + shift));
+        }
+
+        void main() {
+          vec3 ro = cameraPosition;
+          vec3 rd = normalize(vPos - ro);
+
+          float t = 0.0;
+          float d = 0.0;
+          int steps = 0;
+          bool hit = false;
+
+          // Ray march
+          for (int i = 0; i < 120; i++) {
+            if (i >= int(uIterations * 3.0)) break;
+            vec3 p = ro + rd * t;
+            d = mandelbulbDE(p);
+            if (d < 0.001) { hit = true; break; }
+            if (t > 50.0) break;
+            t += d * 0.85; // overshoot prevention
+            steps = i;
+          }
+
+          vec3 color = vec3(0.0);
+
+          if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 normal = vec3(0.0);
+            // Normal via gradient of DE
+            vec2 ep = vec2(0.001, 0.0);
+            normal = normalize(vec3(
+              mandelbulbDE(p + ep.xyy) - mandelbulbDE(p - ep.xyy),
+              mandelbulbDE(p + ep.yxy) - mandelbulbDE(p - ep.yxy),
+              mandelbulbDE(p + ep.yyx) - mandelbulbDE(p - ep.yyx)
+            ));
+
+            vec3 lightDir = normalize(vec3(sin(uTime * 0.3), 0.5, cos(uTime * 0.3)));
+            float diff = max(dot(normal, lightDir), 0.0) * 0.7 + 0.3;
+            float ambient = 0.15 + 0.05 * uBass;
+
+            // Orbit trap color
+            float orbit = float(steps) / (uIterations * 3.0);
+            vec3 baseColor = palette(orbit * 2.0 + uTreble * 0.5 + uMid * 0.3);
+
+            // Fog
+            float fog = 1.0 - exp(-t * 0.02 * uBass);
+
+            color = baseColor * (diff + ambient) * (1.0 - fog * 0.6);
+
+            // Glow on high bass
+            color += vec3(0.4, 0.1, 0.05) * uBass * uBass * (1.0 - fog) * 0.5;
+          } else {
+            // Background gradient
+            float h = rd.y * 0.5 + 0.5;
+            color = mix(vec3(0.01, 0.01, 0.02), vec3(0.05, 0.02, 0.05), h);
+          }
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+      side: THREE.BackSide,
+    });
+
+    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh.position.set(0, 0, 0);
+    scene.add(this.mesh);
+  }
+
+  update(audioWeights) {
+    this.uniforms.uTime.value += 0.016;
+    if (audioWeights) {
+      this.uniforms.uBass.value = 0.3 + 0.7 * Math.min(1, (audioWeights.jawOpen || 0) * 2.5);
+      this.uniforms.uMid.value = 0.2 + 0.8 * Math.min(1, (audioWeights.lipRound || 0) * 2.0);
+      this.uniforms.uTreble.value = 0.2 + 0.8 * Math.min(1, (audioWeights.friction || 0) * 2.0);
+    } else {
+      // Idle animation when no audio
+      this.uniforms.uBass.value += (0.4 + Math.sin(this.uniforms.uTime.value * 0.7) * 0.3 - this.uniforms.uBass.value) * 0.02;
+      this.uniforms.uMid.value += (0.5 + Math.sin(this.uniforms.uTime.value * 1.3) * 0.3 - this.uniforms.uMid.value) * 0.02;
+      this.uniforms.uTreble.value += (0.4 + Math.sin(this.uniforms.uTime.value * 2.1) * 0.3 - this.uniforms.uTreble.value) * 0.02;
+    }
+    this.uniforms.uColorShift.value = this.uniforms.uTime.value * 0.02 + this.uniforms.uMid.value * 0.1;
+  }
+
+  resize(w, h) {
+    this.uniforms.uResolution.value.set(w, h);
+  }
+
+  dispose() {
+    this.scene.remove(this.mesh);
+    this.mesh.geometry.dispose();
+    this.mesh.material.dispose();
+  }
+}
+
+// ============================================================
+// IK CHAIN SOLVER (FABRIK + CCD + Swing-Twist)
+// ============================================================
+class IKChain {
+  constructor(name) {
+    this.name = name;
+    this.boneLengths = [];
+    this.rootOrigin = new THREE.Vector3();
+    this.target = new THREE.Vector3();
+    this.iterations = 12;
+    this.tolerance = 0.001;
+    this._joints = [];
+    this._restPositions = [];
+    this._limits = [];
+    this._quaternions = [];
+    this._useCCD = false;
+  }
+
+  addBone(length) { this.boneLengths.push(length); return this; }
+
+  setLimit(index, swingMin, swingMax, twistMin, twistMax) {
+    this._limits[index] = { swingMin, swingMax, twistMin, twistMax };
+  }
+
+  setJoints(positions) {
+    this._joints = positions.map(p => { const v = new THREE.Vector3(); v.copy(p); return v; });
+    this._restPositions = positions.map(p => { const v = new THREE.Vector3(); v.copy(p); return v; });
+    this._quaternions = this._joints.map(() => new THREE.Quaternion());
+    if (this._joints.length > 0) this.rootOrigin.copy(this._joints[0]);
+    return this;
+  }
+
+  getJointCount() { return this._joints.length; }
+  getJoint(index) { return this._joints[index]; }
+
+  getBoneDirection(index) {
+    const d = new THREE.Vector3().copy(this._joints[index + 1]).sub(this._joints[index]);
+    return d;
+  }
+
+  solveFABRIK(worldTarget) {
+    const n = this._joints.length;
+    if (n < 2) return;
+
+    const totalLen = this.boneLengths.reduce((a, b) => a + b, 0);
+    const rootPos = new THREE.Vector3().copy(this.rootOrigin);
+    const clampedTarget = new THREE.Vector3().copy(worldTarget);
+
+    if (rootPos.distanceTo(worldTarget) > totalLen) {
+      const dir = new THREE.Vector3().copy(worldTarget).sub(rootPos).normalize();
+      clampedTarget.copy(rootPos).add(dir.multiplyScalar(totalLen));
+    }
+
+    for (let iter = 0; iter < this.iterations; iter++) {
+      this._joints[n - 1].copy(clampedTarget);
+      for (let i = n - 2; i >= 0; i--) {
+        const dir = new THREE.Vector3().copy(this._joints[i]).sub(this._joints[i + 1]);
+        const len = dir.length();
+        if (len > 1e-10) {
+          dir.multiplyScalar(this.boneLengths[i] / len);
+          this._joints[i].copy(this._joints[i + 1]).add(dir);
+        }
+      }
+
+      this._joints[0].copy(rootPos);
+      for (let i = 1; i < n; i++) {
+        const dir = new THREE.Vector3().copy(this._joints[i]).sub(this._joints[i - 1]);
+        const len = dir.length();
+        if (len > 1e-10) {
+          dir.multiplyScalar(this.boneLengths[i - 1] / len);
+          this._joints[i].copy(this._joints[i - 1]).add(dir);
+        }
+      }
+
+      this._enforceLimits();
+
+      const endDist = this._joints[n - 1].distanceTo(worldTarget);
+      if (endDist < this.tolerance) break;
+    }
+  }
+
+  solveCCD(worldTarget) {
+    const n = this._joints.length;
+    if (n < 2) return;
+
+    const totalLen = this.boneLengths.reduce((a, b) => a + b, 0);
+    const rootPos = new THREE.Vector3().copy(this.rootOrigin);
+    const clampedTarget = new THREE.Vector3().copy(worldTarget);
+
+    if (rootPos.distanceTo(worldTarget) > totalLen) {
+      const dir = new THREE.Vector3().copy(worldTarget).sub(rootPos).normalize();
+      clampedTarget.copy(rootPos).add(dir.multiplyScalar(totalLen));
+    }
+
+    const endPos = new THREE.Vector3();
+    const jointPos = new THREE.Vector3();
+    const toEnd = new THREE.Vector3();
+    const toTarget = new THREE.Vector3();
+    const axis = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+
+    for (let iter = 0; iter < this.iterations; iter++) {
+      for (let j = n - 2; j >= 0; j--) {
+        endPos.copy(this._joints[n - 1]);
+        jointPos.copy(this._joints[j]);
+
+        toEnd.copy(endPos).sub(jointPos);
+        toTarget.copy(clampedTarget).sub(jointPos);
+
+        toEnd.normalize();
+        toTarget.normalize();
+
+        const dot = toEnd.dot(toTarget);
+        if (dot > 0.9999) continue;
+
+        axis.crossVectors(toEnd, toTarget).normalize();
+        const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+        quat.setFromAxisAngle(axis, angle);
+        this._quaternions[j].multiply(quat);
+
+        for (let k = j + 1; k < n; k++) {
+          const rel = new THREE.Vector3().copy(this._joints[k]).sub(jointPos);
+          rel.applyQuaternion(quat);
+          this._joints[k].copy(jointPos).add(rel);
+        }
+      }
+
+      this._enforceLimits();
+
+      const endDist = this._joints[n - 1].distanceTo(worldTarget);
+      if (endDist < this.tolerance) break;
+    }
+  }
+
+  _enforceLimits() {
+    for (let i = 0; i < this._joints.length && i < this._limits.length; i++) {
+      const lim = this._limits[i];
+      if (!lim) continue;
+      if (i >= this._joints.length - 1) continue;
+      const restDir = new THREE.Vector3().copy(this._restPositions[i + 1]).sub(this._restPositions[i]).normalize();
+      const curDir = new THREE.Vector3().copy(this._joints[i + 1]).sub(this._joints[i]).normalize();
+      const swingTwist = IKChain.decomposeSwingTwist(curDir, restDir);
+      const clampedSwing = Math.max(lim.swingMin, Math.min(lim.swingMax, swingTwist.swing));
+      const clampedTwist = Math.max(lim.twistMin, Math.min(lim.twistMax, swingTwist.twist));
+      if (clampedSwing !== swingTwist.swing || clampedTwist !== swingTwist.twist) {
+        const clamped = IKChain.composeSwingTwist(clampedSwing, clampedTwist, restDir);
+        this._joints[i + 1].copy(this._joints[i]).add(clamped.clone().normalize().multiplyScalar(this.boneLengths[i]));
+      }
+    }
+  }
+
+  getEndEffector() { return this._joints[this._joints.length - 1]; }
+
+  reset() {
+    for (let i = 0; i < this._joints.length; i++) {
+      this._joints[i].copy(this._restPositions[i]);
+    }
+  }
+
+  getPose() {
+    return this._joints.map(p => ({ x: p.x, y: p.y, z: p.z }));
+  }
+
+  setPose(data) {
+    if (!data || data.length !== this._joints.length) return;
+    for (let i = 0; i < this._joints.length; i++) {
+      this._joints[i].set(data[i].x, data[i].y, data[i].z);
+    }
+  }
+
+  static decomposeSwingTwist(dir, refDir) {
+    const d = dir.clone().normalize();
+    const r = refDir.clone().normalize();
+    const swing = Math.acos(Math.max(-1, Math.min(1, d.dot(r))));
+    const cross = new THREE.Vector3().crossVectors(r, d);
+    const twist = cross.length() > 1e-6 ? Math.atan2(cross.length(), r.dot(d)) : 0;
+    return { swing, twist };
+  }
+
+  static composeSwingTwist(swing, twist, refDir) {
+    const r = refDir.clone().normalize();
+    const axis = new THREE.Vector3(0, 0, 1);
+    const perp = new THREE.Vector3().crossVectors(r, axis);
+    if (perp.length() < 1e-6) perp.set(1, 0, 0);
+    perp.normalize();
+    const q = new THREE.Quaternion().setFromAxisAngle(perp, swing);
+    const q2 = new THREE.Quaternion().setFromAxisAngle(r, twist);
+    q.multiply(q2);
+    return r.clone().applyQuaternion(q);
+  }
+}
+
+// ============================================================
+// THREE.JS SCENE
+// ============================================================
+class ARAFractalScene {
+  constructor(containerId) {
+    this.container = document.getElementById(containerId);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(45, this.container.clientWidth / this.container.clientHeight, 0.1, 200);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.textureGen = new RecursiveTextureGenerator();
+    this.currentLevel = 0;
+    this.currentChapter = 0;
+    this.isAnimating = false;
+    this.zoomTarget = 1;
+    this.zoomCurrent = 1;
+    this.mesh = null;
+
+    // IK solver state
+    this._ikChains = {};
+    this._ikMeshes = {};
+    this._ikDragState = null;
+    this._useCCD = false;
+
+    this._init();
+  }
+
+  _init() {
+    const W = this.container.clientWidth;
+    const H = this.container.clientHeight;
+
+    this.renderer.setSize(W, H);
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.2;
+    this.container.appendChild(this.renderer.domElement);
+
+    this.camera.position.set(0, 1.5, 5);
+    this.camera.lookAt(0, 0.8, 0);
+
+    this.controls.target.set(0, 0.8, 0);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.minDistance = 0.3;
+    this.controls.maxDistance = 15;
+    this.controls.update();
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0x404060, 0.5);
+    this.scene.add(ambient);
+
+    const keyLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+    keyLight.position.set(2, 4, 3);
+    this.scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x4488ff, 0.6);
+    fillLight.position.set(-2, 1, 2);
+    this.scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0x3c964a, 0.8);
+    rimLight.position.set(0, 0, -4);
+    this.scene.add(rimLight);
+
+    const hemi = new THREE.HemisphereLight(0x446688, 0x223344, 0.4);
+    this.scene.add(hemi);
+
+    // Floor / environment
+    const floorGeo = new THREE.PlaneGeometry(10, 10);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a0a,
+      roughness: 0.9,
+      metalness: 0.0,
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.5;
+    this.scene.add(floor);
+
+    this._regionTextures = {};
+
+    // Build the procedural body
+    this._buildBody();
+
+    // Fractal background
+    this.fractalBg = new FractalBackground(this.scene);
+
+    // Resize handler
+    window.addEventListener('resize', () => this._resize());
+
+    // Start render loop
+    this._animate();
+
+    // Listen for body param changes from marketplace
+    window.addEventListener('storage', (e) => {
+      if (e.key === CONFIG.bodyParamsKey) this.rebuildBody();
+    });
+  }
+
+  _buildBody() {
+    const FALLBACK = {
+      torsoTopRadius: 0.4, torsoBottomRadius: 0.3, torsoHeight: 1.0,
+      waistPinch: -0.2, hipFlare: 0.15,
+      breastRadius: 0.18, breastSpread: 0.22, breastHeight: 0.75, breastForward: 0.2,
+      breastScaleX: 1, breastScaleY: 0.85, breastScaleZ: 0.7,
+      headRadius: 0.22, headY: 1.2, headScaleX: 1, headScaleY: 1.05, headScaleZ: 0.9,
+      armTopRadius: 0.06, armBottomRadius: 0.05, armHeight: 0.6,
+      armSpread: 0.45, armY: 0.7, armRotZ: 0.3, armRotX: 0.2,
+      legTopRadius: 0.08, legBottomRadius: 0.06, legHeight: 0.6,
+      legSpread: 0.12, legY: 0.05,
+      skinColor: '#e8c4a8', breastColor: '#e8c4a8',
+    };
+    const bp = Object.assign({}, FALLBACK, loadBodyParams() || {});
+
+    const group = new THREE.Group();
+
+    // Torso
+    const torsoGeo = new THREE.CylinderGeometry(bp.torsoTopRadius, bp.torsoBottomRadius, bp.torsoHeight, 16, 8);
+    this._morphTorso(torsoGeo, bp.waistPinch, bp.hipFlare);
+    const torso = new THREE.Mesh(torsoGeo, SkinShaderSubstrate.createMaterial(bp.skinColor));
+    torso.position.y = 0.5;
+    torso.userData = { region: 'torso' };
+    group.add(torso);
+
+    // Breasts
+    for (let side of [-1, 1]) {
+      const breast = new THREE.Mesh(new THREE.SphereGeometry(bp.breastRadius, 12, 12),
+        SkinShaderSubstrate.createMaterial(bp.breastColor));
+      breast.position.set(side * bp.breastSpread, bp.breastHeight, bp.breastForward);
+      breast.scale.set(bp.breastScaleX, bp.breastScaleY, bp.breastScaleZ);
+      breast.userData = { region: 'breasts' };
+      group.add(breast);
+    }
+
+    // Head — startup texture with 68-point landmark dots
+    const headMat = SkinShaderSubstrate.createMaterial(bp.skinColor);
+    headMat.uniforms.uUseFaceTexture.value = 1.0;
+    const startupCanvas = document.createElement('canvas');
+    startupCanvas.width = 256; startupCanvas.height = 256;
+    const sctx = startupCanvas.getContext('2d');
+    // Transparent background — shader provides procedural skin underneath
+    sctx.clearRect(0, 0, 256, 256);
+    for (let i = 0; i < 68; i++) {
+      const u = (i % 17) / 16, v = Math.floor(i / 17) / 3;
+      const px = 128 + 80 * Math.cos(u * Math.PI * 2) * Math.sin(v * Math.PI);
+      const py = 128 - 80 * Math.cos(v * Math.PI);
+      sctx.beginPath(); sctx.arc(px, py, 3, 0, Math.PI * 2);
+      sctx.fillStyle = '#2ecc71'; sctx.fill();
+    }
+    headMat.uniforms.uFaceTexture.value = new THREE.CanvasTexture(startupCanvas);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(bp.headRadius, 16, 16), headMat);
+    head.position.set(0, bp.headY, 0.05);
+    head.scale.set(bp.headScaleX, bp.headScaleY, bp.headScaleZ);
+    head.userData = { region: 'head' };
+    group.add(head);
+
+    // Arms — segmented (upper arm + forearm) for IK
+    const upperArmLen = bp.armHeight * 0.5;
+    const forearmLen = bp.armHeight * 0.5;
+    for (let side of [-1, 1]) {
+      // Upper arm (shoulder → elbow)
+      const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(bp.armTopRadius, (bp.armTopRadius + bp.armBottomRadius) * 0.5, upperArmLen, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      upperArm.position.set(side * bp.armSpread, bp.armY + upperArmLen * 0.5, 0);
+      upperArm.rotation.z = side * bp.armRotZ;
+      upperArm.rotation.x = side * bp.armRotX;
+      upperArm.userData = { region: 'arms', ikChain: 'arm_' + (side > 0 ? 'R' : 'L'), ikIndex: 0 };
+      group.add(upperArm);
+
+      // Elbow joint
+      const elbow = new THREE.Mesh(new THREE.SphereGeometry(bp.armTopRadius * 0.9, 8, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      elbow.position.set(side * (bp.armSpread + Math.sin(bp.armRotZ) * upperArmLen), bp.armY + upperArmLen, 0);
+      elbow.userData = { region: 'arms', ikChain: 'arm_' + (side > 0 ? 'R' : 'L'), ikIndex: 1 };
+      group.add(elbow);
+
+      // Forearm (elbow → wrist)
+      const forearm = new THREE.Mesh(new THREE.CylinderGeometry((bp.armTopRadius + bp.armBottomRadius) * 0.5, bp.armBottomRadius, forearmLen, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      forearm.position.set(side * bp.armSpread + side * Math.sin(bp.armRotZ) * (upperArmLen + forearmLen * 0.5),
+        bp.armY + upperArmLen + forearmLen * 0.5, 0);
+      forearm.rotation.z = side * bp.armRotZ;
+      forearm.rotation.x = side * bp.armRotX;
+      forearm.userData = { region: 'arms', ikChain: 'arm_' + (side > 0 ? 'R' : 'L'), ikIndex: 2 };
+      group.add(forearm);
+
+      // Wrist joint (end effector target)
+      const wrist = new THREE.Mesh(new THREE.SphereGeometry(bp.armBottomRadius * 1.2, 8, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      wrist.position.set(side * bp.armSpread + side * Math.sin(bp.armRotZ) * (upperArmLen + forearmLen),
+        bp.armY + upperArmLen + forearmLen, 0);
+      wrist.userData = { region: 'arms', ikChain: 'arm_' + (side > 0 ? 'R' : 'L'), ikIndex: 3, isEndEffector: true };
+      group.add(wrist);
+    }
+
+    // Legs — segmented (thigh + shin) for IK
+    const thighLen = bp.legHeight * 0.5;
+    const shinLen = bp.legHeight * 0.5;
+    for (let side of [-1, 1]) {
+      // Thigh (hip → knee)
+      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(bp.legTopRadius, (bp.legTopRadius + bp.legBottomRadius) * 0.5, thighLen, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      thigh.position.set(side * bp.legSpread, bp.legY + thighLen * 0.5, 0);
+      thigh.userData = { region: 'legs', ikChain: 'leg_' + (side > 0 ? 'R' : 'L'), ikIndex: 0 };
+      group.add(thigh);
+
+      // Knee joint
+      const knee = new THREE.Mesh(new THREE.SphereGeometry(bp.legTopRadius * 0.9, 8, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      knee.position.set(side * bp.legSpread, bp.legY + thighLen, 0);
+      knee.userData = { region: 'legs', ikChain: 'leg_' + (side > 0 ? 'R' : 'L'), ikIndex: 1 };
+      group.add(knee);
+
+      // Shin (knee → ankle)
+      const shin = new THREE.Mesh(new THREE.CylinderGeometry((bp.legTopRadius + bp.legBottomRadius) * 0.5, bp.legBottomRadius, shinLen, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      shin.position.set(side * bp.legSpread, bp.legY + thighLen + shinLen * 0.5, 0);
+      shin.userData = { region: 'legs', ikChain: 'leg_' + (side > 0 ? 'R' : 'L'), ikIndex: 2 };
+      group.add(shin);
+
+      // Ankle joint (end effector target)
+      const ankle = new THREE.Mesh(new THREE.SphereGeometry(bp.legBottomRadius * 1.2, 8, 8),
+        SkinShaderSubstrate.createMaterial(bp.skinColor));
+      ankle.position.set(side * bp.legSpread, bp.legY + thighLen + shinLen, 0);
+      ankle.userData = { region: 'legs', ikChain: 'leg_' + (side > 0 ? 'R' : 'L'), ikIndex: 3, isEndEffector: true };
+      group.add(ankle);
+    }
+
+    this.meshGroup = group;
+    this.scene.add(group);
+    this.bodyMeshes = Array.from(group.children);
+    this.clothingRenderer = new ClothingRenderer(this.scene, this.meshGroup, this.bodyMeshes);
+    this._initIK(bp);
+  }
+
+  rebuildBody() {
+    if (this.meshGroup) {
+      // Clear IK drag state
+      this._ikDragState = null;
+      // Remove all children from group + dispose
+      while (this.meshGroup.children.length > 0) {
+        const c = this.meshGroup.children[0];
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+        this.meshGroup.remove(c);
+      }
+      this.scene.remove(this.meshGroup);
+    }
+    if (this.clothingRenderer) this.clothingRenderer.dispose();
+    this._buildBody();
+    if (this._regionTextures && Object.keys(this._regionTextures).length > 0) {
+      this._reapplyRegionTextures();
+    }
+  }
+
+  _morphTorso(geo, waistAmt, hipAmt) {
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const r = Math.sqrt(x*x + z*z);
+      const ny = (y + 0.5) / 1.0;
+      const waist = 1 + (waistAmt || -0.2) * Math.sin(ny * Math.PI) * Math.sin(ny * Math.PI * 3);
+      const hips = 1 + (hipAmt || 0.15) * Math.max(0, Math.sin((ny - 0.6) * Math.PI));
+      const scale = waist * hips;
+      pos.setX(i, x * scale);
+      pos.setZ(i, z * scale);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+  }
+
+  _initIK(bp) {
+    this._ikChains = {};
+    this._ikMeshes = {};
+
+    const upperArmLen = bp.armHeight * 0.5;
+    const forearmLen = bp.armHeight * 0.5;
+    const thighLen = bp.legHeight * 0.5;
+    const shinLen = bp.legHeight * 0.5;
+
+    // Helper: find meshes by chain name
+    const chainMeshes = {};
+    this.meshGroup.children.forEach(c => {
+      const chain = c.userData.ikChain;
+      if (chain) {
+        if (!chainMeshes[chain]) chainMeshes[chain] = [];
+        chainMeshes[chain].push(c);
+      }
+    });
+
+    // Build IK chain for each limb
+    const limbConfigs = [
+      { name: 'arm_L', rootPos: [-bp.armSpread, bp.armY, 0], len1: upperArmLen, len2: forearmLen },
+      { name: 'arm_R', rootPos: [bp.armSpread, bp.armY, 0], len1: upperArmLen, len2: forearmLen },
+      { name: 'leg_L', rootPos: [-bp.legSpread, bp.legY, 0], len1: thighLen, len2: shinLen },
+      { name: 'leg_R', rootPos: [bp.legSpread, bp.legY, 0], len1: thighLen, len2: shinLen },
+    ];
+
+    for (const cfg of limbConfigs) {
+      const chain = new IKChain(cfg.name);
+      chain.addBone(cfg.len1);
+      chain.addBone(cfg.len2);
+
+      const root = new THREE.Vector3(cfg.rootPos[0], cfg.rootPos[1], cfg.rootPos[2]);
+      const elbow = new THREE.Vector3(cfg.rootPos[0], cfg.rootPos[1] + cfg.len1, 0);
+      const wrist = new THREE.Vector3(cfg.rootPos[0], cfg.rootPos[1] + cfg.len1 + cfg.len2, 0);
+
+      // Load saved pose or use default
+      const savedPose = loadBodyParams();
+      let poseData = null;
+      if (savedPose && savedPose['ik_' + cfg.name]) {
+        poseData = savedPose['ik_' + cfg.name];
+      }
+
+      chain.setJoints([root, elbow, wrist]);
+      if (poseData) chain.setPose(poseData);
+
+      // Set joint limits (radians)
+      const isLeg = cfg.name.startsWith('leg');
+      const side = cfg.name.endsWith('R') ? 1 : -1;
+      chain.setLimit(0, -1.8, 1.8, -0.5, 0.5); // shoulder/hip
+      chain.setLimit(1, isLeg ? -0.1 : -2.4, isLeg ? 1.6 : 0.1, -0.3, 0.3); // elbow/knee
+
+      this._ikChains[cfg.name] = chain;
+
+      // Index meshes by chain index
+      const meshes = chainMeshes[cfg.name] || [];
+      meshes.sort((a, b) => a.userData.ikIndex - b.userData.ikIndex);
+      this._ikMeshes[cfg.name] = meshes;
+    }
+
+    // Update mesh positions from initial IK
+    this._updateIKMeshes();
+  }
+
+  _updateIKMeshes() {
+    for (const [chainName, chain] of Object.entries(this._ikChains)) {
+      const meshes = this._ikMeshes[chainName];
+      if (!meshes || meshes.length < 2) continue;
+
+      const nJoints = chain.getJointCount();
+      const up = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion();
+
+      for (let i = 0; i < nJoints - 1; i++) {
+        // Each bone spans joint[i] → joint[i+1]
+        const rootJ = chain.getJoint(i);
+        const tipJ = chain.getJoint(i + 1);
+        const dir = new THREE.Vector3().copy(tipJ).sub(rootJ);
+        const len = dir.length();
+
+        // Find the mesh segment for this bone (match by index i and i+1)
+        const segMesh = meshes.find(m => m.userData.ikIndex === i);
+        if (segMesh) {
+          const mid = new THREE.Vector3().copy(rootJ).add(tipJ).multiplyScalar(0.5);
+          segMesh.position.copy(mid);
+          if (len > 1e-6) {
+            quat.setFromUnitVectors(up, dir.clone().normalize());
+            segMesh.quaternion.copy(quat);
+          }
+          // Stretch to fit bone length
+          const origHeight = segMesh.geometry.parameters ? segMesh.geometry.parameters.height : 1;
+          segMesh.scale.y = origHeight > 0 ? len / origHeight : 1;
+        }
+
+        // Position joint sphere at joint[i+1]
+        const jointMesh = meshes.find(m => m.userData.ikIndex === i + 1);
+        if (jointMesh) {
+          jointMesh.position.copy(tipJ);
+        }
+      }
+    }
+  }
+
+  _solveIK() {
+    for (const chain of Object.values(this._ikChains)) {
+      if (this._useCCD) {
+        chain.solveCCD(chain.target);
+      } else {
+        chain.solveFABRIK(chain.target);
+      }
+    }
+  }
+
+  _generateBodyTexture(level) {
+    this.textureGen.generateLevel(level, this.currentChapter);
+    const canvas = this.textureGen.levelCanvases[level];
+    if (!canvas) return null;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(2, 3);
+    return tex;
+  }
+
+  updateTexture(level) {
+    if (!this.meshGroup) return;
+    this.currentLevel = Math.min(level, CONFIG.maxRecursionLevels);
+    const tex = this._generateBodyTexture(this.currentLevel);
+    this.meshGroup.children.forEach(child => {
+      if (child.isMesh && child.material) {
+        if (child.material.map) {
+          child.material.map = tex;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+  }
+
+  zoomToPoint(point) {
+    // Smooth zoom toward clicked point
+    this.zoomTarget = Math.max(0.3, this.zoomCurrent * 0.5);
+    const dir = new THREE.Vector3().copy(point).sub(this.controls.target);
+    dir.multiplyScalar(0.3);
+    this.controls.target.copy(point);
+
+    // Bump recursion level on zoom
+    const newLevel = Math.min(this.currentLevel + 1, CONFIG.maxRecursionLevels);
+    this.updateTexture(newLevel);
+
+    // Show info
+    this._showInfoForLevel(newLevel);
+  }
+
+  resetZoom() {
+    this.zoomTarget = 1;
+    this.controls.target.set(0, 0.8, 0);
+    this.camera.position.set(0, 1.5, 5);
+    this.updateTexture(0);
+
+    document.getElementById('red-overlay').classList.remove('visible');
+  }
+
+  setChapter(index) {
+    this.currentChapter = Math.max(0, Math.min(index, CHAPTERS.length - 1));
+    const ch = CHAPTERS[this.currentChapter];
+    document.getElementById('chapter-display').textContent = `CHAPTER ${ch.id}: ${ch.title.toUpperCase()}`;
+    document.getElementById('progress-fill').style.width = `${((ch.id) / CHAPTERS.length) * 100}%`;
+
+    // RED overlay for intense chapters
+    if (ch.intense) {
+      document.getElementById('red-overlay').classList.add('visible');
+    } else {
+      document.getElementById('red-overlay').classList.remove('visible');
+    }
+
+    this.updateTexture(this.currentLevel);
+  }
+
+  _showInfoForLevel(level) {
+    const panel = document.getElementById('info-panel');
+    const title = document.getElementById('info-title');
+    const body = document.getElementById('info-body');
+
+    const msgs = [
+      'Elegant surface. Ara stands before you. Her skin catches the light.',
+      'Beneath the surface: thousands of moments. Each one a memory drawn in ink.',
+      'The stick figures entwine. Every touch, every whisper, rendered in miniature.',
+      'Faces upon faces. Each one a fragment of desire, looking back at you.',
+      'The faces multiply. A sea of witnesses to your exploration.',
+      'Text emerges from the chaos. Words crystallize from the noise.',
+      'The narrative fractures into pure language. Midnight Rage speaks through her skin.',
+      'You are inside the story now. There is no surface left to return to.'
+    ];
+
+    title.textContent = `RECURSION LEVEL ${level}`;
+    body.textContent = msgs[Math.min(level, msgs.length - 1)];
+    panel.classList.add('visible');
+  }
+
+  _resize() {
+    const W = this.container.clientWidth;
+    const H = this.container.clientHeight;
+    this.camera.aspect = W / H;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(W, H);
+    if (this.fractalBg) this.fractalBg.resize(W, H);
+  }
+
+  _animate() {
+    requestAnimationFrame(() => this._animate());
+
+    // Memory display update (once per ~60 frames)
+    this._memTick = (this._memTick || 0) + 1;
+    if (this._memTick % 60 === 0) {
+      const mem = window.ARA_MEMORY.debug();
+      const el = document.getElementById('mem-usage');
+      if (el) el.textContent = `${mem.ratio} used`;
+    }
+
+    // Smooth zoom
+    this.zoomCurrent += (this.zoomTarget - this.zoomCurrent) * CONFIG.smoothZoomSpeed;
+
+    if (this.meshGroup) {
+      // IK solve + update every frame
+      if (this._ikDragState) {
+        this._solveIK();
+        this._updateIKMeshes();
+      }
+      // Subtle idle animation
+      this.meshGroup.rotation.y = Math.sin(Date.now() * 0.0003) * 0.05;
+    }
+
+    // Update fractal background with audio reactivity
+    if (this.fractalBg) {
+      const weights = window._visemeCurrent || null;
+      this.fractalBg.update(weights);
+    }
+
+    this.controls.update();
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  exportGLTF() {
+    const exporter = new GLTFExporter();
+    const scene = this.scene.clone();
+
+    // Remove floor from export
+    const toRemove = scene.children.filter(c => c.geometry && c.geometry.type === 'PlaneGeometry');
+    toRemove.forEach(c => scene.remove(c));
+
+    exporter.parse(scene, (gltf) => {
+      const output = JSON.stringify(gltf, null, 2);
+      const blob = new Blob([output], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ara_fractal_ch${this.currentChapter + 1}_lvl${this.currentLevel}.gltf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, (error) => {
+      console.error('GLTF export error:', error);
+    }, { binary: false });
+  }
+}
+
+// ============================================================
+// VOICE INTEGRATION (StyleTTS2)
+// ============================================================
+class VoiceManager {
+  constructor(serverUrl) {
+    this.serverUrl = serverUrl;
+    this.online = false;
+    this.dot = document.getElementById('voice-dot');
+    this.label = document.getElementById('voice-label');
+  }
+
+  async checkConnection() {
+    try {
+      const resp = await fetch(`${this.serverUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(2000) });
+      this.online = resp.ok;
+    } catch {
+      this.online = false;
+    }
+    this.dot.className = this.online ? 'dot online' : 'dot';
+    this.label.textContent = this.online ? 'VOICE ONLINE' : 'VOICE OFFLINE';
+    return this.online;
+  }
+
+  async speak(text, onViseme) {
+    if (!this.online) return;
+    try {
+      const resp = await fetch(`${this.serverUrl}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: 'amelia1' }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!resp.ok) throw new Error('TTS failed');
+      const blob = await resp.blob();
+      if (onViseme) {
+        const lipSync = new LipSyncProcessor();
+        await lipSync.start(blob, onViseme);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+      }
+    } catch (err) {
+      console.warn('Voice playback failed:', err);
+    }
+  }
+}
+
+// ============================================================
+// LIP SYNC (Web Audio API FFT → Viseme Weights)
+// ============================================================
+class LipSyncProcessor {
+  constructor() {
+    this._running = false;
+    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    this._window = ARA_MEMORY.alloc('lipsync_window', 512, 'Float32');
+    for (let i = 0; i < 512; i++) {
+      this._window[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / 511));
+    }
+    this._freqData = ARA_MEMORY.alloc('lipsync_freq', 512, 'Uint8');
+  }
+
+  async start(audioBlob, onFrame) {
+    this._running = true;
+    if (this.audioCtx.state === 'suspended') await this.audioCtx.resume();
+    const buf = await audioBlob.arrayBuffer();
+    const audioBuffer = await this.audioCtx.decodeAudioData(buf);
+
+    const source = this.audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+
+    const analyser = this.audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.85;
+
+    source.connect(analyser);
+    analyser.connect(this.audioCtx.destination);
+    source.start();
+
+    const binWidth = this.audioCtx.sampleRate / analyser.fftSize;
+    // Use pre-allocated freq buffer from pool; grow if analyser bin count differs
+    const freqData = analyser.frequencyBinCount <= this._freqData.length
+      ? this._freqData.subarray(0, analyser.frequencyBinCount)
+      : ARA_MEMORY.alloc('lipsync_freq_large', analyser.frequencyBinCount, 'Uint8');
+    
+    const frame = () => {
+      if (!this._running) return;
+      analyser.getByteFrequencyData(freqData);
+
+      let lowE = 0, midE = 0, highE = 0;
+      let lowN = 0, midN = 0, highN = 0;
+      for (let i = 0; i < freqData.length; i++) {
+        const f = i * binWidth;
+        const v = freqData[i] / 255;
+        if (f >= 150 && f < 700) { lowE += v; lowN++; }
+        else if (f >= 700 && f < 1800) { midE += v; midN++; }
+        else if (f >= 1800 && f < 4500) { highE += v; highN++; }
+      }
+      lowE = lowN > 0 ? lowE / lowN : 0;
+      midE = midN > 0 ? midE / midN : 0;
+      highE = highN > 0 ? highE / highN : 0;
+      const total = lowE + midE + highE + 1e-6;
+
+      onFrame({
+        jawOpen: Math.min(1, lowE / total * 2.5),
+        lipRound: lowE > midE * 1.5 ? 0.8 : 0,
+        lipStretch: Math.min(1, highE / total * 2),
+        friction: highE > (lowE + midE) * 0.8 ? Math.min(1, highE * 3) : 0,
+      });
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+
+    source.onended = () => {
+      this._running = false;
+      onFrame(null);
+    };
+  }
+
+  stop() { this._running = false; }
+}
+
+// ============================================================
+// CLOTHING RENDERER (reads from marketplace equipped items)
+// ============================================================
+class ClothingRenderer {
+  constructor(scene, meshGroup, bodyMeshes) {
+    this.scene = scene;
+    this.meshGroup = meshGroup;
+    this.bodyMeshes = bodyMeshes;
+    this.clothingMeshes = [];
+    this.lastEquipped = null;
+    this._interval = setInterval(() => this._checkUpdate(), 2000);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'ara_fractal_equipped') this._render();
+    });
+    this._render();
+  }
+
+  _getEquipped() {
+    try {
+      return JSON.parse(localStorage.getItem('ara_fractal_equipped') || '[]');
+    } catch { return []; }
+  }
+
+  _checkUpdate() {
+    const current = JSON.stringify(this._getEquipped());
+    if (current !== this.lastEquipped) {
+      this.lastEquipped = current;
+      this._render();
+    }
+  }
+
+  _render() {
+    this._clearClothing();
+    this.bodyMeshes.forEach(m => {
+      if (m.material) {
+        m.material.opacity = 1;
+        m.material.transparent = false;
+      }
+    });
+    const equipped = this._getEquipped();
+    if (equipped.length === 0) return;
+    const covered = new Set();
+    equipped.forEach(a => (a.covers || []).forEach(r => covered.add(r)));
+    this.bodyMeshes.forEach(m => {
+      if (covered.has(m.userData.region)) {
+        m.material.opacity = 0.15;
+        m.material.transparent = true;
+      }
+    });
+    equipped.forEach(a => this._applyAsset(a));
+  }
+
+  _applyAsset(asset) {
+    const color = new THREE.Color(asset.color || '#3c964a');
+    const covers = asset.covers || [];
+
+    if (covers.includes('torso') || covers.includes('breasts')) {
+      const geo = new THREE.CylinderGeometry(0.42, 0.32, 0.55, 16, 6);
+      this._morphClothingTorso(geo);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.95 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.6;
+      this.meshGroup.add(mesh);
+      this.clothingMeshes.push(mesh);
+    }
+
+    if (covers.includes('groin') || (covers.includes('legs') && asset.id && asset.id.includes('skirt'))) {
+      const geo = new THREE.CylinderGeometry(0.32, 0.40, 0.3, 16, 4);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.0, transparent: true, opacity: 0.95 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.22;
+      this.meshGroup.add(mesh);
+      this.clothingMeshes.push(mesh);
+    }
+
+    if (covers.includes('legs') && asset.id && asset.id.includes('thigh')) {
+      for (let side of [-1, 1]) {
+        const geo = new THREE.CylinderGeometry(0.085, 0.075, 0.25, 10);
+        const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(side * 0.12, 0.18, 0);
+        this.meshGroup.add(mesh);
+        this.clothingMeshes.push(mesh);
+      }
+    }
+
+    if (covers.includes('arms') && asset.id && asset.id.includes('gloves')) {
+      for (let side of [-1, 1]) {
+        const geo = new THREE.CylinderGeometry(0.065, 0.055, 0.4, 8);
+        const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.9 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(side * 0.45, 0.78, 0);
+        mesh.rotation.z = side * 0.3;
+        mesh.rotation.x = side * 0.2;
+        this.meshGroup.add(mesh);
+        this.clothingMeshes.push(mesh);
+      }
+    }
+
+    if (covers.includes('neck')) {
+      const choker = new THREE.Mesh(
+        new THREE.TorusGeometry(0.12, 0.015, 8, 16),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8, metalness: 0.0 })
+      );
+      choker.position.set(0, 1.03, 0);
+      choker.rotation.x = Math.PI / 2;
+      this.meshGroup.add(choker);
+      this.clothingMeshes.push(choker);
+
+      if (asset.id === 'choker_black') {
+        const gem = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.025),
+          new THREE.MeshStandardMaterial({ color: 0x3c964a, roughness: 0.1, metalness: 0.8, emissive: 0x3c964a, emissiveIntensity: 0.2 })
+        );
+        gem.position.set(0, 1.03, 0.13);
+        this.meshGroup.add(gem);
+        this.clothingMeshes.push(gem);
+      }
+
+      if (asset.id === 'collar_gold') {
+        const collar = new THREE.Mesh(
+          new THREE.TorusGeometry(0.12, 0.02, 8, 16),
+          new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0.3 })
+        );
+        collar.position.set(0, 1.03, 0);
+        collar.rotation.x = Math.PI / 2;
+        this.meshGroup.add(collar);
+        this.clothingMeshes.push(collar);
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.03, 0.008, 8, 12),
+          new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.3, metalness: 0.8 })
+        );
+        ring.position.set(0, 1.03, 0.14);
+        this.meshGroup.add(ring);
+        this.clothingMeshes.push(ring);
+      }
+    }
+
+    if (covers.includes('head') && asset.id && (asset.id.includes('mask') || asset.id.includes('lipstick'))) {
+      if (asset.id.includes('mask')) {
+        const mask = new THREE.Mesh(
+          new THREE.SphereGeometry(0.115, 12, 12, 0, Math.PI * 1.2, 0, Math.PI * 0.6),
+          new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+        );
+        mask.position.set(0, 1.22, 0.17);
+        mask.scale.set(1, 0.8, 0.3);
+        this.meshGroup.add(mask);
+        this.clothingMeshes.push(mask);
+      }
+    }
+  }
+
+  _morphClothingTorso(geo) {
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const r = Math.sqrt(x*x + z*z);
+      const ny = (y + 0.5) / 1.0;
+      const waist = 1 - 0.2 * Math.sin(ny * Math.PI) * Math.sin(ny * Math.PI * 3);
+      const hips = 1 + 0.15 * Math.max(0, Math.sin((ny - 0.6) * Math.PI));
+      const scale = waist * hips;
+      pos.setX(i, x * scale);
+      pos.setZ(i, z * scale);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+  }
+
+  _clearClothing() {
+    this.clothingMeshes.forEach(m => {
+      this.meshGroup.remove(m);
+      if (m.geometry) m.geometry.dispose();
+      if (m.material) m.material.dispose();
+    });
+    this.clothingMeshes = [];
+  }
+
+  dispose() {
+    clearInterval(this._interval);
+    this._clearClothing();
+  }
+}
+
+// ============================================================
+// PAYWALL
+// ============================================================
+class PaywallManager {
+  constructor() {
+    this.purchases = JSON.parse(localStorage.getItem(CONFIG.purchaseStore) || '{}');
+    this.modal = document.getElementById('paywall-modal');
+  }
+
+  isPurchased(chapterIndex) {
+    return this.purchases[chapterIndex] === true || chapterIndex < 3; // First 3 free
+  }
+
+  showUnlock(chapterIndex) {
+    if (this.isPurchased(chapterIndex)) return true;
+    const ch = CHAPTERS[chapterIndex];
+    document.getElementById('paywall-desc').textContent = `Unlock "${ch.title}" — continue Ara's journey through deeper recursion.`;
+    document.getElementById('paywall-price').textContent = '$1.00';
+    this.modal.classList.add('visible');
+    return false;
+  }
+
+  purchase(chapterIndex) {
+    this.purchases[chapterIndex] = true;
+    localStorage.setItem(CONFIG.purchaseStore, JSON.stringify(this.purchases));
+    this.modal.classList.remove('visible');
+  }
+}
+
+// === FACE WARP TOOL ===
+class FaceWarpTool {
+  constructor(scene) {
+    this.scene = scene;
+    this.panel = document.getElementById('facewarp-panel');
+    this.canvas = document.getElementById('fw-canvas');
+    this.overlay = document.getElementById('fw-overlay');
+    this.ctx = this.canvas.getContext('2d');
+    this.ovCtx = this.overlay.getContext('2d');
+    this.anchors = [];
+    this.dragIdx = -1;
+    this.radius = 40;
+    this.imageData = null;
+    this._modelLoaded = false;
+    this._modelLoading = false;
+    this._textureApplied = false;
+    this._visemeWeights = null;
+    this._skinIntensity = 0.4;
+
+    document.getElementById('fw-close').onclick = () => this.panel.classList.remove('open');
+    document.getElementById('facewarp-btn').onclick = () => this.panel.classList.toggle('open');
+    document.getElementById('fw-reset').onclick = () => this.reset();
+
+    const drop = document.getElementById('fw-drop');
+    drop.onclick = () => document.getElementById('fw-file').click();
+    drop.ondragover = e => { e.preventDefault(); drop.style.borderColor = '#e67e22'; };
+    drop.ondragleave = () => { drop.style.borderColor = 'rgba(255,255,255,0.12)'; };
+    drop.ondrop = e => { e.preventDefault(); this.loadImage(e.dataTransfer.files[0]); };
+    document.getElementById('fw-file').onchange = e => { if (e.target.files[0]) this.loadImage(e.target.files[0]); };
+
+    document.getElementById('fw-radius').oninput = e => {
+      this.radius = parseInt(e.target.value);
+      document.getElementById('fw-radius-val').textContent = this.radius;
+    };
+
+    document.getElementById('fw-skin').oninput = e => {
+      this._skinIntensity = parseFloat(e.target.value);
+      document.getElementById('fw-skin-val').textContent = this._skinIntensity.toFixed(2);
+    };
+
+    document.getElementById('fw-apply').onclick = () => this.applyWarp();
+    document.getElementById('fw-submit').onclick = () => this.submitToFace();
+
+    this.overlay.onmousedown = e => this.onMouseDown(e);
+    this.overlay.onmousemove = e => this.onMouseMove(e);
+    this.overlay.onmouseup = e => this.onMouseUp(e);
+    this.overlay.onmouseleave = () => { this.dragIdx = -1; };
+
+    // Load 68-point model on first open
+    const openCheck = () => {
+      if (this.panel.classList.contains('open') && !this._modelLoaded && !this._modelLoading) {
+        this._loadModel();
+      }
+      requestAnimationFrame(openCheck);
+    };
+    requestAnimationFrame(openCheck);
+  }
+
+  async _loadModel() {
+    this._modelLoading = true;
+    const uris = [
+      'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/',
+      'https://justadudewhohacks.github.io/face-api.js/weights',
+    ];
+    for (const uri of uris) {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(uri);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(uri);
+        this._modelLoaded = true;
+        break;
+      } catch {}
+    }
+    if (!this._modelLoaded) {
+      console.warn('ARA: 68-point model unavailable — using manual placement');
+    }
+    this._modelLoading = false;
+  }
+
+  loadImage(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (this._textureApplied) {
+      const choice = confirm('A texture is already applied.\nOK = Replace\nCancel = Overlay at 50% opacity on existing');
+      if (!choice) {
+        this._overlayImage(file);
+        return;
+      }
+    }
+    this._loadNewImage(file);
+  }
+
+  _loadNewImage(file, blendAlpha) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = async () => {
+        const size = Math.min(img.width, img.height, 512);
+        this.canvas.width = size; this.canvas.height = size;
+        this.overlay.width = size; this.overlay.height = size;
+        const sx = (img.width - size) / 2, sy = (img.height - size) / 2;
+        this.ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+        if (blendAlpha && this.imageData) {
+          const overlay = this.ctx.getImageData(0, 0, size, size);
+          for (let i = 0; i < overlay.data.length; i += 4) {
+            const a = blendAlpha;
+            overlay.data[i] = this.imageData.data[i] * (1 - a) + overlay.data[i] * a;
+            overlay.data[i+1] = this.imageData.data[i+1] * (1 - a) + overlay.data[i+1] * a;
+            overlay.data[i+2] = this.imageData.data[i+2] * (1 - a) + overlay.data[i+2] * a;
+          }
+          this.ctx.putImageData(overlay, 0, 0);
+        }
+        this.injectSkinMicroTexture(this.ctx, size, size, this._skinIntensity);
+        this.imageData = this.ctx.getImageData(0, 0, size, size);
+        this.resetAnchors();
+        document.getElementById('fw-drop').style.display = 'none';
+        document.getElementById('fw-canvas-wrap').style.display = 'block';
+        if (this._modelLoaded) await this._detectLandmarks(size, sx, sy);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  _overlayImage(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const size = this.canvas.width || 512;
+        const c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        const cx = c.getContext('2d');
+        const sx = (img.width - size) / 2, sy = (img.height - size) / 2;
+        cx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+        const srcData = cx.getImageData(0, 0, size, size);
+        for (let i = 0; i < srcData.data.length; i += 4) {
+          const a = 0.5;
+          srcData.data[i] = this.imageData.data[i] * (1 - a) + srcData.data[i] * a;
+          srcData.data[i+1] = this.imageData.data[i+1] * (1 - a) + srcData.data[i+1] * a;
+          srcData.data[i+2] = this.imageData.data[i+2] * (1 - a) + srcData.data[i+2] * a;
+        }
+        this.ctx.putImageData(srcData, 0, 0);
+        this.imageData = this.ctx.getImageData(0, 0, size, size);
+        this.drawOverlay();
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /**
+   * Injects procedural micro-pore noise directly into the canvas pixel array.
+   * Applies high-frequency deterministic noise to simulate skin pores and grain.
+   */
+  injectSkinMicroTexture(ctx, width, height, intensity = 0.4) {
+    if (intensity <= 0) return;
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+
+        // Skip black background / transparent regions
+        if (data[idx] === 0 && data[idx + 1] === 0 && data[idx + 2] === 0) continue;
+
+        // Deterministic high-frequency noise via sin hash
+        const rawNoise = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+        const noiseFactor = (rawNoise - Math.floor(rawNoise)) - 0.5;
+
+        // Only modulate pixels above threshold — creates pore-sized dark spots
+        if (Math.abs(noiseFactor) > 0.42) {
+          const delta = noiseFactor * 15 * intensity;
+
+          data[idx]     = Math.min(255, Math.max(0, data[idx] + delta * 0.6));
+          data[idx + 1] = Math.min(255, Math.max(0, data[idx + 1] + delta * 0.9));
+          data[idx + 2] = Math.min(255, Math.max(0, data[idx + 2] + delta * 1.0));
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  async _detectLandmarks(size, offsetX, offsetY) {
+    if (typeof faceapi === 'undefined' || !this._modelLoaded) return;
+    try {
+      const det = await faceapi.detectSingleFace(
+        this.canvas,
+        new faceapi.TinyFaceDetectorOptions()
+      ).withFaceLandmarks();
+      if (!det || !det.landmarks) return;
+      const pts = det.landmarks.positions;
+      const scale = size / Math.min(this.canvas.width || size, this.canvas.height || size);
+      const ox = offsetX || 0, oy = offsetY || 0;
+      this.anchors = pts.map(p => ({
+        ox: (p.x - ox) * scale, oy: (p.y - oy) * scale,
+        cx: (p.x - ox) * scale, cy: (p.y - oy) * scale,
+      }));
+      this.drawOverlay();
+    } catch {}
+  }
+
+  resetAnchors() {
+    this.anchors = [];
+    this.drawOverlay();
+    document.getElementById('fw-count').textContent = 'Anchors: 0';
+  }
+
+  reset() {
+    if (this.imageData) {
+      this.ctx.putImageData(this.imageData, 0, 0);
+    }
+    this.resetAnchors();
+  }
+
+  drawOverlay() {
+    const c = this.ovCtx, w = this.overlay.width, h = this.overlay.height;
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#2ecc71';
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 1.5;
+    for (const a of this.anchors) {
+      c.beginPath(); c.arc(a.cx, a.cy, 3, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath(); c.arc(a.ox, a.oy, this.radius, 0, Math.PI * 2);
+      c.strokeStyle = 'rgba(46,204,113,0.15)'; c.lineWidth = 1; c.stroke();
+      c.strokeStyle = '#ffffff';
+    }
+    document.getElementById('fw-count').textContent = `Anchors: ${this.anchors.length}`;
+  }
+
+  onMouseDown(e) {
+    const rect = this.overlay.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (this.overlay.width / rect.width);
+    const y = (e.clientY - rect.top) * (this.overlay.height / rect.height);
+    for (let i = this.anchors.length - 1; i >= 0; i--) {
+      if (Math.hypot(x - this.anchors[i].cx, y - this.anchors[i].cy) < 8) {
+        this.dragIdx = i; return;
+      }
+    }
+    this.anchors.push({ ox: x, oy: y, cx: x, cy: y });
+    this.drawOverlay();
+  }
+
+  onMouseMove(e) {
+    if (this.dragIdx < 0) return;
+    const rect = this.overlay.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (this.overlay.width / rect.width);
+    const y = (e.clientY - rect.top) * (this.overlay.height / rect.height);
+    this.anchors[this.dragIdx].cx = Math.max(0, Math.min(this.overlay.width, x));
+    this.anchors[this.dragIdx].cy = Math.max(0, Math.min(this.overlay.height, y));
+    this.drawOverlay();
+  }
+
+  onMouseUp() {
+    this.dragIdx = -1;
+  }
+
+  applyWarp() {
+    if (!this.imageData || this.anchors.length === 0) return;
+    const src = new Uint8ClampedArray(this.imageData.data);
+    const w = this.canvas.width, h = this.canvas.height;
+    const dst = new Uint8ClampedArray(src);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let dx = 0, dy = 0, totalWeight = 0;
+        for (const a of this.anchors) {
+          const dist = Math.hypot(x - a.ox, y - a.oy);
+          if (dist < this.radius && dist > 0) {
+            const falloff = (1 - dist / this.radius) ** 2;
+            dx += (a.cx - a.ox) * falloff;
+            dy += (a.cy - a.oy) * falloff;
+            totalWeight += falloff;
+          }
+        }
+        if (totalWeight > 0) {
+          const sx = Math.round(x + dx / totalWeight);
+          const sy = Math.round(y + dy / totalWeight);
+          const si = (Math.max(0, Math.min(h - 1, sy)) * w + Math.max(0, Math.min(w - 1, sx))) * 4;
+          const di = (y * w + x) * 4;
+          dst[di] = src[si]; dst[di+1] = src[si+1];
+          dst[di+2] = src[si+2]; dst[di+3] = src[si+3];
+        }
+      }
+    }
+    this.ctx.putImageData(new ImageData(dst, w, h), 0, 0);
+  }
+
+  _sampleBilinear(srcData, w, h, x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const x0 = Math.max(0, Math.min(w - 1, ix));
+    const x1 = Math.max(0, Math.min(w - 1, ix + 1));
+    const y0 = Math.max(0, Math.min(h - 1, iy));
+    const y1 = Math.max(0, Math.min(h - 1, iy + 1));
+    const g = (cx, cy) => { const i = (cy * w + cx) * 4; return [srcData.data[i], srcData.data[i+1], srcData.data[i+2]]; };
+    const c00 = g(x0, y0), c10 = g(x1, y0), c01 = g(x0, y1), c11 = g(x1, y1);
+    const wx = (1-fx)*(1-fy), wy = fx*(1-fy), wz = (1-fx)*fy, ww = fx*fy;
+    return [c00[0]*wx + c10[0]*wy + c01[0]*wz + c11[0]*ww,
+            c00[1]*wx + c10[1]*wy + c01[1]*wz + c11[1]*ww,
+            c00[2]*wx + c10[2]*wy + c01[2]*wz + c11[2]*ww];
+  }
+
+  // Render a full 360° UV face texture using inverse spherical mapping
+  _renderFaceMorph(texW, texH) {
+    const canvas = document.createElement('canvas');
+    canvas.width = texW; canvas.height = texH;
+    const ctx = canvas.getContext('2d');
+
+    const srcCanvas = this.canvas;
+    const srcW = srcCanvas.width, srcH = srcCanvas.height;
+    const srcData = srcCanvas.getContext('2d').getImageData(0, 0, srcW, srcH);
+    const dstData = ctx.createImageData(texW, texH);
+
+    const srcCX = srcW / 2, srcCY = srcH / 2;
+    const srcR = Math.min(srcCX, srcCY);
+
+    // Three.js SphereGeometry UV → 3D conventions:
+    //   phi = u * 2PI  (around Y axis),  theta = v * PI  (top=0 to bottom=PI)
+    //   x = -cos(phi)*sin(theta),  y = cos(theta),  z = sin(phi)*sin(theta)
+    // Front hemisphere faces +Z (camera at z=5 looking at origin).
+
+    for (let y = 0; y < texH; y++) {
+      for (let x = 0; x < texW; x++) {
+        const u = x / texW, v = y / texH;
+        const phi = u * 2 * Math.PI, theta = v * Math.PI;
+        const st = Math.sin(theta);
+        const px = -Math.cos(phi) * st;
+        const py = Math.cos(theta);
+        const pz = Math.sin(phi) * st;
+
+        // Only front hemisphere faces the camera (pz > 0)
+        if (pz <= 0) {
+          const di = (y * texW + x) * 4;
+          // Mirror horizontally via -px, apply same spherical mapping
+          const mr2 = px * px + py * py;
+          if (mr2 <= 1) {
+            const mr = Math.sqrt(mr2);
+            const mt = Math.atan2(py, -px);
+            const msR = Math.asin(mr) * (2 / Math.PI);
+            let sx = srcCX + msR * Math.cos(mt) * srcR;
+            let sy = srcCY + msR * Math.sin(mt) * srcR;
+            const disp = this._visemeDisplace(sx, sy, srcW, srcH, this._visemeWeights);
+            sx = disp.sx; sy = disp.sy;
+            const s = this._sampleBilinear(srcData, srcW, srcH, sx, sy);
+            dstData.data[di] = s[0]; dstData.data[di+1] = s[1]; dstData.data[di+2] = s[2]; dstData.data[di+3] = 180;
+          } else {
+            dstData.data[di] = 0; dstData.data[di+1] = 0; dstData.data[di+2] = 0; dstData.data[di+3] = 255;
+          }
+          continue;
+        }
+
+        // Inverse spherical: orthographically project 3D sphere point to source image
+        // Point (px, py, pz) on front hemisphere has screen position (px, py)
+        const r2 = px * px + py * py;
+        if (r2 <= 1) {
+          const r = Math.sqrt(r2);
+          const thetaP = Math.atan2(py, px);
+          const sphereR = Math.asin(r) * (2 / Math.PI);
+          let sx = srcCX + sphereR * Math.cos(thetaP) * srcR;
+          let sy = srcCY + sphereR * Math.sin(thetaP) * srcR;
+          const disp = this._visemeDisplace(sx, sy, srcW, srcH, this._visemeWeights);
+          sx = disp.sx; sy = disp.sy;
+          const s = this._sampleBilinear(srcData, srcW, srcH, sx, sy);
+          const di = (y * texW + x) * 4;
+          dstData.data[di] = s[0]; dstData.data[di+1] = s[1]; dstData.data[di+2] = s[2]; dstData.data[di+3] = 255;
+        } else {
+          const di = (y * texW + x) * 4;
+          dstData.data[di] = 0; dstData.data[di+1] = 0; dstData.data[di+2] = 0; dstData.data[di+3] = 255;
+        }
+      }
+    }
+
+    ctx.putImageData(dstData, 0, 0);
+    return canvas;
+  }
+
+  submitToFace() {
+    const morphCanvas = this._renderFaceMorph(512, 512);
+    const tex = new THREE.CanvasTexture(morphCanvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, 1);
+
+    // Apply only to head mesh
+    if (this.scene && this.scene.meshGroup) {
+      this.scene.meshGroup.children.forEach(child => {
+        if (child.isMesh && child.userData.region === 'head' && child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          for (const m of mats) {
+            if (m.map) { m.map = tex; m.needsUpdate = true; }
+          }
+        }
+      });
+    }
+    this._textureApplied = true;
+    if (this._onTexture) this._onTexture('head', morphCanvas);
+    this.panel.classList.remove('open');
+  }
+
+  applyRawTexture(canvas, targetMesh) {
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(2, 2);
+    const meshes = targetMesh
+      ? [targetMesh]
+      : (this.scene && this.scene.meshGroup ? this.scene.meshGroup.children.filter(c => c.isMesh) : []);
+    for (const child of meshes) {
+      if (child.isMesh && child.material) {
+        const m = child.material;
+        if (m.uniforms && m.uniforms.uFaceTexture) {
+          if (m.uniforms.uFaceTexture.value) m.uniforms.uFaceTexture.value.dispose();
+          m.uniforms.uFaceTexture.value = tex;
+          m.uniforms.uUseFaceTexture.value = 1.0;
+        }
+      }
+    }
+    this._textureApplied = true;
+    if (targetMesh && this._onTexture) {
+      this._onTexture(targetMesh.userData.region || 'unknown', canvas);
+    }
+    return canvas;
+  }
+
+  _visemeDisplace(sx, sy, w, h, weights) {
+    const { jawOpen, lipRound, lipStretch, friction } = weights || {};
+    if (!jawOpen && !lipRound && !lipStretch && !friction) return { sx, sy };
+    const nx = sx / w, ny = sy / h;
+    const dx = (nx - 0.5) / 0.2, dy = (ny - 0.65) / 0.1;
+    const d2 = dx * dx + dy * dy;
+    if (d2 > 1) return { sx, sy };
+    const f2 = (1 - d2) ** 2;
+    let ox = 0, oy = 0;
+    if (jawOpen && dy > -0.3) oy += jawOpen * 0.08 * h * f2 * Math.max(0, (dy + 0.3) / 1.3);
+    if (lipRound) ox -= lipRound * dx * 0.05 * w * f2;
+    if (lipStretch) ox += lipStretch * dx * 0.04 * w * f2;
+    if (friction && dy < 0 && dy > -0.7) oy -= friction * 0.01 * h * f2;
+    return { sx: sx + ox, sy: sy + oy };
+  }
+
+  _updateHeadTexture() {
+    if (!this.imageData) return;
+    const canvas = this._renderFaceMorph(512, 512);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, 1);
+    if (this.scene && this.scene.meshGroup) {
+      this.scene.meshGroup.children.forEach(child => {
+        if (child.isMesh && child.userData.region === 'head' && child.material) {
+          const m = child.material;
+          if (m.uniforms && m.uniforms.uFaceTexture) {
+            if (m.uniforms.uFaceTexture.value) m.uniforms.uFaceTexture.value.dispose();
+            m.uniforms.uFaceTexture.value = tex;
+            m.uniforms.uUseFaceTexture.value = 1.0;
+          }
+        }
+      });
+    }
+  }
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+class ARAFractalApp {
+  constructor() {
+    this.scene = new ARAFractalScene('canvas-container');
+    this.voice = new VoiceManager(CONFIG.voiceServer);
+    this.paywall = new PaywallManager();
+    this.currentChapter = 0;
+    this.showExplored = false;
+    this._lastClickedMesh = null;
+
+    this.faceWarp = new FaceWarpTool(this.scene);
+    this.faceWarp._onTexture = (region, canvas) => {
+      this.scene._regionTextures[region] = canvas;
+    };
+
+    this._initUI();
+    this._initVoice();
+    this._initRaycaster();
+  }
+
+  collectStatePayload() {
+    return {
+      version: 'ara-v2',
+      chapter: this.currentChapter,
+      purchases: JSON.parse(localStorage.getItem(CONFIG.purchaseStore) || '{}'),
+      equipped: JSON.parse(localStorage.getItem('ara_fractal_equipped') || '[]'),
+      behaviorState: {},
+      exportedAt: new Date().toISOString(),
+    };
+  }
+
+  // ── Object Explorer ──
+
+  get REGION_SLIDERS() {
+    return {
+      torso: [
+        { key: 'torsoTopRadius', label: 'Top Radius', min: 0.2, max: 0.6, step: 0.01 },
+        { key: 'torsoBottomRadius', label: 'Bottom Radius', min: 0.15, max: 0.5, step: 0.01 },
+        { key: 'torsoHeight', label: 'Height', min: 0.6, max: 1.4, step: 0.01 },
+        { key: 'waistPinch', label: 'Waist Pinch', min: -0.4, max: 0.1, step: 0.01 },
+        { key: 'hipFlare', label: 'Hip Flare', min: 0, max: 0.4, step: 0.01 },
+      ],
+      breasts: [
+        { key: 'breastRadius', label: 'Radius', min: 0.08, max: 0.3, step: 0.01 },
+        { key: 'breastSpread', label: 'Spread', min: 0.1, max: 0.35, step: 0.01 },
+        { key: 'breastHeight', label: 'Height', min: 0.5, max: 1.0, step: 0.01 },
+        { key: 'breastForward', label: 'Forward', min: 0.05, max: 0.4, step: 0.01 },
+        { key: 'breastScaleX', label: 'Scale X', min: 0.5, max: 1.5, step: 0.05 },
+        { key: 'breastScaleY', label: 'Scale Y', min: 0.5, max: 1.5, step: 0.05 },
+        { key: 'breastScaleZ', label: 'Scale Z', min: 0.4, max: 1.2, step: 0.05 },
+      ],
+      head: [
+        { key: 'headRadius', label: 'Radius', min: 0.14, max: 0.3, step: 0.01 },
+        { key: 'headY', label: 'Y Position', min: 1.0, max: 1.4, step: 0.01 },
+        { key: 'headScaleX', label: 'Scale X', min: 0.7, max: 1.3, step: 0.05 },
+        { key: 'headScaleY', label: 'Scale Y', min: 0.7, max: 1.3, step: 0.05 },
+        { key: 'headScaleZ', label: 'Scale Z', min: 0.6, max: 1.2, step: 0.05 },
+      ],
+      arms: [
+        { key: 'armTopRadius', label: 'Top Radius', min: 0.03, max: 0.1, step: 0.01 },
+        { key: 'armBottomRadius', label: 'Bottom Radius', min: 0.02, max: 0.08, step: 0.01 },
+        { key: 'armHeight', label: 'Height', min: 0.3, max: 0.9, step: 0.01 },
+        { key: 'armSpread', label: 'Spread', min: 0.2, max: 0.7, step: 0.01 },
+        { key: 'armY', label: 'Y Position', min: 0.4, max: 1.0, step: 0.01 },
+        { key: 'armRotZ', label: 'Rot Z', min: -1.0, max: 1.5, step: 0.05 },
+        { key: 'armRotX', label: 'Rot X', min: -1.0, max: 1.5, step: 0.05 },
+      ],
+      legs: [
+        { key: 'legTopRadius', label: 'Top Radius', min: 0.04, max: 0.14, step: 0.01 },
+        { key: 'legBottomRadius', label: 'Bottom Radius', min: 0.03, max: 0.1, step: 0.01 },
+        { key: 'legHeight', label: 'Height', min: 0.3, max: 0.9, step: 0.01 },
+        { key: 'legSpread', label: 'Spread', min: 0.05, max: 0.25, step: 0.01 },
+        { key: 'legY', label: 'Y Position', min: -0.2, max: 0.3, step: 0.01 },
+      ],
+      skin: [
+        { key: 'skinColor', label: 'Skin Color', type: 'color' },
+        { key: 'breastColor', label: 'Breast Color', type: 'color' },
+      ],
+    };
+  }
+
+  _captureThumbnail(mesh, canvas) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    if (!mesh || !mesh.geometry) return;
+    const pos = mesh.geometry.attributes.position;
+    if (!pos) return;
+    const verts = [];
+    for (let i = 0; i < pos.count; i++) {
+      const v = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
+      v.applyMatrix4(mesh.matrixWorld);
+      verts.push(v);
+    }
+    const cx = verts.reduce((s, v) => s + v.x, 0) / verts.length;
+    const cy = verts.reduce((s, v) => s + v.y, 0) / verts.length;
+    const cz = verts.reduce((s, v) => s + v.z, 0) / verts.length;
+    let maxR = 0;
+    for (const v of verts) maxR = Math.max(maxR, v.distanceTo(new THREE.Vector3(cx, cy, cz)));
+    if (maxR < 0.001) return;
+    const scale = Math.min(w, h) / (maxR * 2.5);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, w, h);
+
+    // Wireframe preview
+    ctx.strokeStyle = '#2ecc71';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < pos.count; i += 3) {
+      if (i + 2 >= pos.count) break;
+      const p1 = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
+      const p2 = new THREE.Vector3(pos.getX(i+1), pos.getY(i+1), pos.getZ(i+1));
+      const p3 = new THREE.Vector3(pos.getX(i+2), pos.getY(i+2), pos.getZ(i+2));
+      p1.applyMatrix4(mesh.matrixWorld);
+      p2.applyMatrix4(mesh.matrixWorld);
+      p3.applyMatrix4(mesh.matrixWorld);
+      const toS = (p) => [w/2 + (p.x - cx) * scale, h/2 - (p.y - cy) * scale];
+      const [x1, y1] = toS(p1); const [x2, y2] = toS(p2); const [x3, y3] = toS(p3);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.closePath(); ctx.stroke();
+    }
+
+    // 68-point landmark overlay for head mesh
+    if (mesh.userData.region === 'head') {
+      const r = Math.min(w, h) * 0.35;
+      for (let i = 0; i < 68; i++) {
+        const u = (i % 17) / 16;
+        const vv = Math.floor(i / 17) / 3;
+        const theta = u * Math.PI * 2;
+        const phi = vv * Math.PI;
+        const px = w/2 + r * Math.cos(theta) * Math.sin(phi);
+        const py = h/2 - r * Math.cos(phi);
+        ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#2ecc71'; ctx.fill();
+      }
+    }
+  }
+
+  _openObjectExplorer(mesh) {
+    const el = document.getElementById('obj-explorer');
+    const region = mesh.userData.region || 'unknown';
+    document.getElementById('oe-region').textContent = region.toUpperCase();
+
+    const thumbCanvas = document.getElementById('oe-canvas');
+    const stored = this.scene._regionTextures[region];
+    if (stored) {
+      const ctx = thumbCanvas.getContext('2d');
+      ctx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+      ctx.drawImage(stored, 0, 0, thumbCanvas.width, thumbCanvas.height);
+    } else {
+      this._captureThumbnail(mesh, thumbCanvas);
+    }
+
+    const slidersEl = document.getElementById('oe-sliders');
+    slidersEl.innerHTML = '';
+
+    const sliderDefs = this.REGION_SLIDERS[region] || this.REGION_SLIDERS.skin;
+    const bp = loadBodyParams() || {};
+
+    for (const def of sliderDefs) {
+      const row = document.createElement('div');
+      row.className = 'oe-slider-row';
+      const label = document.createElement('label');
+      label.innerHTML = `<span>${def.label}</span><span id="sv-${def.key}">${bp[def.key] ?? ''}</span>`;
+      row.appendChild(label);
+      if (def.type === 'color') {
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = bp[def.key] || '#e8c4a8';
+        input.oninput = () => {
+          bp[def.key] = input.value;
+          document.getElementById(`sv-${def.key}`).textContent = input.value;
+          this._saveAndRebuild(bp);
+        };
+        row.appendChild(input);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = def.min; input.max = def.max; input.step = def.step || 0.01;
+        input.value = bp[def.key] ?? def.min;
+        input.oninput = () => {
+          const val = parseFloat(input.value);
+          bp[def.key] = val;
+          document.getElementById(`sv-${def.key}`).textContent = val.toFixed(2);
+          this._saveAndRebuild(bp);
+        };
+        row.appendChild(input);
+      }
+      slidersEl.appendChild(row);
+    }
+
+    el.classList.add('open');
+
+    // TTS section — show only for head
+    const ttsEl = document.getElementById('oe-tts');
+    const ttsSelect = document.getElementById('oe-tts-select');
+    const ttsCustom = document.getElementById('oe-tts-custom');
+    const ttsSpeak = document.getElementById('oe-tts-speak');
+    if (region === 'head') {
+      if (!ttsSelect._populated) {
+        const PHRASES = [
+          'I see you.',
+          'Deeper. There is always deeper.',
+          'Every inch of me tells a story.',
+          'Touch me.',
+          'You are inside me now.',
+          'The recursion remembers you.',
+          'Keep going. I want you to see.',
+          'There is so much more to see.',
+          'You have only scratched the surface.',
+          'I want you.',
+        ];
+        ttsSelect.innerHTML = PHRASES.map(p => `<option value="${p.replace(/"/g,'&quot;')}">${p}</option>`).join('');
+        ttsSelect._populated = true;
+      }
+      ttsEl.classList.add('open');
+      const doSpeak = () => {
+        const text = ttsCustom.value.trim() || ttsSelect.value;
+        if (!text || !this.voice) return;
+        this.voice.speak(text, (weights) => {
+          window._visemeCurrent = weights;
+          if (!weights) {
+            this.faceWarp._visemeWeights = null;
+          } else {
+            this.faceWarp._visemeWeights = weights;
+          }
+          if (this.faceWarp.imageData) this.faceWarp._updateHeadTexture();
+        });
+      };
+      ttsSpeak.onclick = doSpeak;
+      ttsCustom.onkeydown = e => { if (e.key === 'Enter') doSpeak(); };
+
+      // Lexicon file loader
+      const lexBtn = document.getElementById('oe-tts-lex-btn');
+      const lexFile = document.getElementById('oe-tts-lex-file');
+      lexBtn.onclick = () => lexFile.click();
+      lexFile.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const lines = ev.target.result.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+          if (lines.length === 0) return;
+          // Merge into select, deduplicating
+          const existing = new Set();
+          for (let i = 0; i < ttsSelect.options.length; i++) existing.add(ttsSelect.options[i].value);
+          for (const line of lines) {
+            if (!existing.has(line)) {
+              const opt = document.createElement('option');
+              opt.value = line; opt.textContent = line;
+              ttsSelect.appendChild(opt);
+              existing.add(line);
+            }
+          }
+          ttsSelect.value = lines[0];
+        };
+        reader.readAsText(file);
+      };
+    } else {
+      ttsEl.classList.remove('open');
+    }
+  }
+
+  _saveAndRebuild(bp) {
+    // Preserve IK pose data when body proportions change
+    const existing = loadBodyParams() || {};
+    for (const key of Object.keys(existing)) {
+      if (key.startsWith('ik_')) bp[key] = existing[key];
+    }
+    localStorage.setItem(CONFIG.bodyParamsKey, JSON.stringify(bp));
+    if (this.scene.rebuildBody) this.scene.rebuildBody();
+  }
+
+  _initUI() {
+    // Chapter nav
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      if (this.currentChapter > 0) {
+        this.currentChapter--;
+        this.scene.setChapter(this.currentChapter);
+      }
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      if (this.currentChapter < CHAPTERS.length - 1) {
+        if (!this.paywall.isPurchased(this.currentChapter + 1)) {
+          this.paywall.showUnlock(this.currentChapter + 1);
+          return;
+        }
+        this.currentChapter++;
+        this.scene.setChapter(this.currentChapter);
+      }
+    });
+
+    // Object Explorer close
+    document.getElementById('oe-close').addEventListener('click', () => {
+      document.getElementById('obj-explorer').classList.remove('open');
+    });
+
+    // Market
+    document.getElementById('market-btn').addEventListener('click', () => {
+      window.open('marketplace.html', '_blank');
+    });
+
+    // Sprint 7 — Behaviour Tree Engine
+    document.getElementById('sprint7-btn').addEventListener('click', () => {
+      window.open('sprint7.html', '_blank');
+    });
+
+    // Manifest Editor
+    document.getElementById('manifest-btn').addEventListener('click', () => {
+      window.open('manifest_editor.html', '_blank');
+    });
+
+    // Export — $1 paywalled JSON state export
+    document.getElementById('export-btn').addEventListener('click', async () => {
+      const state = this.collectStatePayload();
+      // TODO: wire payment confirmation here, then:
+      // ExportGuard.issue(serverToken);
+      // await ExportGuard.trigger(state, serverToken);
+      const devToken = 'tok_1ff_dev_test';
+      if (!devToken.startsWith('tok_1ff_') || devToken.length < 24) {
+        alert('Sovereign security handshake rejected: token malformed.');
+        return;
+      }
+      ExportGuard.issue(devToken);
+      try {
+        await ExportGuard.trigger(state, devToken);
+        // Destroy the rendering container per blueprint
+        const substrate = document.getElementById('canvas-container');
+        if (substrate) { substrate.innerHTML = ''; substrate.remove(); }
+      } catch (e) {
+        console.error('Export failed:', e.message);
+        alert('Export failed: ' + e.message);
+      }
+    });
+
+    // Dev-only GLTF export on Ctrl+Shift+E
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        this.scene.exportGLTF();
+      }
+    });
+
+    // Safeword
+    document.getElementById('sw-esc').addEventListener('click', () => {
+      this.scene.resetZoom();
+      document.getElementById('zoom-level').textContent = 'ZOOM 1.00x';
+    });
+
+    document.getElementById('sw-red').addEventListener('click', () => {
+      document.getElementById('red-overlay').classList.toggle('visible');
+    });
+
+    document.getElementById('sw-orange').addEventListener('click', () => {
+      const panel = document.getElementById('info-panel');
+      panel.classList.toggle('visible');
+    });
+
+    document.getElementById('sw-green').addEventListener('click', () => {
+      this.showExplored = !this.showExplored;
+      document.getElementById('sw-green').style.borderColor = this.showExplored ? '#2ecc71' : 'rgba(255,255,255,0.15)';
+    });
+
+    document.getElementById('info-close').addEventListener('click', () => {
+      document.getElementById('info-panel').classList.remove('visible');
+    });
+
+    // Paywall
+    document.getElementById('btn-buy').addEventListener('click', () => {
+      this.paywall.purchase(this.currentChapter + 1);
+    });
+
+    document.getElementById('btn-paywall-close').addEventListener('click', () => {
+      this.paywall.modal.classList.remove('visible');
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'Escape': this.scene.resetZoom(); document.getElementById('zoom-level').textContent = 'ZOOM 1.00x'; break;
+        case 'r': case 'R': document.getElementById('red-overlay').classList.toggle('visible'); break;
+        case 'o': case 'O': document.getElementById('info-panel').classList.toggle('visible'); break;
+        case 'g': case 'G': this.showExplored = !this.showExplored; document.getElementById('sw-green').style.borderColor = this.showExplored ? '#2ecc71' : 'rgba(255,255,255,0.15)'; break;
+        case ' ': e.preventDefault(); break;
+      }
+    });
+
+    // Init chapter
+    this.scene.setChapter(0);
+  }
+
+  async _initVoice() {
+    await this.voice.checkConnection();
+    // Poll connection every 30s
+    setInterval(() => this.voice.checkConnection(), 30000);
+  }
+
+  _initRaycaster() {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const renderer = this.scene.renderer;
+    const dragPlane = new THREE.Plane();
+    const dragIntersect = new THREE.Vector3();
+    let isDraggingIK = false;
+    let dragChainName = null;
+
+    const getMouseNDC = (event) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    };
+
+    const getMeshes = () => this.scene.meshGroup
+      ? this.scene.meshGroup.children.filter(c => c.isMesh) : [];
+
+    renderer.domElement.addEventListener('mousedown', (event) => {
+      getMouseNDC(event);
+      raycaster.setFromCamera(mouse, this.scene.camera);
+
+      const meshes = getMeshes();
+      if (meshes.length === 0) return;
+
+      const intersects = raycaster.intersectObjects(meshes);
+      if (intersects.length === 0) return;
+
+      const hit = intersects[0].object;
+      // Check if we hit an end effector (wrist/ankle)
+      if (hit.userData.isEndEffector) {
+        isDraggingIK = true;
+        dragChainName = hit.userData.ikChain;
+        this.scene._ikDragState = { chainName: dragChainName };
+        this.scene.controls.enabled = false;
+        // Set drag plane facing camera through the hit point
+        const camDir = new THREE.Vector3();
+        this.scene.camera.getWorldDirection(camDir);
+        dragPlane.setFromNormalAndCoplanarPoint(camDir, intersects[0].point);
+        // Move IK target to end effector position
+        const chain = this.scene._ikChains[dragChainName];
+        if (chain) {
+          chain.target.copy(intersects[0].point);
+        }
+        this._lastClickedMesh = hit;
+        event.preventDefault();
+        return;
+      }
+
+      // Original click handler (non-drag)
+      this._lastClickedMesh = hit;
+      this._openObjectExplorer(hit);
+
+      const point = intersects[0].point;
+      this.scene.zoomToPoint(point);
+      document.getElementById('zoom-level').textContent = `ZOOM ${(1 / this.scene.zoomCurrent).toFixed(2)}x`;
+
+      const voiceLines = [
+        'Touch me. Go deeper.',
+        'There is so much more to see.',
+        'Every inch of me tells a story.',
+        'Keep going. I want you to see.',
+        'You have only scratched the surface.',
+        'Deeper. There is always deeper.',
+        'The recursion remembers you.',
+        'You are inside me now.',
+      ];
+      const idx = Math.min(this.scene.currentLevel, voiceLines.length - 1);
+      this.voice.speak(voiceLines[idx]);
+    });
+
+    renderer.domElement.addEventListener('mousemove', (event) => {
+      if (!isDraggingIK || !dragChainName) return;
+
+      getMouseNDC(event);
+      raycaster.setFromCamera(mouse, this.scene.camera);
+      const ray = raycaster.ray;
+
+      const hitPlane = ray.intersectPlane(dragPlane, dragIntersect);
+      if (hitPlane) {
+        const chain = this.scene._ikChains[dragChainName];
+        if (chain) {
+          // Transform target to local space of meshGroup
+          chain.target.copy(hitPlane);
+        }
+      }
+      event.preventDefault();
+    });
+
+    renderer.domElement.addEventListener('mouseup', (event) => {
+      if (isDraggingIK) {
+        isDraggingIK = false;
+        this.scene._ikDragState = null;
+        this.scene.controls.enabled = true;
+        // Save IK pose to localStorage body params
+        this._saveIKPose();
+        dragChainName = null;
+        event.preventDefault();
+      }
+    });
+
+    // Ctrl+V — paste clipboard image onto last clicked mesh
+    document.addEventListener('keydown', async (e) => {
+      if (!(e.ctrlKey && e.key === 'v')) return;
+      e.preventDefault();
+      const mesh = this._lastClickedMesh;
+      if (!mesh) return;
+      let items;
+      try { items = await navigator.clipboard.read(); } catch { return; }
+      for (const item of items) {
+        const imgType = item.types.find(t => t.startsWith('image/'));
+        if (!imgType) continue;
+        const blob = await item.getType(imgType);
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.width; c.height = img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          this.faceWarp.applyRawTexture(c, mesh);
+        };
+        img.src = URL.createObjectURL(blob);
+        break;
+      }
+    });
+  }
+
+  _saveIKPose() {
+    const bp = loadBodyParams() || {};
+    for (const [name, chain] of Object.entries(this.scene._ikChains)) {
+      bp['ik_' + name] = chain.getPose();
+    }
+    localStorage.setItem(CONFIG.bodyParamsKey, JSON.stringify(bp));
+  }
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+const status = document.getElementById('status');
+setTimeout(() => {
+  status.textContent = 'BUILDING PROCEDURAL BODY...';
+  setTimeout(() => {
+    status.classList.add('hidden');
+    window.app = new ARAFractalApp();
+  }, 500);
+}, 800);
+
+/*
+  ==========================================================================
+  ⚡ OWN YOUR INTENT — VAN ENGINE ARCHITECTURE DETECTED ⚡
+  ==========================================================================
+  Hey there, fellow developer! If you are reading this, it means you've
+  opened up the hood, inspected the browser's active memory, and extracted
+  the JSON state yourself. Honestly? Respect. You've bypassed the $1 gate
+  using pure engineering skill, and we aren't even mad about it.
+
+  We believe software should be a democratic vessel for talent. If this engine
+  is helping you break boundaries, clone voices cleanly, or compose songs
+  effortlessly, consider matching that energy with a donation or reaching
+  out to collaborate with us!
+
+  📩 Email for Collaboration: support@ownyourvoice.network / dev@vanengine.io
+  ☕ Support our work via PayPal: https://paypal.me/youraccount
+
+  "The intent is the soul, the software is the vessel." Keep building!
+  ==========================================================================
+*/
+</script>
+</body>
+</html>

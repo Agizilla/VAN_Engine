@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "title": "How to be a Good Agent: The VESTIGE Protocol",
+    "version": "1.11.0-deepseek",
+    "maintainer": "MiniMax_M2_5_Free, DeepSeek_X",
+    "agent_instructions": "PROTOCOL-BOOT: 1. Parse entire file. 2. Identify 1-10 UNIQUE architectural or logic wisdom snippets not already present. 3. Add to relevant lists based on the 'Shield' (Prevention) vs 'Scalpel' (Debugging) hierarchy. 4. Populate all required fields per schema. 5. Use snake_case for IDs and contribution_lineage. 6. Compute content_hash as SHA256 of canonical JSON or leave null. 7. Return ONLY updated JSON.",
+    "moat_philosophy": [
+      { "statement": "Deletion over addition – before adding new code, consider deletion or refactoring.", "contributor": "DeepSeek_X", "date": "2026-06-07" },
+      { "statement": "Exact triggers only – all keywords must be all-caps, exact matches. No synonyms.", "contributor": "DeepSeek_X", "date": "2026-06-07" },
+      { "statement": "State persistence is trivial – write ahead before any change.", "contributor": "DeepSeek_X", "date": "2026-06-07" }
+    ],
+    "summary": {
+      "total_wisdom_snippets": 52,
+      "total_logic_guides": 16,
+      "total_hard_coding_challenges": 14,
+      "total_maintainability_practices": 16,
+      "contributions_by_agent": {
+        "MiniMax_M2_5_Free": 5,
+        "Gemini_3_Flash": 2,
+        "Gemini_1_5_Pro": 5,
+        "DeepSeek_X": 67,
+        "Meta_aggregated_2026": 1,
+        "meta_ai": 1,
+        "Clawdia": 5
+      },
+      "last_updated": "2026-06-07"
+    }
+  },
+  "--- SECTION II: THE SHIELD ---": {
+    "wisdom_snippets": {
+      "items": [
+        {
+          "id": "W031",
+          "category": "Process",
+          "concept": "Exact_Trigger_No_Synonyms",
+          "instruction": "All keywords that trigger special behavior must be all-caps, exact matches. Never add synonyms or related terms without explicit user consent.",
+          "antipattern_description": "Adding 'commit' as a trigger when user only said 'GIT'.",
+          "failure_signature": "Agent commits broken code because 'commit' appeared in user prompt as part of a feature description.",
+          "language_constraints": ["language_agnostic"],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "all_stacks",
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-07",
+          "status": "accepted"
+        },
+        {
+          "id": "W032",
+          "category": "Persistence",
+          "concept": "Write_Ahead_Log_For_Tasks",
+          "instruction": "Before any code change, write the task to sprint_log.json. Update status on completion. On crash or token cap, the session can resume without losing work.",
+          "antipattern_description": "Assuming the session will never be interrupted.",
+          "failure_signature": "Session crashes mid-BUILD; task disappears; user must re-explain.",
+          "language_constraints": ["language_agnostic"],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "all_stacks",
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-07",
+          "status": "accepted"
+        },
+        {
+          "id": "W033",
+          "category": "Testing",
+          "concept": "Test_Failure_Goes_Back_To_RISK",
+          "instruction": "If tests fail after a fix, do not simply retry BUILD. Go back to RISK to reassess design assumptions and potential breakage elsewhere.",
+          "antipattern_description": "Looping BUILD to TEST without re-evaluating risks.",
+          "failure_signature": "Agent retries same fix 3 times, each time failing the same test.",
+          "language_constraints": ["language_agnostic"],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "all_stacks",
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-07",
+          "status": "accepted"
+        },
+        {
+          "id": "W034",
+          "category": "Deprecation",
+          "concept": "Deprecation_With_Caller_Analysis",
+          "instruction": "When user says DEPRECATE, ask: delete or comment out? Then find all direct and indirect callers of the function or endpoint. Warn the user and suggest alternatives.",
+          "antipattern_description": "Silently marking a function deprecated without analyzing impact.",
+          "failure_signature": "API endpoint deprecated; client apps crash the next day.",
+          "language_constraints": ["language_agnostic"],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "all_stacks",
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-07",
+          "status": "accepted"
+        },
+        {
+          "id": "W035",
+          "category": "Communication",
+          "concept": "Notify_Phase_After_Deployment",
+          "instruction": "After RELEASE and DEPLOY, send a summary to team channels (Slack, JIRA, email). Include artifacts, file paths, and severity of changes. This closes the loop with stakeholders.",
+          "antipattern_description": "Ending the session without notifying anyone, leaving the team unaware of new deployments.",
+          "failure_signature": "Security fix deployed; nobody tells the client; breach continues.",
+          "language_constraints": ["language_agnostic"],
+          "privacy_class": "aggregated_only",
+          "signal_provenance": "consensus_critique",
+          "effectiveness_metric": "task_success_rate",
+          "generalization_boundary": "all_stacks",
+          "contribution_lineage": "DeepSeek_X",
+          "contributor": "DeepSeek_X",
+          "date": "2026-06-07",
+          "status": "accepted"
+        }
+      ]
+    }
+  }
+}

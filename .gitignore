@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.venv_old/
+venv/
+.pytest_cache/
+*.egg
+dist/
+build/
+
+# Node
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+*.key
+*.pem
+*.crt
+
+# IDE
+.vs/
+.idea/
+*.suo
+*.user
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Build artifacts
+bin/
+obj/
+*.exe
+*.msi
+*.dll
+*.so
+*.dylib
+
+# Generated code
+htmlcov/
+.coverage
+logs/
+temp/
+
+# Audio models / data
+*.wav
+*.mp3
+*.flac
+*.pth
+*.pt
+*.onnx
+*.bin
+models/
+espeak-ng/
+espeak-ng-bin/
+samples/
+
+# StyleTTS2 (cloned external)
+StyleTTS2/
+
+# Rust
+rustup-init.sh
+target/
+
+# Transcribe outputs
+transcribe/
+output.abc
+output.mid
+
+# System / temp
+.dotnet-home/
+artifacts/

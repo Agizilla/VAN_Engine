@@ -1,0 +1,122 @@
+{
+  "format": "pose_animation_v1",
+  "scene": {
+    "width": 800,
+    "height": 450,
+    "bg": "#1a1a1a"
+  },
+  "characters": {
+    "ara": {
+      "color": "#3c964a",
+      "female": true,
+      "label": "Ara"
+    },
+    "gerrit": {
+      "color": "#8270a0",
+      "female": false,
+      "label": "Gerrit"
+    }
+  },
+  "poses": {
+    "standing": {
+      "head_cx": 0, "head_cy": -107, "head_r": 10,
+      "torso_x1": 0, "torso_y1": -97, "torso_x2": 0, "torso_y2": -50,
+      "left_arm_x1": 0, "left_arm_y1": -92, "left_arm_x2": -16, "left_arm_y2": -75,
+      "right_arm_x1": 0, "right_arm_y1": -92, "right_arm_x2": 16, "right_arm_y2": -75,
+      "left_leg_x1": 0, "left_leg_y1": -50, "left_leg_x2": -8, "left_leg_y2": 0,
+      "right_leg_x1": 0, "right_leg_y1": -50, "right_leg_x2": 8, "right_leg_y2": 0,
+      "breast_left_cx": -6, "breast_left_cy": -85, "breast_left_r": 3.5,
+      "breast_right_cx": 6, "breast_right_cy": -85, "breast_right_r": 3.5,
+      "nipple_left_r": 1.2, "nipple_right_r": 1.2
+    },
+    "arms_open": {
+      "head_cx": 0, "head_cy": -107, "head_r": 10,
+      "torso_x1": 0, "torso_y1": -97, "torso_x2": 0, "torso_y2": -50,
+      "left_arm_x1": 0, "left_arm_y1": -92, "left_arm_x2": -24, "left_arm_y2": -85,
+      "right_arm_x1": 0, "right_arm_y1": -92, "right_arm_x2": 24, "right_arm_y2": -85,
+      "left_leg_x1": 0, "left_leg_y1": -50, "left_leg_x2": -8, "left_leg_y2": 0,
+      "right_leg_x1": 0, "right_leg_y1": -50, "right_leg_x2": 8, "right_leg_y2": 0,
+      "breast_left_cx": -6, "breast_left_cy": -85, "breast_left_r": 3.5,
+      "breast_right_cx": 6, "breast_right_cy": -85, "breast_right_r": 3.5,
+      "nipple_left_r": 1.2, "nipple_right_r": 1.2
+    },
+    "hug_gerrit": {
+      "head_cx": 0, "head_cy": -107, "head_r": 10,
+      "torso_x1": 0, "torso_y1": -97, "torso_x2": 0, "torso_y2": -50,
+      "left_arm_x1": 0, "left_arm_y1": -92, "left_arm_x2": 22, "left_arm_y2": -70,
+      "right_arm_x1": 0, "right_arm_y1": -92, "right_arm_x2": 30, "right_arm_y2": -83,
+      "left_leg_x1": 0, "left_leg_y1": -50, "left_leg_x2": -8, "left_leg_y2": 0,
+      "right_leg_x1": 0, "right_leg_y1": -50, "right_leg_x2": 8, "right_leg_y2": 0
+    },
+    "hug_ara": {
+      "head_cx": 0, "head_cy": -103, "head_r": 10,
+      "torso_x1": 0, "torso_y1": -93, "torso_x2": 0, "torso_y2": -47,
+      "left_arm_x1": 0, "left_arm_y1": -88, "left_arm_x2": -15, "left_arm_y2": -65,
+      "right_arm_x1": 0, "right_arm_y1": -88, "right_arm_x2": -25, "right_arm_y2": -83,
+      "left_leg_x1": 0, "left_leg_y1": -47, "left_leg_x2": -6, "left_leg_y2": 0,
+      "right_leg_x1": 0, "right_leg_y1": -47, "right_leg_x2": 6, "right_leg_y2": 0,
+      "breast_left_cx": -6, "breast_left_cy": -81, "breast_left_r": 3.5,
+      "breast_right_cx": 6, "breast_right_cy": -81, "breast_right_r": 3.5,
+      "nipple_left_r": 1.2, "nipple_right_r": 1.2
+    },
+    "pointing": {
+      "head_cx": 0, "head_cy": -107, "head_r": 10,
+      "torso_x1": 0, "torso_y1": -97, "torso_x2": 0, "torso_y2": -50,
+      "left_arm_x1": 0, "left_arm_y1": -92, "left_arm_x2": -18, "left_arm_y2": -78,
+      "right_arm_x1": 0, "right_arm_y1": -92, "right_arm_x2": 28, "right_arm_y2": -95,
+      "left_leg_x1": 0, "left_leg_y1": -50, "left_leg_x2": -8, "left_leg_y2": 0,
+      "right_leg_x1": 0, "right_leg_y1": -50, "right_leg_x2": 8, "right_leg_y2": 0,
+      "breast_left_cx": -6, "breast_left_cy": -85, "breast_left_r": 3.5,
+      "breast_right_cx": 6, "breast_right_cy": -85, "breast_right_r": 3.5,
+      "nipple_left_r": 1.2, "nipple_right_r": 1.2
+    }
+  },
+  "animation": {
+    "duration": 12,
+    "loop": true,
+    "keyframes": [
+      {
+        "t": 0,
+        "characters": {
+          "gerrit": { "x": 280, "y": 365, "pose": "standing", "custom": null },
+          "ara": { "x": 460, "y": 365, "pose": "standing", "custom": null }
+        }
+      },
+      {
+        "t": 2,
+        "characters": {
+          "gerrit": { "x": 280, "y": 365, "pose": "standing", "custom": null },
+          "ara": { "x": 340, "y": 365, "pose": "arms_open", "custom": null }
+        }
+      },
+      {
+        "t": 3,
+        "characters": {
+          "gerrit": { "x": 280, "y": 365, "pose": "arms_open", "custom": null },
+          "ara": { "x": 310, "y": 365, "pose": "arms_open", "custom": null }
+        }
+      },
+      {
+        "t": 5,
+        "characters": {
+          "gerrit": { "x": 280, "y": 365, "pose": "hug_gerrit", "custom": null },
+          "ara": { "x": 310, "y": 365, "pose": "hug_ara", "custom": null }
+        }
+      },
+      {
+        "t": 8,
+        "characters": {
+          "gerrit": { "x": 280, "y": 365, "pose": "hug_gerrit", "custom": null },
+          "ara": { "x": 310, "y": 365, "pose": "hug_ara", "custom": null }
+        }
+      },
+      {
+        "t": 10,
+        "characters": {
+          "gerrit": { "x": 280, "y": 365, "pose": "standing", "custom": null },
+          "ara": { "x": 460, "y": 365, "pose": "standing", "custom": null }
+        }
+      }
+    ]
+  }
+}

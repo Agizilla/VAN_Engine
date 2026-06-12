@@ -1,0 +1,230 @@
+{
+  "series": {
+    "title": "MIDNIGHT RAGE",
+    "subtitle": "Volume 5: Absolute Symmetry",
+    "genre": "Dark Romance / Psychological Drama / Cinematic Realism",
+    "rating": "Mature (thematic complexity, intense emotional intimacy, power dynamics)",
+    "logline": "As the boundaries between control and absolute surrender blur, Gerrit and Ara construct an unbreakable psychological architecture, testing whether true vulnerability can survive complete exposure.",
+    "creative_notes": {
+      "visual_style": "High-contrast cinematic comic art, gritty realism blended with moody noir aesthetics, deep shadow casting, and evocative close-ups focusing on intense emotional expressions.",
+      "color_palette": "Deep indigo, charcoal black, amber city glow (baseline), warm honey-gold (moments of absolute trust), electric cyan (cold emotional distance).",
+      "lettering_notes": "Standard human dialogue in clean sans-serif. Internal monologues in soft purple italicized blocks. Captions in clean, understated charcoal boxes."
+    }
+  },
+
+  "characters": {
+    "introduction": {
+      "title": "ARCHITECTS OF THE SHADOW",
+      "page_count": 4,
+      "panels": [
+        {
+          "panel": 1,
+          "visual": "A split-screen profile splash. On the left, Gerrit stands in the shadows of a minimalist penthouse window, looking down at the Johannesburg skyline. On the right, Ara sits on the edge of a platform bed, her posture perfectly poised but tense, staring directly forward into the viewer's space.",
+          "text_to_image_prompt": "Cinematic comic book style, high contrast, split screen profile. Left: a 40-year-old man with a sharp jawline staring out a high-rise window at an amber city skyline at night. Right: a beautiful woman sitting on a bed in deep shadow, intense look. Graphic novel art, moody lighting, dark indigo and amber color palette.",
+          "style_note": "Symmetric framing with a stark black line dividing the two worlds. The city light should catch only the edge of Gerrit's jaw and Ara's shoulder.",
+          "caption": "Volume 5. The architecture was complete. Now, they had to live inside it."
+        },
+        {
+          "panel": 2,
+          "character": "GERRIT",
+          "visual": "Close-up on Gerrit's face. His eyes are fixed, calculating, filled with an intense mixture of protective instinct and absolute command. He holds an elegant, heavy silver blindfold in one hand, trailing it between his fingers.",
+          "text_to_image_prompt": "Close-up on a man's face, intense focused expression, sharp jawline, cinematic graphic novel style. He is holding a silk silver blindfold trailing through his fingers. Deep shadows, amber atmospheric rim light, highly detailed line art.",
+          "caption": "GERRIT. The Orchestrator. Rule: Absolute transparency. Fear: The moment the anchor snaps."
+        },
+        {
+          "panel": 3,
+          "character": "ARA",
+          "visual": "Medium shot of Ara, looking stunning yet vulnerable. Her wrists are resting lightly behind her back, fingers interlaced voluntarily. Her head is tilted upward slightly, a silent challenge and complete acceptance written across her features.",
+          "text_to_image_prompt": "Medium shot of a stunning woman, graceful but intense posture, head tilted up slightly with a look of proud surrender. Her hands are behind her back. High-contrast comic art style, dramatic shadows, soft honey-gold lighting accents.",
+          "caption": "ARA. The Catalyst. Rule: No hidden corners. Fear: The return of the quiet emptiness."
+        }
+      ]
+    }
+  },
+
+  "chapter_1": {
+    "title": "THE ECHO CHAMBER",
+    "page_count": 12,
+    "summary": "Months after establishing their absolute baseline of trust, Gerrit introduces a new spatial dynamic—a completely dark, soundproofed room designed to eliminate all external signals, leaving only their raw emotional connection.",
+    "panels": [
+      {
+        "panel": 1,
+        "visual": "Wide shot of a heavy, solid oak door at the end of a dimly lit corridor. The wood grain is deep and dark. Gerrit's hand rests flat against the brass handle, not yet turning it.",
+        "text_to_image_prompt": "Wide cinematic shot of a dark oak door at the end of a moody, dimly lit hallway. A man's hand is resting on the polished brass handle. Deep indigo shadows, rich textures, high-contrast comic panel.",
+        "style_note": "The hallway is painted in cool cyan tones, making the door look imposing and absolute.",
+        "sfx": "CLICK",
+        "gerrit": "Inside this room, the world doesn't get an opinion. No noise, no background static. Just us."
+      },
+      {
+        "panel": 2,
+        "visual": "Ara stands beside him, looking up at his profile. The cool light hits her face, highlighting a small, genuine smile of anticipation.",
+        "text_to_image_prompt": "Close-up profile of a beautiful woman looking up at a man in a dark hallway. Soft cyan rim lighting on her face, expressive eyes, realistic graphic novel style, subtle line work.",
+        "ara": "You spent weeks building this, didn't you? Your ultimate sandbox."
+      },
+      {
+        "panel": 3,
+        "visual": "The door swings open into absolute blackness. Nothing can be seen inside the threshold—it looks like a void in the middle of the frame.",
+        "text_to_image_prompt": "Comic panel showing an open doorway leading into pitch blackness, contrasting with a dimly lit corridor. Striking minimalist composition, heavy ink work, cinematic framing.",
+        "style_note": "Use pure, unyielding black ink for the interior of the room to create an immediate sense of sensory deprivation.",
+        "caption": "The absence of signal is a signal in itself."
+      },
+      {
+        "panel": 4,
+        "visual": "Gerrit steps behind Ara, his hands resting gently on her shoulders, guiding her forward into the dark room. She steps across the threshold without hesitation.",
+        "text_to_image_prompt": "A man's hands guiding a woman by her shoulders into a dark room from a lit hallway. Rear view, cinematic comic style, emphasis on trustful posture, rich shadow work.",
+        "gerrit": "Close your eyes before you step in. Let the dark catch up to you slowly."
+      },
+      {
+        "panel": 5,
+        "visual": "Stark, high-contrast medium shot inside the room. A single, sharp overhead pinpoint spotlight turns on, casting a tight cone of brilliant amber light on Ara, who stands completely still. Gerrit remains in the shadows just outside the light ring.",
+        "text_to_image_prompt": "High-contrast comic panel. A woman standing perfectly still under a tight, dramatic overhead amber spotlight in a pitch-black room. A man's silhouette is visible in the shadows behind her. Striking chiaroscuro graphic novel art.",
+        "style_note": "Heavy chiaroscuro effect. The edges of the light cone should be razor-sharp.",
+        "internal_thought": "I can hear my own heartbeat. And then, right behind me, I hear his. The rest of the universe just dissolved."
+      },
+      {
+        "panel": 6,
+        "visual": "Close-up on Gerrit's hand as he gently wraps the silver silk blindfold around Ara's eyes from behind, securing it. Her chin remains held high.",
+        "text_to_image_prompt": "Close-up graphic novel panel, hands gently tying a silver silk blindfold over a woman's eyes from behind. Warm amber accent lighting, highly detailed fingers and textile texture.",
+        "gerrit": "Now, take away the sight. Tell me what's left."
+      },
+      {
+        "panel": 7,
+        "visual": "Ara's face in tight close-up. Her lips are slightly parted, her expression intensely focused on her internal senses.",
+        "text_to_image_prompt": "Tight close-up on a blindfolded woman's face, lips slightly parted, expression of deep emotional focus. Cinematic comic art, warm honey-gold light values, delicate inks.",
+        "ara": "You're standing exactly two inches behind me. Your breath is warm on my neck. And you're waiting."
+      },
+      {
+        "panel": 8,
+        "visual": "Gerrit leans down, his lips brushing against her ear without touching her skin. His expression is one of immense reverence and quiet dominance.",
+        "text_to_image_prompt": "A man whispering closely into a blindfolded woman's ear, dark background, warm amber rim lighting. Intimate, intense emotional tension, high-contrast graphic novel style.",
+        "gerrit": "Perfect tracking. You're wired into me, Ara."
+      },
+      {
+        "panel": 9,
+        "visual": "Final panel of the chapter. A minimalist black frame with the amber cone of light empty, casting a single shadow of their joined hands crossing the border of light into the dark. End of Chapter 1.",
+        "text_to_image_prompt": "Minimalist graphic novel frame, pitch black with a single empty cone of light illuminating the floor. Two hands with interlaced fingers are seen casting a shadow across the light boundary. Cinematic finish.",
+        "caption": "In the perfect quiet, every movement is an earthquake."
+      }
+    ]
+  },
+
+  "chapter_2": {
+    "title": "THE ORCHESTRATION OF WILL",
+    "page_count": 14,
+    "summary": "With all external inputs removed, Gerrit tests the absolute limits of Ara's responsiveness using purely acoustic and tactile cues, guiding her through a complex choreography of submission.",
+    "panels": [
+      {
+        "panel": 1,
+        "visual": "Medium shot. Ara is on her knees on a soft, dark velvet mat under the single amber spotlight, still blindfolded. Gerrit stands over her, holding a small silver chime between his fingers.",
+        "text_to_image_prompt": "Medium shot of a blindfolded woman kneeling gracefully on a dark velvet mat under a sharp amber spotlight. A man stands near her holding a small silver chime. Dark noir comic style, elegant composition.",
+        "style_note": "Deep violet hues should tint the dark velvet mat to separate it from the void-black floor.",
+        "caption": "The rules were simple: each tone was a command. A language written in frequencies."
+      },
+      {
+        "panel": 2,
+        "visual": "Close-up on the silver chime as Gerrit strikes it with a small mallet. Shimmering lines of graphic resonance emanate from the chime across the panel.",
+        "text_to_image_prompt": "Close-up of a silver chime being struck, with elegant abstract ripple lines representing sound waves cutting through a dark background. Crisp line art, high-contrast comic book detail.",
+        "sfx": "TINGNGNG\u2014"
+      },
+      {
+        "panel": 3,
+        "visual": "Ara responds instantly to the sound. She lowers her forehead slowly down to touch the velvet mat, her posture flowing like liquid grace, completely submitting to the acoustic cue.",
+        "text_to_image_prompt": "A blindfolded woman lowering her upper body smoothly to touch her head to a mat in a gesture of absolute devotion and grace. Cinematic graphic novel panel, heavy shadows, expressive anatomy.",
+        "internal_thought": "The sound clears my head. It tells me exactly who I am and where I belong. No decisions. Just execution."
+      },
+      {
+        "panel": 4,
+        "visual": "Gerrit kneels beside her, placing one large hand flat against the center of her back, applying light, grounding pressure. His face shows a profound, silent connection.",
+        "text_to_image_prompt": "A man kneeling next to a submissive woman, placing his hand flat on her upper back with deep care and presence. Warm ambient light, high-contrast shadows, realistic indie comic style.",
+        "gerrit": "Good. Zero lag. You aren't thinking, you're just feeling."
+      },
+      {
+        "panel": 5,
+        "visual": "Ara turns her face slightly while still resting down, her mouth open in a quiet gasp of comfort under his touch. His hand remains a heavy, steady anchor on her spine.",
+        "text_to_image_prompt": "Close-up of a woman's face resting sideways on a dark mat, a man's large hand visible pressing on her back. Blindfolded, emotional expression, rich ink shading, soft lighting.",
+        "ara": "It's too quiet out there... but in here, your hand is the only thing that's real."
+      },
+      {
+        "panel": 6,
+        "visual": "Gerrit slides his hand from her back up to the nape of her neck, gently lifting her to a sitting posture while keeping her eyes covered. His fingers tangle slightly in the loose strands of her hair.",
+        "text_to_image_prompt": "A man's hand gently shifting from a woman's back to the nape of her neck, pulling her up smoothly. Blindfolded woman, intimate power dynamic, detailed comic book line art.",
+        "gerrit": "Then keep your focus right there. I have you."
+      },
+      {
+        "panel": 7,
+        "visual": "Split panel. Top: Gerrit's face, incredibly tender, eyes tracking her every micro-expression. Bottom: Ara's hands, resting on her thighs, unclenched and completely soft\u2014the ultimate sign of full psychological relaxation.",
+        "text_to_image_prompt": "Split comic panel. Top: close-up of a man's tender but intense eyes. Bottom: close-up of a woman's hands resting completely relaxed on her lap, open palms. High-contrast line art.",
+        "caption": "The tension of the city outside was gone. Replaced by a deeper, shared frequency."
+      },
+      {
+        "panel": 8,
+        "visual": "Gerrit presses a soft, slow kiss to her forehead right above the line of the silver blindfold. The lighting softens to a deep, enveloping honey-gold.",
+        "text_to_image_prompt": "A man kissing a blindfolded woman tenderly on her forehead. Beautiful honey-gold lighting, deep rich shadows, highly emotional and respectful atmosphere, cinematic graphic novel format.",
+        "gerrit": "You're doing perfectly for me, Ara."
+      },
+      {
+        "panel": 9,
+        "visual": "Final shot of Chapter 2. Wide view from high above the spotlight cone. They look like two figures rendered in gold lacquer against an infinite sea of absolute ink. End of Chapter 2.",
+        "text_to_image_prompt": "High angle top-down view of a man and a woman embraced within a small circular pool of gold light, surrounded by complete pitch blackness. Highly artistic, dramatic chiaroscuro comic style.",
+        "caption": "The ledger was balanced. The symmetry was absolute."
+      }
+    ]
+  },
+
+  "chapter_3": {
+    "title": "THE RECLAMATION CODE",
+    "page_count": 15,
+    "summary": "As the sensory session reaches its natural conclusion, Gerrit and Ara transition into the vital stage of aftercare, solidifying the emotional infrastructure that keeps them anchored in reality.",
+    "panels": [
+      {
+        "panel": 1,
+        "visual": "Gerrit gently unties the silver blindfold, pulling it away. Ara's eyes open slowly, adjusting to the soft, dim ambient light of the room which has now shifted to a warm, gentle amber glow.",
+        "text_to_image_prompt": "A man gently removing a blindfold from a woman's face. Her eyes are opening slowly with deep emotion. Soft amber glow, intimate atmospheric lighting, highly detailed indie comic style.",
+        "style_note": "Transition the lighting from the stark spot to a diffused, all-encompassing warmth.",
+        "ara": "The light feels different now. Like everything has been reset."
+      },
+      {
+        "panel": 2,
+        "visual": "Gerrit sits down completely on the mat, pulling Ara against his chest. He wraps his arms entirely around her, enveloping her like a protective shield. She sinks into his embrace with total weight.",
+        "text_to_image_prompt": "A man sitting down and wrapping a woman in a deep, protective full-body embrace from behind. She is leaning back completely into him with absolute trust. Warm amber lighting, rich emotional textures.",
+        "gerrit": "Welcome back. You went deep tonight."
+      },
+      {
+        "panel": 3,
+        "visual": "Close-up on their profiles as Ara rests her cheek against his chest, listening to his heartbeat. Gerrit rests his chin gently on top of her head, eyes closed in profound peace.",
+        "text_to_image_prompt": "Close-up of a woman resting her cheek against a man's chest in a warm embrace, his chin resting gently on her head. Peaceful expressions, closed eyes, moody comic book style, soft shading.",
+        "ara": "I didn't want to come back for a minute. It's so clean down there in the dark."
+      },
+      {
+        "panel": 4,
+        "visual": "Gerrit reaches down and picks up a glass of water from the side of the mat, holding it to her lips for her to take a sip. His touch is patient and meticulous.",
+        "text_to_image_prompt": "A man gently holding a glass of water to a woman's lips so she can drink while resting in his arms. Detailed hand interactions, soft atmospheric graphic novel panel.",
+        "gerrit": "Drink. You need to anchor back into the physical world. Step by step."
+      },
+      {
+        "panel": 5,
+        "visual": "Ara takes a sip, smiling softly against the rim of the glass. The connection between them radiates an unshakeable strength.",
+        "text_to_image_prompt": "Close-up of a woman smiling softly while drinking from a glass, a man's supportive hand visible. Emotional warmth, detailed line art, clean colors.",
+        "ara": "You're an exceptional architect, Gerrit. You never miss a detail."
+      },
+      {
+        "panel": 6,
+        "visual": "Gerrit sets the glass down, his hand sliding down to interlace his fingers tightly with hers on the dark velvet mat. Their matching silver wristbands catch the soft amber light.",
+        "text_to_image_prompt": "Close-up of two hands with interlaced fingers resting on a dark velvet surface, matching silver metallic bracelets catching a warm amber highlight. Meticulous comic book textures.",
+        "gerrit": "Because the vessel has to be flawless to hold the soul. I won't let anything leak."
+      },
+      {
+        "panel": 7,
+        "visual": "Wide shot of the room as they remain sitting together, small but perfectly whole inside their custom-built sanctuary. The heavy oak door remains locked in the background, keeping the chaos of the world at bay.",
+        "text_to_image_prompt": "Wide shot of an intimate couple sitting closely on a mat in a large, minimalist dark room with diffused warm lighting. A heavy closed door is visible far in the background. Balanced composition graphic novel.",
+        "caption": "The world outside would eventually demand their return. But the rules had been rewritten."
+      },
+      {
+        "panel": 8,
+        "visual": "Final panel of Volume 5. A stark, elegant black screen with crisp white text centered: 'THE ARCHITECTURE HOLDS.' Below it, in smaller, clean typography: 'MIDNIGHT RAGE WILL RETURN IN VOLUME 6.'",
+        "text_to_image_prompt": "Minimalist typographic comic book splash page. Pure black background with elegant, clean white text in the center reading 'THE ARCHITECTURE HOLDS.' Graphic novel conclusion style.",
+        "style_note": "Perfectly centered text with generous negative space to maintain the cinematic weight of the ending."
+      }
+    ]
+  }
+}

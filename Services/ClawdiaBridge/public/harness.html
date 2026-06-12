@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Clawdia · Bridge Harness</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0b1219;
+  --panel: #111d2b;
+  --border: #1a2d40;
+  --accent: #7c5cfc;
+  --text: #c8d6e5;
+  --text-dim: #5a728a;
+  --ok: #66bb6a;
+  --danger: #ef5350;
+  --warning: #ffa726;
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Cascadia Code', 'JetBrains Mono', monospace;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+#topbar {
+  display: flex; align-items: center; gap: 1rem; padding: 0.6rem 1rem;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+#topbar h1 { font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+#topbar h1 span { color: var(--accent); }
+#status { margin-left: auto; font-size: 0.75rem; font-family: var(--mono); display: flex; align-items: center; gap: 0.4rem; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.ok { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.dot.err { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.dot.warn { background: var(--warning); box-shadow: 0 0 6px var(--warning); animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+#main { display: grid; grid-template-columns: 1fr 320px; flex: 1; overflow: hidden; }
+
+#inbox {
+  padding: 0.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.25rem;
+}
+.msg {
+  background: var(--panel); border-left: 3px solid var(--accent); border-radius: 6px;
+  padding: 0.5rem 0.7rem; font-size: 0.8rem;
+}
+.msg .meta { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); margin-bottom: 0.3rem; display: flex; gap: 0.5rem; }
+.msg .source { font-weight: 600; }
+.msg .body { white-space: pre-wrap; word-break: break-word; line-height: 1.4; cursor: text; border-radius: 4px; padding: 0.2rem; transition: background 0.15s; }
+.msg .body:focus { outline: none; background: rgba(255,255,255,0.03); box-shadow: inset 0 0 0 1px var(--accent-dim); }
+.msg.pending { opacity: 0.5; }
+.msg.done { border-left-color: var(--ok) !important; }
+
+#side {
+  background: var(--panel); border-left: 1px solid var(--border);
+  padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto;
+}
+#side h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+#bridge-info { font-size: 0.75rem; color: var(--text-dim); line-height: 1.6; }
+#bridge-info code { background: rgba(255,255,255,0.05); padding: 0.1rem 0.3rem; border-radius: 3px; font-family: var(--mono); font-size: 0.65rem; }
+
+.btn {
+  width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;
+  background: #1a2d40; color: var(--text); font-size: 0.75rem; cursor: pointer;
+  transition: all 0.15s; font-family: var(--font);
+}
+.btn:hover { background: #223a52; border-color: var(--accent); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: #2a1a5a; border-color: var(--accent); color: white; }
+.btn.primary:hover:not(:disabled) { background: #3a2a7a; }
+.btn.ok { background: #1a3a1a; border-color: var(--ok); color: var(--ok); }
+.btn.ok:hover:not(:disabled) { background: #204a20; }
+
+/* Toggle switch */
+.toggle-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; }
+.toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; background: #1a2d42; border-radius: 20px; cursor: pointer; transition: 0.2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute; width: 16px; height: 16px; left: 2px; bottom: 2px;
+  background: var(--text-dim); border-radius: 50%; transition: 0.2s;
+}
+.toggle input:checked + .toggle-slider { background: var(--accent-dim, #2a1a5a); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(16px); background: var(--accent); }
+
+.voice-status { font-size: 0.7rem; color: var(--text-dim); font-family: var(--mono); }
+
+#event-log { background: var(--panel); border-top: 1px solid var(--border); padding: 0.3rem 1rem; max-height: 90px; overflow-y: auto; font-family: var(--mono); font-size: 0.65rem; }
+
+@media (max-width: 680px) {
+  #main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  #side { border-left: none; border-top: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>🧠 <span>Clawdia</span> Bridge · Harness</h1>
+    <div id="status"><span class="dot err" id="dot"></span><span id="label">Disconnected</span></div>
+  </div>
+
+  <div id="main">
+    <div id="inbox"></div>
+
+    <div id="side">
+      <div class="panel-section">
+        <h3>Auto-Speak</h3>
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="auto-speak" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Speak incoming messages</span>
+        </div>
+        <div class="voice-status" id="voice-status">Voice server: checking...</div>
+      </div>
+
+      <div class="panel-section">
+        <h3>Voice Map</h3>
+        <div style="font-size:0.7rem;color:var(--text-dim);line-height:1.6">
+          <div><span style="color:#7c5cfc">claude</span> → 🎤 Amelia (female)</div>
+          <div><span style="color:#4fc3f7">deepseek</span> → 🎤 Engineer (male)</div>
+          <div><span style="color:#ffa726">gemini</span> → 🎤 Default (male)</div>
+          <div><span style="color:#66bb6a">chatgpt</span> → 🎤 Assistant (male)</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3>Click to load interceptor</h3>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <button class="btn" data-copy="deepseek" style="font-size:0.7rem;padding:0.3rem;text-align:left;border-left:3px solid #4fc3f7">📋 DeepSeek interceptor</button>
+          <button class="btn" data-copy="gemini" style="font-size:0.7rem;padding:0.3rem;text-align:left;border-left:3px solid #ffa726">📋 Gemini interceptor</button>
+          <button class="btn" data-copy="claude" style="font-size:0.7rem;padding:0.3rem;text-align:left;border-left:3px solid #7c5cfc">📋 Claude interceptor</button>
+          <button class="btn" data-copy="chatgpt" style="font-size:0.7rem;padding:0.3rem;text-align:left;border-left:3px solid #66bb6a">📋 ChatGPT interceptor</button>
+          <button class="btn" data-copy="gemini-userscript" style="font-size:0.7rem;padding:0.3rem;text-align:left;border-left:3px solid #ffa726;margin-top:4px">🎛️ Gemini Command Center (UI buttons)</button>
+        </div>
+        <textarea id="interceptor-text" style="width:100%;background:#0a1219;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:0.6rem;padding:0.3rem;margin-top:0.3rem;resize:vertical;min-height:222px" placeholder="Click a button above to load script..." readonly></textarea>
+        <div style="display:flex;gap:3px;margin-top:3px">
+          <button class="btn" id="copy-interceptor" style="font-size:0.65rem;padding:0.25rem;flex:1">📋 Copy to clipboard</button>
+          <button class="btn" id="select-interceptor" style="font-size:0.65rem;padding:0.25rem;flex:1">✂ Select all</button>
+        </div>
+      </div>
+
+      <div class="panel-section" style="border-top:1px solid var(--border);padding-top:0.5rem">
+        <h3>Audio Inbox</h3>
+        <div id="audio-inbox" style="max-height:240px;overflow-y:auto;font-size:0.7rem;display:flex;flex-direction:column;gap:3px"></div>
+        <div style="display:flex;gap:3px;margin-top:3px">
+          <button class="btn" id="synth-test" style="font-size:0.65rem;padding:0.25rem">🔊 Test Synth</button>
+          <button class="btn" id="refresh-audio" style="font-size:0.65rem;padding:0.25rem">↻ Refresh</button>
+        </div>
+      </div>
+
+      <button class="btn" id="export-history" style="border-left:3px solid #ffa726;font-size:0.7rem;padding:0.35rem">&#x1F9E0; Export Chat History (DeepSeek)</button>
+
+      <button class="btn" id="clear-inbox">Clear Inbox</button>
+      <button class="btn primary" id="process-all">Process All Pending</button>
+    </div>
+  </div>
+
+  <div id="event-log"></div>
+</div>
+
+<script>
+const VOICE_SERVER = 'http://localhost:8888';
+const VOICE_MAP = {
+  claude:   { voice_id: 'MClEFoImJXBTgLwdLI5n', label: 'Amelia (female)' },
+  deepseek: { voice_id: 'bIHbv24MWmeRgasZH58o', label: 'Engineer (male)' },
+  gemini:   { voice_id: 'bIHbv24MWmeRgasZH58o', label: 'Default (male)' },
+  chatgpt:  { voice_id: 'bIHbv24MWmeRgasZH58o', label: 'Assistant (male)' },
+};
+const DEFAULT_VOICE = { voice_id: 'bIHbv24MWmeRgasZH58o', label: 'Default (male)' };
+
+const wsUrl = `ws://${location.host}`;
+let ws = null;
+let reconnectTimer = null;
+let voiceServerOk = false;
+let lastSpoken = '';
+
+const inbox = document.getElementById('inbox');
+const dot = document.getElementById('dot');
+const label = document.getElementById('label');
+const log = document.getElementById('event-log');
+const autoSpeakToggle = document.getElementById('auto-speak');
+const voiceStatus = document.getElementById('voice-status');
+
+async function checkVoiceServer() {
+  try {
+    const r = await fetch(`${VOICE_SERVER}/health`, { signal: AbortSignal.timeout(2000) });
+    voiceServerOk = r.ok;
+    voiceStatus.textContent = voiceServerOk ? '✅ Voice server online' : '⚠️ Voice server unreachable';
+    voiceStatus.style.color = voiceServerOk ? 'var(--ok)' : 'var(--warning)';
+  } catch {
+    voiceServerOk = false;
+    voiceStatus.textContent = '⛔ Voice server offline (port 8888)';
+    voiceStatus.style.color = 'var(--danger)';
+  }
+}
+
+function stripCodeForSpeech(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]+`/g, '')
+    .replace(/\{[^}]*\}/g, '')
+    .replace(/\[[\s\S]*?\]/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+async function speak(text, source) {
+  if (!voiceServerOk || !autoSpeakToggle.checked) return;
+  const clean = stripCodeForSpeech(text);
+  if (!clean) return;
+  const key = clean.slice(0, 100);
+  if (key === lastSpoken) return;
+  lastSpoken = key;
+
+  const voice = VOICE_MAP[source] || DEFAULT_VOICE;
+  const msg = clean.length > 500 ? clean.slice(0, 500) + '...' : clean;
+  try {
+    await fetch(`${VOICE_SERVER}/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, voice_id: voice.voice_id, voice_enabled: true }),
+      signal: AbortSignal.timeout(5000),
+    });
+    logEvent(`🗣️ Spoke (${source} → ${voice.label})`);
+  } catch {
+    logEvent(`⚠️ Voice failed for ${source}`);
+  }
+}
+
+function connect() {
+  dot.className = 'dot err';
+  label.textContent = 'Connecting...';
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => {
+    dot.className = 'dot ok';
+    label.textContent = 'Connected';
+    logEvent('WebSocket connected');
+  };
+  ws.onclose = () => {
+    dot.className = 'dot err';
+    label.textContent = 'Disconnected';
+    logEvent('Disconnected — reconnecting...');
+    scheduleReconnect();
+  };
+  ws.onerror = () => {};
+  ws.onmessage = (e) => {
+    if (handleWsMessage(e)) return;
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    if (msg.type === 'clawdia') {
+      addMessage(msg.data);
+      if (msg.data.text) speak(msg.data.text, msg.data.source || 'unknown');
+    }
+    if (msg.type === 'clawdia_result') {
+      logEvent('\uD83D\uDCE6 Processing results received');
+    }
+    if (msg.type === 'hello') {
+      logEvent('Server: ' + msg.data.server + ' v' + msg.data.version);
+    }
+  };
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, 2000);
+}
+
+function addMessage(data) {
+  const el = document.createElement('div');
+  el.className = 'msg';
+  const ts = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+  const source = data.source || 'unknown';
+  const text = data.text || '(empty)';
+  const sourceColor = { claude: '#7c5cfc', deepseek: '#4fc3f7', gemini: '#ffa726', chatgpt: '#66bb6a' }[source] || 'var(--accent)';
+  el.innerHTML = `<div class="meta"><span class="source" style="color:${sourceColor}">${source}</span><span>${ts} (${text.length} chars)</span></div><div class="body" contenteditable="true">${escapeHtml(text)}</div>`;
+  el.dataset.source = source;
+  inbox.appendChild(el);
+  inbox.scrollTop = inbox.scrollHeight;
+  logEvent(`📩 ${source} (${text.length} chars)`);
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function logEvent(msg) {
+  const el = document.createElement('div');
+  el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+  if (log.children.length > 100) log.removeChild(log.firstChild);
+}
+
+function parseCodeBlocks(text) {
+  const files = [];
+  const commands = [];
+  const blockRe = /```(\w+)?\s*\n?([\s\S]*?)```/g;
+  let match;
+
+  while ((match = blockRe.exec(text)) !== null) {
+    const lang = (match[1] || '').toLowerCase();
+    const content = match[2].replace(/\r\n/g, '\n');
+
+    if (lang === 'bash' || lang === 'sh' || lang === 'shell' || lang === 'powershell' || lang === 'cmd') {
+      const lines = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+      commands.push(...lines);
+    } else {
+      const codeLines = content.split('\n');
+      const firstLine = codeLines[0] || '';
+      const pathMatch = firstLine.match(/^(?:\/\/|#|<!--)\s*(.+\.\w+)/);
+      if (pathMatch) {
+        files.push({ path: pathMatch[1].trim(), content: codeLines.slice(1).join('\n').trimStart() });
+      } else {
+        files.push({ path: `unnamed_block_${files.length}.md`, content });
+      }
+    }
+  }
+  return { files, commands };
+}
+
+const INTERCEPTORS = {
+  deepseek: `(function(){const E='http://localhost:8080/clawdia';new MutationObserver(()=>{const e=document.querySelector('[data-message-author-role="assistant"]:last-child, article:last-child, [class*="message"]:last-child');fetch(E,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'deepseek',text:e.innerText})})}).observe(document.body,{childList:true,subtree:true})})()`,
+
+  gemini: `(function(){const E='http://localhost:8080/clawdia';new MutationObserver(()=>{const e=document.querySelector('[class*="message-content"]:last-child, article:last-child, [class*="response"]:last-child');fetch(E,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'gemini',text:e.innerText})})}).observe(document.body,{childList:true,subtree:true})})()`,
+
+  claude: `(function(){const E='http://localhost:8080/clawdia';new MutationObserver(()=>{const e=document.querySelector('[data-message-author-role="assistant"]:last-child');fetch(E,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'claude',text:e.innerText})})}).observe(document.body,{childList:true,subtree:true})})()`,
+
+  chatgpt: `(function(){const E='http://localhost:8080/clawdia';new MutationObserver(()=>{const e=document.querySelector('[data-message-author-role="assistant"]:last-child, .conversation-turn:last-child');fetch(E,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'chatgpt',text:e.innerText})})}).observe(document.body,{childList:true,subtree:true})})()`,
+
+  'gemini-userscript': `// ==UserScript==
+// @name         Gemini-to-Clawdia Command Center
+// @match        https://gemini.google.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+    
+    const E = 'http://localhost:8080/clawdia';
+
+    const s = document.createElement('style');
+    s.innerHTML = '.clawdia-btn-group{display:inline-flex;gap:4px;margin-right:8px;vertical-align:middle}.clawdia-btn{background:#5A2D82;color:#fff;border:none;border-radius:16px;padding:6px 12px;font-size:11px;font-family:monospace;cursor:pointer;font-weight:bold}.clawdia-btn-fetch{background:#2d825a}';
+    document.head.appendChild(s);
+
+    const c = document.createElement('div');
+    c.className = 'clawdia-btn-group';
+
+    const b1 = document.createElement('button');
+    b1.className = 'clawdia-btn'; b1.innerText = '⮞ Clawdia (Out)';
+    b1.onclick = () => fetch(E,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'gemini',type:'response',text:document.querySelector('[class*="message-content"]:last-child').innerText})});
+
+    const b2 = document.createElement('button');
+    b2.className = 'clawdia-btn'; b2.innerText = '⮞ Clawdia (Draft)';
+    b2.onclick = () => fetch(E,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'gemini',type:'draft',text:document.querySelector('.ql-editor').innerText})});
+
+    const b3 = document.createElement('button');
+    b3.className = 'clawdia-btn clawdia-btn-fetch'; b3.innerText = '⮜ Fetch Mail';
+    b3.onclick = async () => {
+        const r = await fetch(E+'/inbox?target=gemini');
+        const last = (await r.json()).pop();
+        const el = document.querySelector('.ql-editor');
+        el.textContent = '';
+        const p = document.createElement('p');
+        p.textContent = last.text;
+        el.appendChild(p);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        fetch(E+'/inbox?target=gemini&ack='+last.id);
+    };
+
+    c.append(b1, b2, b3);
+    new MutationObserver(() => { const btn = document.querySelector('button[aria-label="Send message"]'); if (btn && !document.getElementById('cc')) { c.id = 'cc'; btn.parentNode.insertBefore(c, btn); } }).observe(document.body, {childList:true, subtree:true});
+})();`,
+};
+
+const interceptorText = document.getElementById('interceptor-text');
+
+document.querySelectorAll('[data-copy]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.copy;
+    const script = INTERCEPTORS[key];
+    if (!script) return;
+    interceptorText.value = script;
+    interceptorText.readOnly = false;
+    interceptorText.focus();
+    interceptorText.select();
+    logEvent(`Interceptor loaded: ${key}`);
+  });
+});
+
+document.getElementById('copy-interceptor').addEventListener('click', () => {
+  if (!interceptorText.value) return;
+  interceptorText.select();
+  navigator.clipboard.writeText(interceptorText.value).then(() => {
+    logEvent('Interceptor copied to clipboard');
+  }).catch(() => {
+    logEvent('Copy failed — select manually');
+  });
+});
+
+document.getElementById('select-interceptor').addEventListener('click', () => {
+  interceptorText.focus();
+  interceptorText.select();
+});
+
+document.getElementById('clear-inbox').addEventListener('click', () => { inbox.innerHTML = ''; });
+
+document.getElementById('export-history').addEventListener('click', () => {
+  const script = document.createElement('script');
+  script.src = '/recovery-popup.js';
+  script.onload = () => {
+    if (typeof launchClawdiaRecovery === 'function') launchClawdiaRecovery();
+    else logEvent('\u26D4 Recovery script loaded but function not found');
+  };
+  script.onerror = () => logEvent('\u26D4 Failed to load recovery-popup.js');
+  document.head.appendChild(script);
+  logEvent('\uD83D\uDCE6 Loading DeepSeek session recovery...');
+});
+
+document.getElementById('process-all').addEventListener('click', async () => {
+  const msgs = inbox.querySelectorAll('.msg:not(.done)');
+  document.getElementById('process-all').disabled = true;
+
+  for (const m of msgs) {
+    const text = m.querySelector('.body').textContent;
+    const { files, commands } = parseCodeBlocks(text);
+    const msgId = Date.now();
+    try {
+      const res = await fetch('/clawdia/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: msgId, files, commands, message: text.slice(0, 200) })
+      });
+      const result = await res.json();
+      if (result.ok) {
+        m.classList.add('done');
+        const fileOk = result.results.files.filter(f => f.status === 'written').length;
+        const cmdOk = result.results.commands.filter(c => c.status === 'ok').length;
+        logEvent('\u2705 ' + fileOk + ' files written, ' + cmdOk + ' commands executed');
+        for (const c of result.results.commands) {
+          const out = (c.output || '').slice(0, 80);
+          if (c.status === 'ok') logEvent('  \u2192 $ ' + c.command + ': ' + out);
+          else logEvent('  \u26D4 $ ' + c.command + ': ' + out);
+        }
+      } else {
+        logEvent('\u26D4 Processing failed');
+      }
+    } catch (e) {
+      logEvent('\u26D4 Error: ' + e.message);
+    }
+  }
+
+  document.getElementById('process-all').disabled = false;
+  logEvent('Done processing');
+});
+
+// ─── Audio Inbox ──────────────────────────────────────────────────
+const audioInboxEl = document.getElementById('audio-inbox');
+let currentAudio = null;
+
+function fmtDur(sec) {
+  if (!sec || sec <= 0) return '';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return m + ':' + s.toString().padStart(2, '0');
+}
+
+async function fetchAudioInbox() {
+  try {
+    const r = await fetch('/audio/inbox');
+    const items = await r.json();
+    audioInboxEl.innerHTML = '';
+    if (!items.length) {
+      audioInboxEl.innerHTML = '<div style="color:var(--text-dim);padding:0.5rem;text-align:center">No audio messages yet</div>';
+      return;
+    }
+    for (const item of items) {
+      const el = document.createElement('div');
+      el.className = 'audio-entry';
+      const borderColor = item.played ? 'var(--text-dim)' : 'var(--accent)';
+      el.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 6px;background:var(--bg);border-radius:4px;border-left:3px solid ' + borderColor;
+      const playBtn = document.createElement('button');
+      playBtn.textContent = '▶';
+      playBtn.style.cssText = 'width:24px;height:24px;border:none;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font-size:0.7rem;flex-shrink:0';
+      playBtn.onclick = function() {
+        const audio = new Audio('/audio/file/' + item.id);
+        if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+        currentAudio = audio;
+        audio.play();
+        fetch('/audio/ack/' + item.id, { method: 'POST' });
+        this.textContent = '⏹';
+        audio.onended = function() { playBtn.textContent = '▶'; currentAudio = null; };
+      };
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;line-height:1.3';
+      const preview = item.text.length > 50 ? item.text.slice(0, 50) + '\u2026' : item.text;
+      info.innerHTML = '<div style="font-size:0.6rem;color:var(--accent)">' + item.source + '</div><div style="font-size:0.6rem;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(preview) + '</div>';
+      const meta = document.createElement('div');
+      meta.style.cssText = 'font-size:0.55rem;color:var(--text-dim);text-align:right;flex-shrink:0';
+      const emojiMap = { anger: '\u{1F620}', surprise: '\u{1F62E}', tension: '\u{1F630}', contempt: '\u{1F60F}', joy: '\u{1F60A}', sadness: '\u{1F622}', neutral: '\u{1F610}' };
+      meta.textContent = (emojiMap[item.emotion] || '\u{1F610}') + ' ' + fmtDur(item.duration);
+      el.append(playBtn, info, meta);
+      audioInboxEl.appendChild(el);
+    }
+  } catch (e) {
+    audioInboxEl.innerHTML = '<div style="color:var(--danger);padding:0.5rem">Failed to load: ' + e.message + '</div>';
+  }
+}
+
+document.getElementById('refresh-audio').addEventListener('click', fetchAudioInbox);
+
+document.getElementById('synth-test').addEventListener('click', async function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = '\u23F3 Synthesizing...';
+  try {
+    const r = await fetch('/audio/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'This is a test of the Clawdia audio pipeline. Hello from the Soul As A Service transposer.', source: 'clawdia', emotion: 'joy', intensity: 0.8 }),
+    });
+    const result = await r.json();
+    if (result.ok) {
+      logEvent('\uD83C\uDFB5 Audio synthesized: ' + result.emotion + ' (id: ' + result.id + ')');
+      fetchAudioInbox();
+    } else {
+      logEvent('\u26D4 Synthesis failed: ' + result.error);
+    }
+  } catch (e) {
+    logEvent('\u26D4 Synthesis error: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '\uD83D\uDD0A Test Synth';
+});
+
+// Handle audio_new from WebSocket
+function handleWsMessage(e) {
+  let msg;
+  try { msg = JSON.parse(e.data); } catch { return; }
+  if (msg.type === 'audio_new') {
+    fetchAudioInbox();
+    logEvent('\uD83C\uDFB5 New audio: ' + msg.data.source + ' (' + msg.data.emotion + ')');
+    return true;
+  }
+  return false;
+}
+
+fetchAudioInbox();
+
+checkVoiceServer();
+setInterval(checkVoiceServer, 15000);
+connect();
+</script>
+</body>
+</html>

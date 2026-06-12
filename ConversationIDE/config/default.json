@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "Conversation-IDE",
+    "version": "1.0.0",
+    "offlineOnly": true
+  },
+  "van_engine": {
+    "root": "../..",
+    "autoStart": true,
+    "bridges": {
+      "gemini": false,
+      "deepseek": false,
+      "openai": false
+    }
+  },
+  "iso": {
+    "driftThreshold": 0.85,
+    "magnitudeTolerance": 1e-6,
+    "auditRetentionDays": 30
+  },
+  "ui": {
+    "theme": "dark",
+    "fontSize": 14,
+    "voiceEnabled": true
+  }
+}

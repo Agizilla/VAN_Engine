@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sovereign Architect Wizard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #12121a;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 640px;
+      width: 100%;
+      margin: 20px;
+    }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #fff; }
+    .subtitle { color: #888; margin-bottom: 32px; font-size: 14px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step h2 { font-size: 18px; margin-bottom: 20px; }
+    .option {
+      background: #1a1a28;
+      border: 2px solid #2a2a3a;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .option:hover { border-color: #4a4a6a; background: #1e1e30; }
+    .option.selected { border-color: #6c5ce7; background: #1e1a3a; }
+    .option h3 { font-size: 15px; color: #fff; margin-bottom: 4px; }
+    .option p { font-size: 13px; color: #999; }
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 24px;
+    }
+    button {
+      background: #6c5ce7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #5a4bd1; }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .result-box {
+      background: #1a1a28;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .result-box .archetype {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .result-box .description { color: #999; font-size: 14px; margin-bottom: 16px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .badge.vibe { background: #2d6a4f; color: #95d5b2; }
+    .badge.guzzler { background: #7f4f24; color: #e6ccb2; }
+    .badge.sovereign { background: #4a3f6b; color: #c8b8e8; }
+    .progress {
+      height: 4px;
+      background: #2a2a3a;
+      border-radius: 2px;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #6c5ce7;
+      transition: width 0.3s;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
+    }
+    textarea {
+      width: 100%;
+      padding: 12px;
+      background: #1a1a28;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #6c5ce7; }
+    label { font-size: 14px; color: #999; display: block; margin-bottom: 8px; }
+    .result-actions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Architect Alignment Wizard</h1>
+  <p class="subtitle">3 questions to classify your development archetype</p>
+
+  <div class="progress"><div class="progress-bar" id="progressBar" style="width: 0%"></div></div>
+
+  <!-- Step 1: Tooling Preference -->
+  <div class="step active" id="step1">
+    <h2>How do you prefer to build?</h2>
+    <div class="option" data-value="vibe" onclick="selectOption(this, 'step1')">
+      <h3>Vibe Coding</h3>
+      <p>Prompt-driven development. LLM does the heavy lifting, I review and iterate fast.</p>
+    </div>
+    <div class="option" data-value="guzzler" onclick="selectOption(this, 'step1')">
+      <h3>Token Guzzling</h3>
+      <p>Maximum context length, multiple agent loops, comprehensive test suites, over-engineered solutions.</p>
+    </div>
+    <div class="option" data-value="sovereign" onclick="selectOption(this, 'step1')">
+      <h3>Sovereign Architecture</h3>
+      <p>Offline-first, deterministic, governed. I build systems that don't depend on cloud APIs.</p>
+    </div>
+  </div>
+
+  <!-- Step 2: AI Dependency -->
+  <div class="step" id="step2">
+    <h2>What's your stance on AI dependencies?</h2>
+    <div class="option" data-value="vibe" onclick="selectOption(this, 'step2')">
+      <h3>All-in on Cloud AI</h3>
+      <p>Claude, GPT-4, Gemini — whatever works best. API costs are a business expense.</p>
+    </div>
+    <div class="option" data-value="guzzler" onclick="selectOption(this, 'step2')">
+      <h3>Hybrid Approach</h3>
+      <p>Local models for dev, cloud models for production. Best of both worlds.</p>
+    </div>
+    <div class="option" data-value="sovereign" onclick="selectOption(this, 'step2')">
+      <h3>Local-First / Offline</h3>
+      <p>LM Studio, Ollama, llama.cpp. No data leaves my machine. Sovereign compute.</p>
+    </div>
+  </div>
+
+  <!-- Step 3: Philosophy -->
+  <div class="step" id="step3">
+    <h2>What drives your architecture decisions?</h2>
+    <div class="option" data-value="vibe" onclick="selectOption(this, 'step3')">
+      <h3>Speed to Value</h3>
+      <p>Ship fast, iterate faster. Perfect is the enemy of shipped.</p>
+    </div>
+    <div class="option" data-value="guzzler" onClick="selectOption(this, 'step3')">
+      <h3>Comprehensive Correctness</h3>
+      <p>Full test coverage, exhaustive error handling, enterprise-grade patterns.</p>
+    </div>
+    <div class="option" data-value="sovereign" onclick="selectOption(this, 'step3')">
+      <h3>Long-Term Autonomy</h3>
+      <p>Systems that outlive their creators. Deterministic, auditable, governed by rules not APIs.</p>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav">
+    <button id="prevBtn" onclick="prevStep()" disabled>Back</button>
+    <button id="nextBtn" onclick="nextStep()" disabled>Next</button>
+  </div>
+
+  <!-- Result -->
+  <div id="result" style="display:none">
+    <div class="result-box">
+      <div class="archetype" id="archetypeName"></div>
+      <div class="description" id="archetypeDesc"></div>
+      <div class="badge" id="archetypeBadge"></div>
+      <div class="result-actions">
+        <button onclick="resetWizard()">Retake</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">100% client-side. Zero data leaves your browser.</div>
+</div>
+
+<script>
+const archetypes = {
+  vibe: {
+    name: 'Vibe Coder',
+    badge: 'vibe',
+    description: 'You move fast and ship often. LLMs are your pair programmer. Watch out for tech debt accumulation and API dependency risk. Consider adding at least one local fallback model so you can still ship when the cloud is down.',
+  },
+  guzzler: {
+    name: 'Token Guzzler',
+    badge: 'guzzler',
+    description: 'You leave no stone unturned. Your test suites are novels and your agent loops are deep. Watch out for analysis paralysis and compute costs. Consider capping agent iterations and prioritizing offline-capable models.',
+  },
+  sovereign: {
+    name: 'Sovereign Architect',
+    badge: 'sovereign',
+    description: 'You build for the long haul. Offline-first, governed, deterministic. Your systems don\'t phone home. Keep an eye on usability friction — sovereignty shouldn\'t mean solitude.',
+  },
+};
+
+const steps = [null, null, null]; // store selected values for each step
+let currentStep = 0;
+
+function selectOption(el, stepId) {
+  const stepNum = parseInt(stepId.replace('step', '')) - 1;
+  const parent = document.getElementById(stepId);
+  parent.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  steps[stepNum] = el.dataset.value;
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function nextStep() {
+  if (currentStep < 2) {
+    currentStep++;
+    showStep(currentStep);
+  } else {
+    showResult();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 0) {
+    currentStep--;
+    showStep(currentStep);
+  }
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + (n + 1)).classList.add('active');
+  document.getElementById('prevBtn').disabled = n === 0;
+  document.getElementById('nextBtn').disabled = steps[n] === null;
+  document.getElementById('nextBtn').textContent = n === 2 ? 'See Result' : 'Next';
+  document.getElementById('progressBar').style.width = ((n + 1) / 3 * 100) + '%';
+}
+
+function showResult() {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.querySelector('.nav').style.display = 'none';
+  document.getElementById('progressBar').style.width = '100%';
+
+  // Score the result
+  const counts = { vibe: 0, guzzler: 0, sovereign: 0 };
+  steps.forEach(v => { if (v) counts[v]++; });
+  const archetype = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+  const data = archetypes[archetype];
+
+  document.getElementById('archetypeName').textContent = data.name;
+  document.getElementById('archetypeDesc').textContent = data.description;
+  const badge = document.getElementById('archetypeBadge');
+  badge.textContent = data.name;
+  badge.className = 'badge ' + data.badge;
+
+  document.getElementById('result').style.display = 'block';
+}
+
+function resetWizard() {
+  steps.forEach((_, i) => steps[i] = null);
+  currentStep = 0;
+  document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  document.getElementById('result').style.display = 'none';
+  document.querySelector('.nav').style.display = 'flex';
+  document.getElementById('nextBtn').disabled = true;
+  document.getElementById('prevBtn').disabled = true;
+  showStep(0);
+}
+</script>
+</body>
+</html>

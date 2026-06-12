@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SAAS — Soul As A Service</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#05080c;--panel:#0b1219;--border:#1a2d40;--accent:#7c5cfc;--pink:#ff6699;--cyan:#4fc3f7;--green:#66bb6a;--amber:#ffa726;--text:#c8d6e5;--dim:#5a728a;--font:'Inter','Segoe UI',system-ui,sans-serif;--mono:'JetBrains Mono','Cascadia Code',monospace}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+.container{max-width:1000px;margin:0 auto;padding:20px}
+.hero{text-align:center;padding:60px 20px 40px;background:radial-gradient(ellipse at center,rgba(124,92,252,0.08),transparent 70%)}
+.hero h1{font-size:3.5em;font-weight:800;background:linear-gradient(135deg,var(--pink),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-2px}
+.hero .sub{font-size:1em;color:var(--dim);margin-top:8px;font-family:var(--mono)}
+.hero .tagline{margin-top:20px;color:var(--text);font-size:1.1em;opacity:0.7}
+.badge-row{display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.badge{background:var(--panel);border:1px solid var(--border);padding:6px 16px;border-radius:50px;font-size:0.75em;color:var(--dim);font-family:var(--mono)}
+.badge.online{color:var(--green);border-color:var(--green)}
+.badge.offline{color:#ef5350;border-color:#ef5350}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px}
+.card h2{font-size:1em;text-transform:uppercase;letter-spacing:0.06em;color:var(--dim);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card h2 .icon{font-size:1.3em}
+textarea,input[type="text"],select{width:100%;background:#05080c;border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:0.9em;outline:none;transition:0.2s}
+textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+textarea{min-height:80px;resize:vertical}
+button{background:linear-gradient(135deg,var(--pink),var(--accent));color:white;border:none;padding:10px 24px;border-radius:50px;font-size:0.9em;cursor:pointer;transition:0.2s;font-weight:600}
+button:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(124,92,252,0.3)}
+button:disabled{opacity:0.35;cursor:default;transform:none;box-shadow:none}
+button.sm{padding:6px 14px;font-size:0.8em}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.slider-row{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:0.8em}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent);height:4px}
+.slider-row .val{font-family:var(--mono);color:var(--accent);min-width:2.5em;text-align:right}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.status-dot.online{background:var(--green);box-shadow:0 0 8px var(--green)}
+.status-dot.offline{background:#ef5350}
+.audio-player{width:100%;margin-top:12px;border-radius:8px}
+.clone-drop{border:2px dashed var(--border);border-radius:12px;padding:30px;text-align:center;cursor:pointer;transition:0.2s;margin-top:12px}
+.clone-drop:hover,.clone-drop.dragover{border-color:var(--accent);background:rgba(124,92,252,0.05)}
+.clone-drop.has-file{border-color:var(--green)}
+footer{text-align:center;padding:40px;color:var(--dim);font-size:0.8em;font-family:var(--mono)}
+.waveform{width:100%;height:80px;margin-top:12px;background:#05080c;border-radius:8px;border:1px solid var(--border)}
+.status-msg{font-size:0.8em;color:var(--dim);margin-top:8px;min-height:1.2em}
+.voice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.voice-opt{padding:8px 12px;background:#05080c;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:0.15s;font-size:0.8em}
+.voice-opt:hover{border-color:var(--accent)}
+.voice-opt.active{border-color:var(--pink);background:rgba(255,102,153,0.08)}
+.emo-tag.selected{border-color:currentColor!important;background:rgba(255,255,255,0.06)!important;font-weight:700}
+#rec-btn.recording{animation:recPulse 0.8s infinite}
+@keyframes recPulse{50%{opacity:0.5;box-shadow:0 0 30px rgba(204,34,68,0.6)}}
+.quick-links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:-8px 0 16px;font-size:0.8em}
+.quick-links a{color:var(--cyan);text-decoration:none;padding:4px 14px;border:1px solid var(--border);border-radius:50px;background:var(--panel);transition:0.15s}
+.quick-links a:hover{border-color:var(--cyan);background:rgba(79,195,247,0.06);transform:translateY(-1px)}
+.quick-links a .srv{color:var(--dim);font-size:0.75em;margin-right:4px}
+.param-group{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px}
+.param-group h3{font-size:0.75em;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em}
+.param-row{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:0.75em}
+.param-row input[type=range]{flex:1;accent-color:var(--accent);height:3px}
+.param-row .val{font-family:var(--mono);color:var(--accent);min-width:2.5em;text-align:right;font-size:0.9em}
+.param-row label{color:var(--dim);min-width:80px;font-size:0.9em}
+.param-row select{flex:1;max-width:200px}
+.skill-chip{font-size:0.6em;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.03);padding:3px 8px;border-radius:4px;cursor:pointer;transition:0.15s;border:1px solid transparent}
+.skill-chip:hover{background:rgba(255,255,255,0.06)}
+.skill-chip.active{border-color:var(--accent);background:rgba(124,92,252,0.1)}
+.skill-chip input[type=checkbox]{margin:0}
+.compare-section{display:none;margin-top:20px}
+.compare-section.visible{display:block}
+.spec-canvas{width:100%;height:120px;background:var(--bg);border-radius:6px;display:block}
+.stat-table{width:100%;border-collapse:collapse;font-size:0.65em;font-family:var(--mono)}
+.stat-table td{padding:3px 8px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.stat-table td:first-child{color:var(--dim)}
+.stat-table td:last-child{text-align:right;color:var(--text)}
+.compare-btn{font-size:0.7em;padding:4px 12px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:0.15s}
+.compare-btn:hover{border-color:var(--accent);background:rgba(124,92,252,0.05)}
+.preset-btn.active{border-color:var(--pink)!important;background:rgba(255,102,153,0.1)!important}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hero">
+    <h1>SOUL AS A SERVICE</h1>
+    <div class="sub">︎  frequency transposer · voice cloning · emotion morphing</div>
+    <p class="tagline">"Your voice is the architecture of your soul. We just give it better structural engineering."</p>
+    <div class="badge-row">
+      <span class="badge" id="vs-status">◌ Voice Server :8888</span>
+      <span class="badge" id="saas-status">◌ SAAS Transposer :9999</span>
+      <span class="badge" id="clone-status">◌ Clone Pipeline</span>
+    </div>
+    <div class="quick-links">
+      <a href="http://localhost:8888/health" target="_blank"><span class="srv">🎤</span> Voice :8888</a>
+      <a href="http://localhost:9999/health" target="_blank"><span class="srv">🌀</span> SAAS :9999</a>
+      <a href="http://localhost:55555/dashboard.html" target="_blank"><span class="srv">📊</span> Clawdia :55555</a>
+      <a href="http://localhost:44444" target="_blank"><span class="srv">🧠</span> IDE :44444</a>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Synthesis -->
+    <div class="card">
+      <h2><span class="icon">🎙️</span> Voice Synthesis</h2>
+      <textarea id="synth-text" placeholder="Type what you want the soul to say...">Hello, I am your synthetic soul. What would you like me to become?</textarea>
+      
+      <div style="margin-top:12px">
+        <label style="font-size:0.75em;color:var(--dim)">Emotion</label>
+        <select id="emotion">
+          <option value="neutral">Neutral</option>
+          <option value="joy">Joy</option>
+          <option value="anger">Anger</option>
+          <option value="surprise">Surprise</option>
+          <option value="sadness">Sadness</option>
+          <option value="tension">Tension</option>
+          <option value="contempt">Contempt</option>
+          <option value="calculation">Calculation</option>
+          <option value="righteousindignation">Righteous Indignation</option>
+          <option value="smugsatisfaction">Smug Satisfaction</option>
+          <option value="panic">Panic</option>
+          <option value="triumph">Triumph</option>
+          <option value="stonewall">Stonewall</option>
+          <option value="curiosity">Curiosity</option>
+          <option value="doubt">Doubt</option>
+          <option value="exhaustion">Exhaustion</option>
+          <option value="mischief">Mischief</option>
+        </select>
+      </div>
+
+      <div class="slider-row">
+        <span style="font-size:0.75em;color:var(--dim)">Pitch</span>
+        <input type="range" id="pitch" min="-12" max="12" value="0" step="1">
+        <span class="val" id="pitch-val">0st</span>
+      </div>
+      <div class="slider-row">
+        <span style="font-size:0.75em;color:var(--dim)">Formant</span>
+        <input type="range" id="formant" min="0.5" max="2.0" value="1.0" step="0.05">
+        <span class="val" id="formant-val">1.0x</span>
+      </div>
+      <div class="slider-row">
+        <span style="font-size:0.75em;color:var(--dim)">Intensity</span>
+        <input type="range" id="intensity" min="0" max="100" value="50" step="1">
+        <span class="val" id="intensity-val">50%</span>
+      </div>
+
+      <div class="btn-row">
+        <button onclick="synthesize()" id="synth-btn">✨ Synthesize</button>
+        <button class="sm" onclick="stopPlayback()" style="background:#333;color:#aaa">⏹ Stop</button>
+      </div>
+      <div class="status-msg" id="synth-status">Ready</div>
+      <audio class="audio-player" id="synth-player" controls style="display:none"></audio>
+      <canvas class="waveform" id="waveform"></canvas>
+    </div>
+
+    <!-- RIGHT: Voice Cloning -->
+    <div class="card">
+      <h2><span class="icon">🧬</span> Voice Cloning</h2>
+      <p style="font-size:0.8em;color:var(--dim);margin-bottom:12px">Upload or record a 10-second voice sample. Clone it. Then synthesize with that voice.</p>
+      
+      <div>
+        <label style="font-size:0.75em;color:var(--dim)">Voice Name</label>
+        <input type="text" id="clone-name" placeholder="e.g. ara_custom" value="custom_voice">
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="font-size:0.75em;color:var(--dim)">Source Audio</label>
+        <select id="source-select" style="margin-top:4px">
+          <option value="file">📁 File Upload</option>
+          <option value="synth">🎙️ Last Synthesis</option>
+          <option value="recording">🎤 Mic Recording</option>
+          <option value="speaker">🔊 Speaker Recording</option>
+        </select>
+      </div>
+
+      <!-- File drop (shown when source=file) -->
+      <div class="clone-drop" id="clone-drop" style="margin-top:8px" data-depends="file">
+        <div style="font-size:28px;margin-bottom:8px">🎤</div>
+        <p style="color:var(--dim);font-size:0.85em">Drop a .wav / .mp3 file here<br><span style="font-size:0.75em">10-30 seconds recommended</span></p>
+        <input type="file" id="clone-file" accept=".wav,.mp3,.ogg,.flac" style="display:none">
+      </div>
+
+      <div id="clone-file-info" style="display:none;margin-top:8px;font-size:0.8em;color:var(--green);padding:8px 12px;background:rgba(102,187,106,0.08);border-radius:8px"></div>
+
+      <!-- Source badges for non-file sources -->
+      <div id="synth-source-badge" style="display:none;margin-top:8px;padding:10px;background:rgba(79,195,247,0.08);border-radius:8px;border:1px solid rgba(79,195,247,0.2);font-size:0.75em">
+        🎙️ Last synthesis: <span id="synth-source-text">none</span>
+      </div>
+      <div id="rec-source-badge" style="display:none;margin-top:8px;padding:10px;background:rgba(255,102,153,0.08);border-radius:8px;border:1px solid rgba(255,102,153,0.2);font-size:0.75em">
+        🎤 Last recording: <span id="rec-source-text">none</span> · <span id="rec-source-size">0 KB</span>
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="font-size:0.75em;color:var(--dim)">
+          <input type="checkbox" id="word-emotions" checked> Per-word emotion tagging
+          <span style="color:var(--dim);font-size:0.65em">— wraps each word with a rotating selected tag</span>
+        </label>
+      </div>
+
+      <!-- EMOTIONAL DICTIONARY TAGS -->
+      <div style="margin-top:12px">
+        <label style="font-size:0.75em;color:var(--dim)">Emotional Dictionary Tags (select all that apply)</label>
+        <div id="emotion-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px">
+          <div class="emo-tag" data-emo="neutral" style="background:#333;color:#aaa;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ neutral</div>
+          <div class="emo-tag" data-emo="joy" style="background:#332200;color:#ffa726;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ joy</div>
+          <div class="emo-tag" data-emo="sadness" style="background:#112244;color:#5c9cfc;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ sadness</div>
+          <div class="emo-tag" data-emo="anger" style="background:#330000;color:#ef5350;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ anger</div>
+          <div class="emo-tag" data-emo="fear" style="background:#222244;color:#9c7cfc;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ fear</div>
+          <div class="emo-tag" data-emo="surprise" style="background:#332200;color:#ffa726;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ surprise</div>
+          <div class="emo-tag" data-emo="disgust" style="background:#113311;color:#66bb6a;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ disgust</div>
+          <div class="emo-tag" data-emo="anticipation" style="background:#222233;color:#b09cfc;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ anticipation</div>
+          <div class="emo-tag" data-emo="trust" style="background:#113322;color:#4fc3f7;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ trust</div>
+          <div class="emo-tag" data-emo="love" style="background:#331122;color:#ff6699;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ love</div>
+          <div class="emo-tag" data-emo="tension" style="background:#221133;color:#7c5cfc;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ tension</div>
+          <div class="emo-tag" data-emo="contempt" style="background:#112211;color:#66bb6a;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ contempt</div>
+          <div class="emo-tag" data-emo="calculation" style="background:#222244;color:#b09cfc;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Calculation</div>
+          <div class="emo-tag" data-emo="righteousindignation" style="background:#442200;color:#ff8a50;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ RighteousIndignation</div>
+          <div class="emo-tag" data-emo="smugsatisfaction" style="background:#224422;color:#81c784;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ SmugSatisfaction</div>
+          <div class="emo-tag" data-emo="panic" style="background:#441122;color:#ef5350;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Panic</div>
+          <div class="emo-tag" data-emo="triumph" style="background:#332200;color:#ffd93d;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Triumph</div>
+          <div class="emo-tag" data-emo="stonewall" style="background:#333333;color:#aaa;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Stonewall</div>
+          <div class="emo-tag" data-emo="curiosity" style="background:#003344;color:#4fc3f7;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Curiosity</div>
+          <div class="emo-tag" data-emo="doubt" style="background:#332222;color:#ce93d8;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Doubt</div>
+          <div class="emo-tag" data-emo="exhaustion" style="background:#222222;color:#888;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Exhaustion</div>
+          <div class="emo-tag" data-emo="mischief" style="background:#332233;color:#ff80ab;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Mischief</div>
+          <div class="emo-tag" data-emo="speak" style="background:#113333;color:#80cbc4;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Speak</div>
+          <div class="emo-tag" data-emo="think" style="background:#221133;color:#7c5cfc;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Think</div>
+          <div class="emo-tag" data-emo="intent" style="background:#331122;color:#ff6699;padding:4px 8px;border-radius:6px;font-size:0.7em;cursor:pointer;text-align:center;border:1px solid transparent;transition:0.15s">◻ Intent</div>
+        </div>
+      </div>
+      <div id="facial-preview" style="display:none;margin-top:8px;padding:10px;background:rgba(124,92,252,0.08);border-radius:8px;border:1px solid rgba(124,92,252,0.2)">
+        <div style="font-size:0.7em;color:var(--dim);margin-bottom:6px">🧠 Facial Expression Deltas</div>
+        <div id="facial-delta-display" style="font-family:monospace;font-size:0.65em;color:#ccc;white-space:pre-wrap"></div>
+      </div>
+
+      <!-- RECORD SECTION (always visible, independent of source) -->
+      <div style="margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:16px;background:rgba(255,102,153,0.03)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <button onclick="startRecording()" id="rec-btn" style="background:#cc2244;padding:10px 20px;flex-shrink:0">🔴 RECORD 10s</button>
+          <div id="rec-timer" style="font-size:1.8em;font-family:var(--mono);color:var(--pink);min-width:80px;text-align:center">00:10</div>
+          <div id="rec-level" style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div id="rec-level-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--amber),var(--pink));transition:width 0.05s"></div>
+          </div>
+        </div>
+        <div id="rec-status" style="font-size:0.75em;color:var(--dim);min-height:1.2em"></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="font-size:0.75em;color:var(--dim)">Transcription (optional, improves quality)</label>
+        <input type="text" id="clone-transcript" placeholder="What does the sample say?" value="This is a voice sample for cloning.">
+      </div>
+
+      <div class="btn-row">
+        <button onclick="startClone()" id="clone-btn">🧬 Clone Voice</button>
+        <button class="sm" onclick="testClonedVoice()" id="test-clone-btn" disabled style="background:#1a2d42;color:#4fc3f7">🔊 Test</button>
+      </div>
+      <div class="status-msg" id="clone-status-msg"></div>
+      <div id="clone-progress" style="display:none;width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px">
+        <div id="clone-progress-bar" style="height:100%;width:0%;background:var(--accent);transition:width 0.3s"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PARAMETER SANDBOX (dynamically loaded from server) ═══ -->
+  <div class="card" style="margin-top:20px" id="params-card">
+    <h2><span class="icon">⚙️</span> Parameter Sandbox — <span style="font-size:0.55em;color:var(--accent);text-transform:none;letter-spacing:0">auto-generated from backend param registry — add params to PARAM_REGISTRY in transposer.py, they appear here</span></h2>
+    <div style="display:flex;gap:8px;margin-bottom:8px;font-size:0.7em;align-items:center">
+      <label style="display:flex;align-items:center;gap:4px;color:var(--dim);cursor:pointer">
+        <input type="checkbox" id="p-spectral-manual"> Manual spectral override (sliders override emotion presets)
+      </label>
+      <span id="p-spectral-source" style="color:var(--dim)"></span>
+    </div>
+    <div id="params-groups" style="column-count:2;column-gap:16px;break-inside:avoid-column"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div class="param-group" style="flex:1;min-width:200px;margin-bottom:0">
+        <h3 style="margin-bottom:4px">🧪 Quick Presets</h3>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="preset-btn" data-preset="neutral" style="font-size:0.6em;background:rgba(124,92,252,0.1);border:1px solid rgba(124,92,252,0.2);color:var(--text);padding:3px 10px;border-radius:4px;cursor:pointer">Neutral</button>
+          <button class="preset-btn" data-preset="triumph" style="font-size:0.6em;background:rgba(255,169,38,0.1);border:1px solid rgba(255,169,38,0.2);color:var(--text);padding:3px 10px;border-radius:4px;cursor:pointer">Triumph</button>
+          <button class="preset-btn" data-preset="fear" style="font-size:0.6em;background:rgba(239,83,80,0.1);border:1px solid rgba(239,83,80,0.2);color:var(--text);padding:3px 10px;border-radius:4px;cursor:pointer">Fear</button>
+          <button class="preset-btn" data-preset="curiosity" style="font-size:0.6em;background:rgba(79,195,247,0.1);border:1px solid rgba(79,195,247,0.2);color:var(--text);padding:3px 10px;border-radius:4px;cursor:pointer">Curiosity</button>
+          <button class="preset-btn" data-preset="exhaustion" style="font-size:0.6em;background:rgba(200,214,229,0.1);border:1px solid rgba(200,214,229,0.2);color:var(--text);padding:3px 10px;border-radius:4px;cursor:pointer">Exhaustion</button>
+          <button class="preset-btn" data-preset="stonewall" style="font-size:0.6em;background:rgba(102,187,106,0.1);border:1px solid rgba(102,187,106,0.2);color:var(--text);padding:3px 10px;border-radius:4px;cursor:pointer">Stonewall</button>
+        </div>
+      </div>
+      <div class="param-group" style="flex:1;min-width:200px;margin-bottom:0">
+        <h3 style="margin-bottom:4px">📊 Emotion Readout</h3>
+        <div id="p-emotion-readout" style="font-size:0.65em;font-family:var(--mono);color:var(--dim);min-height:20px;line-height:1.6">Select an emotion in the Synthesis panel to see its spectral params</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ A/B COMPARISON ═══ -->
+  <div class="card compare-section" id="comparison-card" style="margin-top:20px">
+    <h2><span class="icon">📊</span> A/B Comparison — Input vs Output</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label style="font-size:0.7em;color:var(--dim)">Dual Waveform Overlay</label>
+        <canvas id="waveform-compare" class="spec-canvas"></canvas>
+        <div style="display:flex;gap:16px;font-size:0.6em;font-family:var(--mono);margin-top:4px">
+          <span style="color:#4fc3f7">━ Input</span>
+          <span style="color:#ff6699">━ Output</span>
+          <span id="waveform-stats" style="color:var(--dim);margin-left:auto"></span>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:0.7em;color:var(--dim)">Spectrum Delta (output − input dB)</label>
+        <canvas id="spectrum-compare" class="spec-canvas"></canvas>
+        <div style="display:flex;gap:16px;font-size:0.6em;font-family:var(--mono);margin-top:4px">
+          <span style="color:#ff5252">━ Boosted</span>
+          <span style="color:#448aff">━ Cut</span>
+          <span id="spectrum-stats" style="color:var(--dim);margin-left:auto"></span>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+      <div>
+        <label style="font-size:0.7em;color:var(--dim)">Numerical Diff</label>
+        <table class="stat-table" id="stat-table">
+          <tr><td>RMS (input)</td><td id="stat-rms-src">—</td></tr>
+          <tr><td>RMS (output)</td><td id="stat-rms-proc">—</td></tr>
+          <tr><td>RMS delta</td><td id="stat-rms-delta">—</td></tr>
+          <tr><td>Peak (input)</td><td id="stat-peak-src">—</td></tr>
+          <tr><td>Peak (output)</td><td id="stat-peak-proc">—</td></tr>
+          <tr><td>Spectral centroid shift</td><td id="stat-centroid">— Hz</td></tr>
+          <tr><td>Spectral rolloff shift</td><td id="stat-rolloff">— Hz</td></tr>
+          <tr><td>Zero-crossing rate delta</td><td id="stat-zcr">—</td></tr>
+          <tr><td>Formant dispersion</td><td id="stat-formant">— Hz</td></tr>
+          <tr><td>Brightness delta</td><td id="stat-bright">—</td></tr>
+        </table>
+      </div>
+      <div>
+        <label style="font-size:0.7em;color:var(--dim)">Playback</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding:8px;background:var(--bg);border-radius:6px;align-items:center">
+          <button class="compare-btn" id="play-input-btn">▶ Input</button>
+          <button class="compare-btn" id="play-output-btn">▶ Output</button>
+          <button class="compare-btn" id="play-both-btn">▶▶ Both</button>
+          <span id="comparison-status" style="font-size:0.6em;color:var(--dim);margin-left:auto">ready</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM: Pipeline Status + Server Launch -->
+  <div class="card" style="margin-top:20px">
+    <h2><span class="icon">🔗</span> Pipeline Architecture</h2>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.8em;font-family:var(--mono);color:var(--dim)">
+      <div>WebSpeech → Browser-native (default)</div>
+      <div style="color:var(--accent)">⬇</div>
+      <div>Voice Server :8888 → ElevenLabs + local + SAPI</div>
+      <div style="color:var(--accent)">⬇</div>
+      <div>SAAS Transposer :9999 → 12-emotion morph · Formant · Pitch</div>
+    </div>
+
+    <div id="server-launch" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+      <h2 style="font-size:0.85em;color:var(--dim);margin-bottom:8px"><span class="icon">🚀</span> Server Control</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:0.8em">
+        <span id="server-msg" style="color:var(--dim)">Check service status above — if offline, launch servers:</span>
+        <button onclick="downloadLaunchScript()" style="background:#1a2d42;color:#4fc3f7;padding:6px 14px;border:none;border-radius:50px;font-size:0.8em;cursor:pointer">📜 Download .ps1 Launch Script</button>
+        <button onclick="copyLaunchCmd()" style="background:#1a2d42;color:#66bb6a;padding:6px 14px;border:none;border-radius:50px;font-size:0.8em;cursor:pointer">📋 Copy Terminal Command</button>
+      </div>
+      <div style="margin-top:8px;font-size:0.75em;color:var(--dim);font-family:var(--mono);background:#05080c;padding:10px;border-radius:8px;border:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between">
+          <span># PowerShell (run as Admin):</span>
+          <span style="cursor:pointer;color:var(--accent)" onclick="copyLaunchCmd()">📋</span>
+        </div>
+        <code id="launch-cmd" style="color:var(--green)">cd VAN_Engine; Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command "Start-Process node \"\"voice-server.mjs\"\" -WindowStyle Hidden; Start-Process py -ArgumentList \"\"-3.10 Services/ClawdiaBridge/transposer.py --serve\"\" -WindowStyle Hidden"'</code>
+        <div style="margin-top:6px;color:#ef5350;font-size:0.7em">⚠️ Requires Node.js + Python 3.10 in PATH. Servers start as background processes.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>SAAS v1.0 — Soul As A Service — part of the VAN_Engine / Clawdia ecosystem</p>
+    <p style="margin-top:4px">voice-server.mjs :8888 · transposer.py :9999 · audioSkill.py · voice_cloner.py</p>
+    <p id="emodict-footer" style="margin-top:4px;opacity:0.6"></p>
+  </footer>
+</div>
+
+<script>
+// ═══ Load port config from bridge (dynamic, not hardcoded) ═══
+(async () => {
+  try {
+    const r = await fetch('/config/ports');
+    if (r.ok) window.__PORTS = await r.json();
+    else window.__PORTS = {};
+  } catch { window.__PORTS = {}; }
+})();
+
+function portOf(name, fallback) {
+  return window.__PORTS && window.__PORTS[name] ? window.__PORTS[name] : fallback;
+}
+function voiceURL() { return 'http://127.0.0.1:' + portOf('voice_server', 8888); }
+function saasURL() { return 'http://127.0.0.1:' + portOf('saas_transposer', 9999); }
+let clonedModel = null;
+let currentAudio = null;
+let __lastSynthBlob = null, __lastSynthText = '', __lastRecBlob = null;
+let __recIsLoopback = false;
+let __rawAudioData = null, __processedAudioData = null, __compareAudioCtx = null, __comparePlayer = null;
+
+function updateSourceBadges() {
+  const src = document.getElementById('source-select').value;
+  document.getElementById('clone-drop').style.display = src === 'file' ? '' : 'none';
+  document.getElementById('clone-file-info').style.display = 'none';
+  document.getElementById('synth-source-badge').style.display = (src === 'synth' && __lastSynthBlob) ? '' : 'none';
+  document.getElementById('rec-source-badge').style.display = (src === 'recording' || src === 'speaker') && __lastRecBlob ? '' : 'none';
+}
+document.getElementById('source-select').addEventListener('change', updateSourceBadges);
+
+function getCurrentSourceAudio() {
+  const src = document.getElementById('source-select').value;
+  if (src === 'file') {
+    const file = document.getElementById('clone-file').files[0];
+    if (!file) return null;
+    return { blob: file, name: file.name, text: document.getElementById('clone-transcript').value.trim() };
+  }
+  if (src === 'synth') {
+    if (!__lastSynthBlob) return null;
+    return { blob: __lastSynthBlob, name: 'last_synthesis.wav', text: __lastSynthText };
+  }
+  if (src === 'recording' || src === 'speaker') {
+    if (!__lastRecBlob) return null;
+    return { blob: __lastRecBlob, name: 'last_recording.wav', text: document.getElementById('clone-transcript').value.trim() };
+  }
+  return null;
+}
+
+function applyWordEmotions(text) {
+  const tags = getSelectedEmotions();
+  if (!tags.length || !document.getElementById('word-emotions').checked) return text;
+  const words = text.split(/\s+/);
+  return words.map((w, i) => `[${tags[i % tags.length]}] ${w}`).join(' ');
+}
+
+// ─── Slider bindings ───
+['pitch','formant','intensity'].forEach(id => {
+  const el = document.getElementById(id);
+  const val = document.getElementById(id+'-val');
+  el.addEventListener('input', () => {
+    const v = id==='pitch' ? el.value+'st' : id==='formant' ? parseFloat(el.value).toFixed(2)+'x' : el.value+'%';
+    val.textContent = v;
+  });
+});
+
+// ─── Status check ───
+async function checkServices() {
+  await _portsPromise;
+  for (const {id,url} of [{id:'vs-status',url:'http://127.0.0.1:'+portOf('voice_server',8888)},{id:'saas-status',url:'http://127.0.0.1:'+portOf('saas_transposer',9999)},{id:'clone-status',url:'http://127.0.0.1:'+portOf('voice_server',8888)+'/clone'}]) {
+    try {
+      const r = await fetch(url + '/', { signal: AbortSignal.timeout(2000) });
+      const el = document.getElementById(id);
+      if (r.ok) { el.innerHTML = '● '+el.textContent.replace(/[●◌]/g,'').trim(); el.className = 'badge online'; }
+      else { el.className = 'badge offline'; }
+    } catch {
+      document.getElementById(id).className = 'badge offline';
+    }
+  }
+}
+setTimeout(checkServices, 500);
+
+// ─── Waveform visualizer ───
+const wfCanvas = document.getElementById('waveform');
+const wfCtx = wfCanvas.getContext('2d');
+let wfAnim = null;
+function resizeWF() { wfCanvas.width = wfCanvas.clientWidth * devicePixelRatio; wfCanvas.height = wfCanvas.clientHeight * devicePixelRatio; wfCtx.scale(devicePixelRatio, devicePixelRatio); }
+window.addEventListener('resize', resizeWF);
+setTimeout(resizeWF, 50);
+function drawWaveform(data) {
+  if (wfAnim) { cancelAnimationFrame(wfAnim); wfAnim = null; }
+  const w = wfCanvas.clientWidth, h = wfCanvas.clientHeight;
+  wfCtx.clearRect(0,0,w,h);
+  if (!data || !data.length) {
+    // Draw silent line
+    wfCtx.beginPath(); wfCtx.moveTo(0,h/2); wfCtx.lineTo(w,h/2);
+    wfCtx.strokeStyle = 'rgba(124,92,252,0.2)'; wfCtx.lineWidth = 1; wfCtx.stroke();
+    return;
+  }
+  const step = data.length / w;
+  wfCtx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const idx = Math.floor(x * step);
+    const y = h/2 + data[idx] * h/2 * 0.9;
+    x === 0 ? wfCtx.moveTo(x,y) : wfCtx.lineTo(x,y);
+  }
+  wfCtx.strokeStyle = '#7c5cfc'; wfCtx.lineWidth = 1.5; wfCtx.stroke();
+}
+
+// ─── File drop ───
+const dz = document.getElementById('clone-drop');
+const fi = document.getElementById('clone-file');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f && (f.name.endsWith('.wav')||f.name.endsWith('.mp3')||f.name.endsWith('.ogg'))) {
+    fi.files = e.dataTransfer.files;
+    showFileInfo(f);
+  }
+});
+dz.addEventListener('click', () => fi.click());
+fi.addEventListener('change', e => { if (e.target.files[0]) showFileInfo(e.target.files[0]); });
+
+function showFileInfo(f) {
+  const info = document.getElementById('clone-file-info');
+  info.style.display = 'block';
+  info.textContent = `📁 ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+  dz.classList.add('has-file');
+}
+
+// ─── Synthesize ───
+async function synthesize() {
+  const text = document.getElementById('synth-text').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('synth-btn');
+  const status = document.getElementById('synth-status');
+  btn.disabled = true; status.textContent = 'Synthesizing...';
+  
+  try {
+    const emotion = document.getElementById('emotion').value;
+    const ap = getAllParams();
+    const engine = ap.engine || 'auto';
+    const pitchVal = parseInt(document.getElementById('pitch').value);
+    const formantVal = parseFloat(document.getElementById('formant').value);
+    const intensityVal = parseInt(document.getElementById('intensity').value) / 100;
+    const manualSpectral = document.getElementById('p-spectral-manual')?.checked || false;
+    
+    // Step 1: Generate raw audio via voice server
+    const r = await fetch(voiceURL()+'/synthesize', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: text, voice_id: engine})
+    });
+    if (!r.ok) { status.textContent = '❌ Voice server error: '+r.status; btn.disabled = false; return; }
+    
+    let audioData = await r.arrayBuffer();
+    __rawAudioData = new Blob([audioData], {type: 'audio/wav'});
+    
+    // Step 2: Apply SAAS transforms — use getAllParams() generically
+    const needsMorph = emotion !== 'neutral' || pitchVal !== 0 || formantVal !== 1.0 ||
+                       manualSpectral || (ap.formant_enabled !== undefined && !ap.formant_enabled) ||
+                       (ap.pitch_enabled !== undefined && !ap.pitch_enabled);
+    
+    if (needsMorph) {
+      try {
+        const qp = new URLSearchParams();
+        qp.set('emotion', emotion);
+        if (pitchVal !== 0) qp.set('pitch', pitchVal);
+        if (formantVal !== 1.0) qp.set('formant', formantVal);
+        qp.set('intensity', intensityVal);
+        // Sandbox params via generic reader
+        const saasParams = ['n_fft','hop_length','window','sr','brightness','warmth','breathiness',
+                           'formant_enabled','pitch_enabled','emotion_enabled','spectral_enabled'];
+        saasParams.forEach(name => {
+          let val = ap[name];
+          if (val === undefined || val === null || val === '') return;
+          // Map form keys: 'n_fft' stays, 'hop_length' stays, etc.
+          if (name === 'brightness' || name === 'warmth' || name === 'breathiness') {
+            if (!manualSpectral) return; // skip spectral overrides unless manual
+          }
+          qp.set(name, val);
+        });
+        
+        const resp = await fetch(saasURL()+'/transform?' + qp.toString(), {
+          method: 'POST',
+          headers: {'Content-Type': 'audio/wav'},
+          body: audioData
+        });
+        if (resp.ok) {
+          audioData = await resp.arrayBuffer();
+        } else {
+          status.textContent = '⚠️ SAAS morph failed ('+resp.status+'), using raw audio.';
+        }
+      } catch(e) {
+        status.textContent = '⚠️ SAAS offline, using raw audio.';
+      }
+    }
+    
+    // Step 3: Play and visualize
+    const blob = new Blob([audioData], {type: 'audio/wav'});
+    __processedAudioData = blob;
+    __lastSynthBlob = blob;
+    __lastSynthText = text;
+    document.getElementById('synth-source-text').textContent = `"${text.slice(0, 40)}${text.length > 40 ? '...' : ''}" (${(blob.size / 1024).toFixed(1)} KB)`;
+    updateSourceBadges();
+    const url = URL.createObjectURL(blob);
+    const player = document.getElementById('synth-player');
+    player.src = url; player.style.display = 'block';
+    currentAudio = player;
+    
+    // Draw waveform from audio data
+    try {
+      const buf = await new AudioContext().decodeAudioData(audioData.slice(0));
+      const ch = buf.getChannelData(0);
+      const downsampled = new Float32Array(400);
+      const step = ch.length / 400;
+      for (let i = 0; i < 400; i++) {
+        let sum = 0, count = 0;
+        for (let j = Math.floor(i*step); j < Math.floor((i+1)*step) && j < ch.length; j++) { sum += Math.abs(ch[j]); count++; }
+        downsampled[i] = count ? sum/count : 0;
+      }
+      drawWaveform(downsampled);
+    } catch(e) {}
+    
+    status.textContent = '✅ Done — emotion:'+emotion+' pitch:'+document.getElementById('pitch').value+'st';
+    player.play();
+    
+    if (__rawAudioData && __processedAudioData) {
+      setTimeout(() => compareAudio(__rawAudioData, __processedAudioData), 300);
+    }
+  } catch(e) { status.textContent = '❌ Error: '+e.message; }
+  btn.disabled = false;
+}
+
+function stopPlayback() {
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+}
+
+// ─── Clone Voice ───
+async function startClone() {
+  const source = getCurrentSourceAudio();
+  if (!source) { document.getElementById('clone-status-msg').textContent = '❌ No audio source available. Select a source and ensure it has data.'; return; }
+  const name = document.getElementById('clone-name').value.trim() || 'custom_voice';
+  let transcript = source.text;
+  if (document.getElementById('word-emotions').checked) transcript = applyWordEmotions(transcript);
+  
+  const btn = document.getElementById('clone-btn');
+  const status = document.getElementById('clone-status-msg');
+  const progress = document.getElementById('clone-progress');
+  const bar = document.getElementById('clone-progress-bar');
+  
+  btn.disabled = true; status.textContent = '🧬 Cloning voice "'+name+'"...';
+  progress.style.display = 'block'; bar.style.width = '30%';
+  
+  try {
+    const fd = new FormData();
+    fd.append('audio', source.blob, source.name);
+    fd.append('name', name);
+    if (transcript) fd.append('text', transcript);
+    
+    const r = await fetch(voiceURL()+'/clone', {method:'POST', body: fd});
+    bar.style.width = '80%';
+    
+    if (!r.ok) {
+      const err = await r.text();
+      status.textContent = '❌ Server error: '+err; btn.disabled = false;
+      setTimeout(() => progress.style.display = 'none', 1000);
+      return;
+    }
+    
+    const result = await r.json();
+    bar.style.width = '100%';
+    if (result.status === 'ok') {
+      clonedModel = result.model_path || name;
+      status.textContent = '✅ Voice "'+name+'" cloned successfully!';
+      document.getElementById('test-clone-btn').disabled = false;
+    } else {
+      status.textContent = '❌ '+result.error;
+    }
+  } catch(e) {
+    bar.style.width = '0%';
+    status.textContent = '❌ Connection failed. Ensure voice-server.mjs is running.\n\nTip: Voice cloning requires the Python backend (train_voice.py). The /clone endpoint must be added to voice-server.mjs, or use the CLI directly: python train_voice.py --wav <file> --transcript "<text>"';
+  }
+  btn.disabled = false;
+  setTimeout(() => progress.style.display = 'none', 1500);
+}
+
+async function testClonedVoice() {
+  if (!clonedModel) return;
+  document.getElementById('synth-text').value = 'This is my cloned voice. Can you hear the soul in it?';
+  const e = document.getElementById('p-engine');
+  if (e) e.value = 'local';
+  await synthesize();
+}
+
+// ═══ EMOTIONAL DICTIONARY ═══
+async function loadEmotionalDictionary() {
+  try {
+    const bridgePort = window.__PORTS?.clawdia_bridge || 55555;
+    const r = await fetch(`http://localhost:${bridgePort}/config/emotional-dictionary`);
+    if (!r.ok) throw new Error('Not available');
+    window.__EMO_DICT = await r.json();
+    console.log('🧠 Emotional Dictionary loaded:', Object.keys(window.__EMO_DICT.emotions || {}).length, 'emotions');
+    const fe = document.getElementById('emodict-footer');
+    if (fe && window.__EMO_DICT.version) fe.textContent = `🧠 Emotional Dictionary v${window.__EMO_DICT.version} loaded`;
+  } catch(e) {
+    window.__EMO_DICT = null;
+    console.warn('Emotional Dictionary not available:', e.message);
+  }
+}
+
+function showFacialDeltas(emotion) {
+  const preview = document.getElementById('facial-preview');
+  const display = document.getElementById('facial-delta-display');
+  if (!window.__EMO_DICT || !window.__EMO_DICT.emotions) {
+    if (preview) preview.style.display = 'none';
+    return;
+  }
+  const emoKey = Object.keys(window.__EMO_DICT.emotions).find(k => k.toLowerCase() === emotion.toLowerCase());
+  if (emoKey && window.__EMO_DICT.emotions[emoKey].deltas) {
+    display.textContent = JSON.stringify(window.__EMO_DICT.emotions[emoKey].deltas, null, 2);
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+// ═══ EMOTION TAGS ═══
+document.querySelectorAll('.emo-tag').forEach(el => {
+  el.addEventListener('click', () => {
+    el.classList.toggle('selected');
+    el.innerHTML = el.classList.contains('selected') ? '● '+el.dataset.emo : '◻ '+el.dataset.emo;
+    showFacialDeltas(el.dataset.emo);
+  });
+});
+
+document.getElementById('emotion').addEventListener('change', () => {
+  showFacialDeltas(document.getElementById('emotion').value);
+});
+
+function getSelectedEmotions() {
+  return Array.from(document.querySelectorAll('.emo-tag.selected')).map(el => el.dataset.emo);
+}
+
+loadEmotionalDictionary();
+
+// ═══ RECORD 10s ═══
+let recStream = null, recorder = null, recChunks = [], recCountdown = null;
+async function startRecording() {
+  if (recorder && recorder.state === 'recording') { stopRecording(); return; }
+  try {
+    // First try: microphone
+    recStream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 48000, channelCount: 1, echoCancellation: true } });
+    __recIsLoopback = false;
+  } catch (micErr) {
+    // Fallback: capture system audio via getDisplayMedia (speaker output)
+    __recIsLoopback = true;
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        audio: true,
+        video: { width: 1, height: 1, frameRate: 1 } // minimal video to avoid perf hit
+      });
+      // Stop the video track immediately — we only need audio
+      displayStream.getVideoTracks().forEach(t => t.stop());
+      const audioTrack = displayStream.getAudioTracks()[0];
+      if (!audioTrack) throw new Error('System audio not shared — check "Share audio" in the picker');
+      recStream = new MediaStream([audioTrack]);
+      document.getElementById('rec-status').textContent = '🎧 Capturing speaker audio (system loopback)...';
+    } catch (displayErr) {
+      document.getElementById('rec-status').textContent = '❌ Mic denied and system audio unavailable: ' + displayErr.message;
+      return;
+    }
+  }
+  recChunks = [];
+  const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+  recorder = new MediaRecorder(recStream, { mimeType: mime });
+  recorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+  recorder.onstop = () => processRecording();
+  recorder.start(100);
+
+  const btn = document.getElementById('rec-btn');
+  btn.textContent = '⏹ STOP'; btn.classList.add('recording');
+
+  // Audio level meter
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = ctx.createMediaStreamSource(recStream);
+  const analyser = ctx.createAnalyser(); analyser.fftSize = 256;
+  src.connect(analyser);
+  const levelData = new Uint8Array(analyser.frequencyBinCount);
+  function updateLevel() {
+    if (recorder && recorder.state === 'recording') {
+      analyser.getByteFrequencyData(levelData);
+      const avg = Array.from(levelData).reduce((a,b) => a+b, 0) / levelData.length;
+      document.getElementById('rec-level-bar').style.width = Math.min(100, avg * 1.5) + '%';
+      requestAnimationFrame(updateLevel);
+    }
+  }
+  updateLevel();
+
+  // Countdown
+  let remaining = 10;
+  document.getElementById('rec-timer').textContent = '00:' + remaining.toString().padStart(2, '0');
+  recCountdown = setInterval(() => {
+    remaining--;
+    document.getElementById('rec-timer').textContent = '00:' + Math.max(0, remaining).toString().padStart(2, '0');
+    if (remaining <= 0) { clearInterval(recCountdown); stopRecording(); }
+  }, 1000);
+}
+
+function stopRecording() {
+  if (recCountdown) { clearInterval(recCountdown); recCountdown = null; }
+  if (recorder && recorder.state !== 'inactive') recorder.stop();
+  if (recStream) recStream.getTracks().forEach(t => t.stop());
+  __recIsLoopback = false;
+  const btn = document.getElementById('rec-btn');
+  btn.textContent = '🔴 RECORD 10s'; btn.classList.remove('recording');
+  document.getElementById('rec-level-bar').style.width = '0%';
+}
+
+async function processRecording() {
+  if (!recChunks.length) { document.getElementById('rec-status').textContent = '❌ No audio captured.'; return; }
+  const blob = new Blob(recChunks, { type: 'audio/wav' });
+  __lastRecBlob = blob;
+  document.getElementById('rec-source-text').textContent = __recIsLoopback ? 'Speaker loopback' : 'Mic recording';
+  document.getElementById('rec-source-size').textContent = (blob.size / 1024).toFixed(1) + ' KB';
+  updateSourceBadges();
+  document.getElementById('rec-status').textContent = `✅ Recorded ${(blob.size / 1024).toFixed(1)} KB. Auto-sending to Clawdia...`;
+
+  const emotions = getSelectedEmotions();
+  const name = document.getElementById('clone-name').value.trim() || 'recorded_voice';
+
+  // Auto-send to Clawdia
+  const fd = new FormData();
+  fd.append('audio', blob, name + '.wav');
+  fd.append('name', name);
+  fd.append('emotions', JSON.stringify(emotions.length ? emotions : ['neutral']));
+  fd.append('source', 'saas_recorder');
+
+  try {
+    const r = await fetch(voiceURL() + '/clone', { method: 'POST', body: fd });
+    if (r.ok) {
+      const result = await r.json();
+      document.getElementById('rec-status').textContent = `✅ Sent to Clawdia! Model: ${result.model_path || name}`;
+      // Auto-place in clone input
+      const dt = new DataTransfer(); dt.items.add(new File([blob], name + '.wav', { type: 'audio/wav' }));
+      document.getElementById('clone-file').files = dt.files;
+      document.getElementById('clone-file-info').style.display = 'block';
+      document.getElementById('clone-file-info').textContent = `📁 ${name}.wav (recorded, ${(blob.size/1024).toFixed(1)} KB) — emotions: ${emotions.join(', ') || 'none'}`;
+    } else {
+      const err = await r.text();
+      document.getElementById('rec-status').textContent = `⚠️ Sent to Clawdia but clone failed: ${err}. File saved locally.`;
+      // Save locally as fallback
+      saveBlob(blob, name + '.wav');
+    }
+  } catch(e) {
+    document.getElementById('rec-status').textContent = '⚠️ Server offline. File saved locally.';
+    saveBlob(blob, name + '.wav');
+  }
+}
+
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+
+// ═══ SERVER LAUNCH HELPERS ═══
+function downloadLaunchScript() {
+  const ps1 = `# SAAS + Voice Server Launcher
+# Save this as launch_saas.ps1 and run as Administrator
+
+Write-Host "🚀 Starting SAAS Voice Pipeline..." -ForegroundColor Cyan
+
+# Start SAAS Transposer (port 9999)
+$saasJob = Start-Job -ScriptBlock {
+  Set-Location "$env:USERPROFILE\\Documents\\ALL-PROJECTS\\PROJECTS\\VAN_Engine\\Services\\ClawdiaBridge"
+  py -3.10 transposer.py --serve
+}
+
+# Start Voice Server (port 8888)
+$vsJob = Start-Job -ScriptBlock {
+  Set-Location "$env:USERPROFILE\\Documents\\ALL-PROJECTS\\PROJECTS\\VAN_Engine"
+  node voice-server.mjs
+}
+
+Write-Host "✅ SAAS Transposer starting on :9999" -ForegroundColor Green
+Write-Host "✅ Voice Server starting on :8888" -ForegroundColor Green
+Write-Host ""
+Write-Host "Press Ctrl+C to stop both servers." -ForegroundColor Yellow
+
+# Wait for either to finish
+Wait-Job $saasJob, $vsJob
+`;
+  const blob = new Blob([ps1], { type: 'text/plain' });
+  saveBlob(blob, 'launch_saas.ps1');
+  document.getElementById('server-msg').textContent = '✅ Script downloaded. Right-click → "Run with PowerShell" as Admin.';
+}
+
+function copyLaunchCmd() {
+  const cmd = document.getElementById('launch-cmd').textContent;
+  navigator.clipboard.writeText(cmd).then(() => {
+    document.getElementById('server-msg').textContent = '✅ Command copied to clipboard. Paste in PowerShell (Admin).';
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea'); ta.value = cmd; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    document.getElementById('server-msg').textContent = '✅ Command copied.';
+  });
+}
+
+// ═══ PARAMETER SANDBOX — GENERIC FACTORY LOADER ═══
+async function loadParamGroups() {
+  const container = document.getElementById('params-groups');
+  if (!container) return;
+  try {
+    const r = await fetch(saasURL()+'/params/html');
+    if (!r.ok) throw new Error('status '+r.status);
+    container.innerHTML = await r.text();
+    bindParamControls();
+    updateSpectralReadout();
+  } catch(e) {
+    container.innerHTML = '<div class="param-group"><h3>⚠️ Offline</h3><p style="font-size:0.65em;color:var(--dim)">Start the SAAS transposer (:9999) to see all backend controls here.</p></div>';
+  }
+}
+
+function bindParamControls() {
+  document.querySelectorAll('#params-groups input[type=range]').forEach(el => {
+    const val = document.getElementById(el.id+'-val');
+    if (val) el.addEventListener('input', () => {
+      val.textContent = (el.getAttribute('step')||'').includes('.') ? parseFloat(el.value).toFixed(2) : el.value;
+    });
+  });
+  document.querySelectorAll('#params-groups .skill-chip input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', function() { this.closest('.skill-chip').classList.toggle('active', this.checked); });
+  });
+}
+
+function getAllParams() {
+  const params = {};
+  document.querySelectorAll('#params-card input, #params-card select').forEach(el => {
+    if (!el.id) return;
+    const name = el.id.startsWith('p-') ? el.id.slice(2) : el.id;
+    if (el.type === 'checkbox') params[name] = el.checked;
+    else if (el.type === 'range') params[name] = parseFloat(el.value);
+    else if (el.tagName === 'SELECT') params[name] = el.value;
+    else if (el.type === 'text') params[name] = el.value || '';
+  });
+  return params;
+}
+
+document.getElementById('p-spectral-manual')?.addEventListener('change', updateSpectralReadout);
+document.getElementById('emotion')?.addEventListener('change', updateSpectralReadout);
+
+function updateSpectralReadout() {
+  const emotion = document.getElementById('emotion').value;
+  const manual = document.getElementById('p-spectral-manual')?.checked || false;
+  const readout = document.getElementById('p-emotion-readout');
+  const source = document.getElementById('p-spectral-source');
+  if (!readout) return;
+  const presets = {
+    neutral:{b:0,w:0,br:0},joy:{b:0.5,w:0.4,br:0},sadness:{b:-0.3,w:0.1,br:0.1},
+    anger:{b:0.4,w:-0.3,br:0},fear:{b:0.5,w:-0.5,br:0.2},surprise:{b:0.6,w:0.2,br:0},
+    tension:{b:0.2,w:-0.4,br:0},contempt:{b:-0.2,w:-0.3,br:0},disgust:{b:-0.3,w:-0.5,br:0},
+    anticipation:{b:0.3,w:0.2,br:0},trust:{b:0,w:0.4,br:0.05},love:{b:0.2,w:0.6,br:0.15},
+    calculation:{b:-0.1,w:-0.2,br:0},righteousindignation:{b:0.3,w:-0.3,br:0},
+    smugsatisfaction:{b:-0.1,w:0.3,br:0},panic:{b:0.7,w:-0.6,br:0.3},
+    triumph:{b:0.5,w:0.3,br:0},stonewall:{b:-0.3,w:-0.2,br:0},
+    curiosity:{b:0.2,w:0.1,br:0.05},doubt:{b:-0.2,w:0,br:0.1},
+    exhaustion:{b:-0.4,w:0,br:0.2},mischief:{b:0.3,w:0.2,br:0}
+  };
+  const p = presets[emotion] || presets.neutral;
+  if (manual) {
+    const ap = getAllParams();
+    const b = ap.brightness||0, w = ap.warmth||0, br = ap.breathiness||0;
+    if (source) source.textContent = '⚡ manual override';
+    readout.innerHTML = `Brightness: <span style="color:${b>0?'#ff5252':'#448aff'}">${b.toFixed(2)}</span> · Warmth: <span style="color:${w>0?'#ff5252':'#448aff'}">${w.toFixed(2)}</span> · Breathiness: ${br.toFixed(2)}<br><span style="color:var(--dim)">manual — emotion spectral params ignored</span>`;
+  } else {
+    if (source) source.textContent = '';
+    readout.innerHTML = `Emotion: <span style="color:var(--accent)">${emotion}</span><br>Brightness: <span style="color:${p.b>0?'#ff5252':'#448aff'}">${p.b.toFixed(2)}</span> · Warmth: <span style="color:${p.w>0?'#ff5252':'#448aff'}">${p.w.toFixed(2)}</span> · Breathiness: ${p.br.toFixed(2)}`;
+  }
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('emotion').value = btn.dataset.preset;
+    document.getElementById('p-preset-info').textContent = `Preset: ${btn.dataset.preset} · Intensity: 1.0`;
+    updateSpectralReadout();
+  });
+});
+
+// ═══ A/B COMPARISON ═══
+function resizeCompareCanvases() {
+  ['waveform-compare','spectrum-compare'].forEach(id => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.width = c.clientWidth * devicePixelRatio;
+    c.height = c.clientHeight * devicePixelRatio;
+    c.getContext('2d').scale(devicePixelRatio, devicePixelRatio);
+  });
+}
+window.addEventListener('resize', resizeCompareCanvases);
+
+function drawWaveformCompare(srcData, procData) {
+  const canvas = document.getElementById('waveform-compare');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const N = 600;
+  function downsample(data) {
+    if (!data || data.length === 0) return new Float32Array(N);
+    const step = data.length / N;
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      let sum = 0, cnt = 0;
+      for (let j = Math.floor(i*step); j < Math.floor((i+1)*step) && j < data.length; j++) { sum += Math.abs(data[j]); cnt++; }
+      out[i] = cnt ? sum/cnt : 0;
+    }
+    let max = 0; for (let i = 0; i < N; i++) if (out[i] > max) max = out[i];
+    if (max > 0) for (let i = 0; i < N; i++) out[i] /= max;
+    return out;
+  }
+  const src = downsample(srcData), proc = downsample(procData);
+  ctx.beginPath(); ctx.moveTo(0,h/2);
+  for (let x = 0; x < N; x++) ctx.lineTo(x*w/N, h/2 + proc[x]*h/2*0.85);
+  ctx.lineTo(w,h/2); ctx.closePath();
+  ctx.fillStyle = 'rgba(255,102,153,0.25)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,h/2);
+  for (let x = 0; x < N; x++) ctx.lineTo(x*w/N, h/2 + src[x]*h/2*0.85);
+  ctx.lineTo(w,h/2); ctx.closePath();
+  ctx.fillStyle = 'rgba(79,195,247,0.35)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,h/2); ctx.lineTo(w,h/2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function drawSpectrumCompare(srcData, procData) {
+  const canvas = document.getElementById('spectrum-compare');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const N = 2048;
+  function computeSpectrum(data) {
+    const fft = new Float32Array(N);
+    for (let i = 0; i < N && i < data.length; i++) fft[i] = data[i];
+    const mag = new Float32Array(N/2);
+    for (let k = 0; k < N/2; k++) {
+      let re = 0, im = 0;
+      for (let n = 0; n < N; n++) { const a = -2*Math.PI*k*n/N; re += fft[n]*Math.cos(a); im += fft[n]*Math.sin(a); }
+      mag[k] = 20*Math.log10(Math.sqrt(re*re + im*im)/N + 1e-10);
+    }
+    return mag;
+  }
+  const srcMag = computeSpectrum(srcData), procMag = computeSpectrum(procData);
+  const midX = w/2;
+  ctx.beginPath(); ctx.moveTo(0,h);
+  for (let k = 0; k < srcMag.length; k++) {
+    const normalized = Math.max(0, Math.min(1, (srcMag[k]+100)/100));
+    ctx.lineTo((k/srcMag.length)*midX, h - normalized*h*0.9);
+  }
+  ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 1; ctx.stroke();
+  for (let k = 0; k < srcMag.length; k++) {
+    const delta = procMag[k] - srcMag[k];
+    const x = midX + (k/srcMag.length)*midX;
+    const intensity = Math.min(1, Math.abs(delta)/20);
+    const r = delta > 0 ? 255 : 68, g = delta > 0 ? 82 : 138, b = delta > 0 ? 82 : 255;
+    ctx.fillStyle = `rgba(${r},${g},${b},${intensity})`;
+    ctx.fillRect(x-0.5, (k/srcMag.length)*h*0.9, 1, h - (k/srcMag.length)*h*0.9);
+  }
+  ctx.beginPath(); ctx.moveTo(midX,0); ctx.lineTo(midX,h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function computeAudioDiff(srcData, procData) {
+  const minLen = Math.min(srcData.length, procData.length);
+  const src = srcData.subarray(0, minLen), proc = procData.subarray(0, minLen);
+  let rmsSrc = 0, rmsProc = 0, rmsDelta = 0, peakSrc = 0, peakProc = 0, zcrSrc = 0, zcrProc = 0;
+  for (let i = 0; i < minLen; i++) {
+    const s = src[i], p = proc[i], d = p - s;
+    rmsSrc += s*s; rmsProc += p*p; rmsDelta += d*d;
+    if (Math.abs(s) > peakSrc) peakSrc = Math.abs(s);
+    if (Math.abs(p) > peakProc) peakProc = Math.abs(p);
+    if (i > 0) { if ((s >= 0) !== (src[i-1] >= 0)) zcrSrc++; if ((p >= 0) !== (proc[i-1] >= 0)) zcrProc++; }
+  }
+  rmsSrc = Math.sqrt(rmsSrc/minLen); rmsProc = Math.sqrt(rmsProc/minLen); rmsDelta = Math.sqrt(rmsDelta/minLen);
+  peakSrc = 20*Math.log10(peakSrc+1e-10); peakProc = 20*Math.log10(peakProc+1e-10);
+  const zcrDelta = (zcrProc - zcrSrc)/minLen;
+  function centroid(data) {
+    const N = 1024; let num = 0, den = 0;
+    for (let k = 0; k < N/2; k++) {
+      let re = 0, im = 0;
+      for (let n = 0; n < N && n < data.length; n++) { const a = -2*Math.PI*k*n/N; re += data[n]*Math.cos(a); im += data[n]*Math.sin(a); }
+      const mag = Math.sqrt(re*re+im*im); num += k*mag; den += mag;
+    }
+    return den > 0 ? (num/den)*(24000/N) : 0;
+  }
+  const centroidShift = centroid(proc) - centroid(src);
+  function rolloff(data) {
+    const N = 1024; const mag = new Float32Array(N/2); let total = 0;
+    for (let k = 0; k < N/2; k++) {
+      let re = 0, im = 0;
+      for (let n = 0; n < N && n < data.length; n++) { const a = -2*Math.PI*k*n/N; re += data[n]*Math.cos(a); im += data[n]*Math.sin(a); }
+      mag[k] = Math.sqrt(re*re+im*im); total += mag[k];
+    }
+    let cum = 0; for (let k = 0; k < N/2; k++) { cum += mag[k]; if (cum >= total*0.85) return k*(24000/N); }
+    return 0;
+  }
+  const rolloffShift = rolloff(proc) - rolloff(src);
+  function brightness(data) {
+    const N = 1024; let total = 0, high = 0; const cutoff = Math.floor(3000*N/24000);
+    for (let k = 0; k < N/2; k++) {
+      let re = 0, im = 0;
+      for (let n = 0; n < N && n < data.length; n++) { const a = -2*Math.PI*k*n/N; re += data[n]*Math.cos(a); im += data[n]*Math.sin(a); }
+      const mag2 = re*re+im*im; total += mag2; if (k >= cutoff) high += mag2;
+    }
+    return total > 0 ? high/total : 0;
+  }
+  const brightDelta = brightness(proc) - brightness(src);
+  return { rmsSrc, rmsProc, rmsDelta, peakSrc, peakProc, centroidShift, rolloffShift, zcrDelta, brightDelta };
+}
+
+function renderCompareStats(diff) {
+  if (!diff) return;
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('stat-rms-src', diff.rmsSrc.toFixed(5));
+  set('stat-rms-proc', diff.rmsProc.toFixed(5));
+  set('stat-rms-delta', diff.rmsDelta.toFixed(5));
+  set('stat-peak-src', diff.peakSrc.toFixed(1)+' dBFS');
+  set('stat-peak-proc', diff.peakProc.toFixed(1)+' dBFS');
+  set('stat-centroid', (diff.centroidShift>=0?'+':'')+diff.centroidShift.toFixed(1)+' Hz');
+  set('stat-rolloff', (diff.rolloffShift>=0?'+':'')+diff.rolloffShift.toFixed(1)+' Hz');
+  set('stat-zcr', (diff.zcrDelta>=0?'+':'')+diff.zcrDelta.toFixed(5));
+  set('stat-bright', (diff.brightDelta>=0?'+':'')+(diff.brightDelta*100).toFixed(1)+'%');
+}
+
+async function compareAudio(srcBlob, procBlob) {
+  try {
+    if (!__compareAudioCtx) __compareAudioCtx = new AudioContext();
+    const [srcBuf, procBuf] = await Promise.all([
+      __compareAudioCtx.decodeAudioData(await srcBlob.arrayBuffer()),
+      __compareAudioCtx.decodeAudioData(await procBlob.arrayBuffer())
+    ]);
+    const srcCh = srcBuf.getChannelData(0), procCh = procBuf.getChannelData(0);
+    resizeCompareCanvases();
+    drawWaveformCompare(srcCh, procCh);
+    drawSpectrumCompare(srcCh, procCh);
+    renderCompareStats(computeAudioDiff(srcCh, procCh));
+    const card = document.getElementById('comparison-card');
+    if (card) { card.classList.add('visible'); card.style.display = 'block'; }
+    const st = document.getElementById('comparison-status');
+    if (st) st.textContent = '✅ comparison ready';
+  } catch(e) {
+    const st = document.getElementById('comparison-status');
+    if (st) st.textContent = '⚠️ comparison failed: '+e.message;
+  }
+}
+
+document.getElementById('play-input-btn')?.addEventListener('click', () => {
+  if (__rawAudioData) { if (__comparePlayer) __comparePlayer.pause(); const u = URL.createObjectURL(__rawAudioData); __comparePlayer = new Audio(u); __comparePlayer.play(); }
+});
+document.getElementById('play-output-btn')?.addEventListener('click', () => {
+  if (__processedAudioData) { if (__comparePlayer) __comparePlayer.pause(); const u = URL.createObjectURL(__processedAudioData); __comparePlayer = new Audio(u); __comparePlayer.play(); }
+});
+document.getElementById('play-both-btn')?.addEventListener('click', () => {
+  if (!__rawAudioData || !__processedAudioData) return;
+  if (__comparePlayer) __comparePlayer.pause();
+  const u1 = URL.createObjectURL(__rawAudioData); __comparePlayer = new Audio(u1);
+  __comparePlayer.play();
+  document.getElementById('comparison-status').textContent = '▶ input...';
+  setTimeout(() => {
+    const u2 = URL.createObjectURL(__processedAudioData); __comparePlayer = new Audio(u2);
+    __comparePlayer.play();
+    document.getElementById('comparison-status').textContent = '▶ output...';
+  }, 200);
+});
+
+// Load param groups from backend factory + initial readout
+setTimeout(() => { loadParamGroups(); updateSpectralReadout(); }, 1000);
+</script>
+</body>
+</html>

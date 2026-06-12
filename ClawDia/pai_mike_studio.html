@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PAI + Mike's Crew | Unified Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.5/build/cjs/vexflow.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0a0c12;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#eef2ff;height:100vh;overflow:hidden}
+.app{display:flex;height:100vh;width:100%}
+.sidebar{width:260px;background:#11161f;border-right:1px solid #1e2a3a;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-header{padding:1.5rem 1rem .5rem;font-weight:700;font-size:1.2rem;background:linear-gradient(135deg,#fff,#ff3b6f);-webkit-background-clip:text;background-clip:text;color:transparent;border-bottom:1px solid #1e2a3a;margin-bottom:1rem}
+.section-label{padding:.4rem 1.2rem;font-size:.7rem;color:#6b8299;text-transform:uppercase;letter-spacing:1px;margin-top:.5rem}
+.skill-tab{padding:.55rem 1.2rem;margin:.15rem .6rem;border-radius:14px;cursor:pointer;transition:.2s;font-size:.82rem;font-weight:500;color:#b9c7d9}
+.skill-tab:hover{background:#1e2a3a;color:#fff}
+.skill-tab.active{background:#2d3a4a;color:#ff3b6f;border-left:3px solid #ff3b6f;font-weight:600}
+.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.settings-bar{background:#0f1219;padding:.7rem 1.2rem;border-bottom:1px solid #1e2a3a;display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.settings-group{display:flex;align-items:center;gap:.4rem;background:#1a1f2a;padding:.25rem .7rem;border-radius:30px}
+.settings-group label{font-weight:500;color:#b9c7d9;font-size:.7rem}
+input,select,textarea,button{background:#11161f;border:1px solid #2d3a4a;color:white;padding:.25rem .6rem;border-radius:20px;font-size:.75rem;font-family:monospace}
+textarea{font-family:monospace;resize:vertical}
+button{cursor:pointer;transition:.1s}
+button:hover{background:#2d3a4a;border-color:#ff3b6f}
+.dropzone{border:2px dashed #4A148C;border-radius:20px;padding:.7rem;text-align:center;background:#1a1f2a;cursor:pointer;transition:.2s;font-size:.8rem}
+.dropzone.drag-over{background:#2d3a4a;border-color:#ff3b6f}
+.text-box{background:#11161f;border-radius:16px;padding:.8rem;max-height:280px;overflow-y:auto;font-family:monospace;white-space:pre-wrap;font-size:.82rem}
+.result-box{background:#1a1f2a;border-left:3px solid #ff3b6f;padding:.7rem;margin-top:.6rem;border-radius:12px;font-size:.82rem;max-height:200px;overflow-y:auto}
+.canvas-container{flex:1;display:flex;flex-direction:column;align-items:center;padding:.8rem;gap:.6rem;overflow-y:auto}
+canvas{background:#f5efe7;box-shadow:0 10px 25px -5px rgba(0,0,0,.5);border-radius:16px;max-width:100%}
+#mainCanvas{width:100%;max-width:900px;aspect-ratio:900/500}
+#sheetCanvas{background:#fff;display:none}
+.action-bar{background:#0f1219;padding:.6rem 1.5rem;border-top:1px solid #1e2a3a;display:flex;gap:.8rem;justify-content:flex-end;align-items:center}
+.play-btn{background:#4A148C!important;border-color:#ff3b6f!important}
+.status{margin-left:auto;font-size:.7rem;color:#6b8299}
+hr{border-color:#2d3a4a;margin:.4rem 0}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#11161f}
+::-webkit-scrollbar-thumb{background:#2d3a4a;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">PAI + MIKE's CREW</div>
+    <div class="section-label">Creative</div>
+    <div id="skill-list-creative"></div>
+    <div class="section-label">Text</div>
+    <div id="skill-list-text"></div>
+    <div class="section-label">Art</div>
+    <div id="skill-list-art"></div>
+  </div>
+  <div class="workspace">
+    <div class="settings-bar" id="settingsPanel"></div>
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="mainCanvas" width="900" height="500"></canvas>
+      <canvas id="sheetCanvas" width="800" height="200"></canvas>
+    </div>
+    <div class="action-bar">
+      <button id="importBtn">&#128194; Import</button>
+      <button id="exportBtn">&#128190; Export</button>
+      <button id="resetBtn">&#8635; Reset</button>
+      <button id="undoBtn">&#8617; Undo</button>
+      <button id="playMidiBtn" class="play-btn">&#127932; Play MIDI</button>
+      <div class="status" id="statusMsg">ready</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =================================================================
+// GLOBAL STATE
+// =================================================================
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+const sheetCanvas = document.getElementById('sheetCanvas');
+let currentSkill = 'promptComposer';
+let settings = {};
+let undoStack = [];
+let audioCtx = null;
+let currentPlayback = null;
+
+const SAAS = 'http://127.0.0.1:8001';
+
+function cap() { return { skill: currentSkill, settings: JSON.parse(JSON.stringify(settings)) }; }
+function pushUndo() { undoStack.push(cap()); if(undoStack.length > 20) undoStack.shift(); sts('saved'); }
+function undo() {
+  if(!undoStack.length) { sts('nothing to undo'); return; }
+  const last = undoStack.pop(); currentSkill = last.skill; settings = last.settings;
+  highlight(); buildUI(); sts('undone');
+}
+function sts(m) {
+  const el = document.getElementById('statusMsg'); el.innerText = m;
+  setTimeout(()=>{ if(document.getElementById('statusMsg')?.innerText === m) document.getElementById('statusMsg').innerText = 'ready'; }, 1500);
+}
+
+// =================================================================
+// DEFAULTS PER SKILL
+// =================================================================
+function resetSkill() {
+  if(currentSkill === 'promptComposer') {
+    settings = { promptText:'a melancholic piano melody about lost cities', notes:'C4,Eb4,G4,Bb4,A3,C4,Eb4,G4', tempo:80, artKeyword:'aphorism', generatedArtText:'lost cities fade into mist' };
+  } else if(currentSkill === 'lyricStudio') {
+    settings = { rawText:"I walk alone in city lights\nSearching for the stars tonight\nBut shadows hold me, cold and deep\nBefore I close my eyes to sleep", notes:'C4,E4,G4,A4,G4,E4,C4', tempo:90, emotionalTags:'', lastResult:'' };
+  } else if(currentSkill === 'textStudio') {
+    settings = { rawText:'The sun sets over the quiet ocean. Waves gently kiss the shore. A lone seagull cries in the distance. The world feels peaceful and infinite.', notes:'C4,E4,G4,A4,G4,E4,C4', tempo:90, translationLang:'es', lastResult:'' };
+  } else if(currentSkill === 'midi') {
+    settings = { notes:'C4,E4,G4,C5,G4,E4,C4', tempo:120 };
+  } else if(currentSkill === 'aphorism') {
+    settings = { text:'HUMANS NEED ENTROPY', bgColor:'#F5E6D3', textColor:'#000000' };
+  } else if(currentSkill === 'stats') {
+    settings = { stat:'78%', metric:'of developers', context:'use AI daily', numberColor:'#4A148C' };
+  } else if(currentSkill === 'comparison') {
+    settings = { left:'Before AI', right:'After AI', leftColor:'#4A148C', rightColor:'#00796B' };
+  } else if(currentSkill === 'framework') {
+    settings = { frameworkType:'2x2', labels:'Low,High,Simple,Complex' };
+  } else if(currentSkill === 'timeline') {
+    settings = { events:'2020:GPT-3,2022:ChatGPT,2025:AGI', orientation:'horizontal' };
+  } else if(currentSkill === 'comics') {
+    settings = { panels:3, story:'setup->problem->solution' };
+  } else if(currentSkill === 'taxonomy') {
+    settings = { rows:3, cols:4, categories:'AI,ML,Data,Ethics', gridColor:'#000000' };
+  } else { settings = {}; }
+  pushUndo(); buildUI();
+}
+
+// =================================================================
+// TEXT PROCESSING — calls real SAAS hooks with mock fallback
+// =================================================================
+async function callHook(skill, payload) {
+  try {
+    const r = await fetch(`${SAAS}/hooks/${skill}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    if(r.ok) { const d = await r.json(); return d.result || d; }
+    throw new Error('hook failed');
+  } catch(e) {
+    return mockFallback(skill, payload);
+  }
+}
+function mockFallback(skill, payload) {
+  const text = payload.text || '';
+  if(skill === 'text_summarize') {
+    const s = text.match(/[^.!?]+[.!?]+/g) || [text];
+    return { summary: s.slice(0,2).join(' ').trim(), original_length:text.split(' ').length, summary_length:0, compression_ratio:0, sentence_count:2 };
+  }
+  if(skill === 'text_rewrite') {
+    const syn = { sun:'star', ocean:'sea', waves:'tides', kiss:'touch', seagull:'bird', cries:'calls', peaceful:'calm', infinite:'endless' };
+    let t = text; for(const [k,v] of Object.entries(syn)) t = t.replace(new RegExp(k,'gi'), v);
+    return { variations:[t], tone: payload.tone||'professional', original_word_count: text.split(' ').length };
+  }
+  if(skill === 'text_generate') {
+    return { generated:[text + ' And then the story continues with mystery and wonder unfolding like petals in morning light.'], template_type:payload.template_type||'story', count:1 };
+  }
+  if(skill === 'text_classify') {
+    const l = text.toLowerCase();
+    let primary = 'Neutral';
+    if(l.includes('sad')||l.includes('alone')||l.includes('cry')) primary = 'Negative';
+    if(l.includes('love')||l.includes('peace')||l.includes('infinite')) primary = 'Positive';
+    return { categories:[{category:primary,confidence:.8}], primary, confidence:.8 };
+  }
+  if(skill === 'text_extract_entities') {
+    const people = (text.match(/\b(John|Mary|Sarah|Mike|Alex|Captain|Ara)\b/gi)||[]);
+    const places = (text.match(/\b(ocean|sea|shore|forest|city|mountain)\b/gi)||[]);
+    return { entities:{people:[...new Set(people)],places:[...new Set(places)]}, total_count:people.length+places.length, types_found:['people','places'] };
+  }
+  if(skill === 'text_translate') {
+    const dict = { es:{'sun':'sol','ocean':'océano','waves':'olas','peaceful':'pacífico','infinite':'infinito'}, fr:{'sun':'soleil','ocean':'océan','waves':'vagues','peaceful':'paisible','infinite':'infini'}, de:{'sun':'Sonne','ocean':'Ozean','waves':'Wellen','peaceful':'friedlich','infinite':'unendlich'} };
+    const d = dict[payload.target_lang]||dict.es; let t = text; for(const[k,v] of Object.entries(d)) t = t.replace(new RegExp(k,'gi'),v);
+    return { translated:t + ` (${payload.target_lang.toUpperCase()})`, source:payload.source_lang||'en', target:payload.target_lang, match_count:3, total_words:text.split(' ').length };
+  }
+  return { error:'no mock' };
+}
+
+// =================================================================
+// LYRIC PROCESSING (client-side, no backend needed)
+// =================================================================
+const RHYME_DICT = { night:'light', light:'night', deep:'sleep', sleep:'deep', cold:'hold', hold:'cold', stars:'bars', bars:'stars', alone:'throne', throne:'alone', city:'pity', pity:'city' };
+const VERBS = ['walk','run','fly','dream','cry','sing','dance','fall','rise'];
+const SAD_WORDS = ['alone','cold','deep','sleep','cry','dark','shadow'];
+const HAPPY_WORDS = ['light','stars','dance','sing','joy','smile'];
+
+function rewriteLyricsClient(text) {
+  return text.split('\n').map(line => {
+    let words = line.trim().split(/\s+/);
+    if(!words.length) return line;
+    const last = words[words.length-1].toLowerCase();
+    words[words.length-1] = RHYME_DICT[last] || last;
+    for(let i=0;i<words.length;i++) {
+      if(VERBS.includes(words[i].toLowerCase())) { words[i] = VERBS[Math.floor(Math.random()*VERBS.length)]; break; }
+    }
+    return words.join(' ');
+  }).join('\n');
+}
+function detectEmotion(text) {
+  let sad=0, happy=0;
+  text.toLowerCase().split(/\W+/).forEach(w => { if(SAD_WORDS.includes(w)) sad++; if(HAPPY_WORDS.includes(w)) happy++; });
+  const tags = [];
+  if(sad > happy) tags.push('[melancholic]','[intimate]');
+  else if(happy > sad) tags.push('[joyful]','[upbeat]');
+  else tags.push('[neutral]','[contemplative]');
+  if(text.includes('walk')) tags.push('[lonely]');
+  if(text.includes('stars')) tags.push('[hopeful]');
+  return tags.join(' ');
+}
+
+// =================================================================
+// PROMPT COMPOSER — Ollama + mock
+// =================================================================
+async function generateFromPrompt(prompt) {
+  let notes = 'C4,E4,G4,C5,G4,E4,C4', tempo = 120, artKeyword = 'aphorism';
+  sts('generating...');
+  try {
+    const r = await fetch('http://localhost:11434/api/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ model:'llama3.2:1b', prompt:`Convert this into comma-separated MIDI notes use space after comma, tempo BPM, art keyword from: stat,timeline,aphorism,frameworks,comics,comparison. Format: NOTES:... TEMPO:... ART:... Prompt: "${prompt}"`, stream:false })
+    });
+    if(r.ok) {
+      const d = await r.json();
+      const t = d.response;
+      const nm = t.match(/NOTES:\s*([\w#, ]+)/i); const tm = t.match(/TEMPO:\s*(\d+)/i); const am = t.match(/ART:\s*(\w+)/i);
+      if(nm) notes = nm[1]; if(tm) tempo = parseInt(tm[1]); if(am) artKeyword = am[1];
+    } else throw new Error();
+  } catch {
+    if(prompt.includes('sad')||prompt.includes('melancholy')) { notes='C4,Eb4,G4,Bb4,A3,C4,Eb4,G4'; tempo=80; artKeyword='aphorism'; }
+    else if(prompt.includes('happy')||prompt.includes('joy')) { notes='C4,E4,G4,C5,B4,G4,E4,C4'; tempo=140; artKeyword='comics'; }
+    else if(prompt.includes('tech')||prompt.includes('ai')) { notes='F4,A4,C5,F5,D5,C5,A4,F4'; tempo=110; artKeyword='framework'; }
+  }
+  settings.notes = notes; settings.tempo = tempo; settings.artKeyword = artKeyword; settings.promptText = prompt;
+  const target = artKeyword === 'stat' ? 'stats' : artKeyword === 'aphorism' ? 'aphorism' : artKeyword === 'comics' ? 'comics' : artKeyword === 'framework' ? 'framework' : artKeyword === 'timeline' ? 'timeline' : artKeyword === 'comparison' ? 'comparison' : 'aphorism';
+  if(target === 'aphorism') settings.text = (prompt.split(' ').slice(0,4).join(' ').toUpperCase());
+  currentSkill = target; highlight(); buildUI(); sts(`generated: ${notes} | ${tempo}bpm | art:${artKeyword}`);
+}
+
+// =================================================================
+// MIDI PLAYBACK + VEXFLOW (shared across all modes)
+// =================================================================
+function renderSheetMusic() {
+  const ns = settings.notes || 'C4,E4,G4,C5';
+  const na = ns.split(',').map(n => n.trim());
+  sheetCanvas.style.display = 'block';
+  sheetCanvas.width = 800; sheetCanvas.height = 200;
+  const VF = Vex.Flow;
+  const r = new VF.Renderer(sheetCanvas, VF.Renderer.Backends.CANVAS);
+  r.resize(800,200);
+  const c = r.getContext(); c.setFont('Arial',10);
+  const s = new VF.Stave(10,40,780);
+  s.addClef('treble').addTimeSignature('4/4');
+  s.setContext(c).draw();
+  const nv = [];
+  na.forEach(n => { if(n !== 'R') nv.push(new VF.StaveNote({ keys:[n], duration:'q' })); });
+  if(!nv.length) { sheetCanvas.style.display = 'none'; return; }
+  const v = new VF.Voice({ num_beats:nv.length, beat_value:4 });
+  v.addTickables(nv);
+  new VF.Formatter().joinVoices([v]).formatToStave([v], s);
+  v.draw(c, s);
+}
+
+function playMidi() {
+  const ns = settings.notes || 'C4,E4,G4';
+  const nn = ns.split(',').map(s=>s.trim());
+  const tempo = settings.tempo || 90;
+  const dur = 60 / tempo;
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(currentPlayback) { currentPlayback.forEach(t=>clearTimeout(t)); currentPlayback = null; }
+  const timers = [];
+  const nf = { 'C4':261.63,'C#4':277.18,'D4':293.66,'D#4':311.13,'E4':329.63,'F4':349.23,'F#4':369.99,'G4':392.00,'G#4':415.30,'A4':440.00,'A#4':466.16,'B4':493.88,'C5':523.25,'C#5':554.37,'D5':587.33,'D#5':622.25,'E5':659.25,'F5':698.46,'F#5':739.99,'G5':783.99,'G#5':830.61,'A5':880.00,'A#5':932.33,'B5':987.77, 'Eb4':311.13, 'Bb4':466.16 };
+  const start = audioCtx.currentTime;
+  nn.forEach((note, i) => {
+    if(note === 'R') return;
+    const freq = nf[note] || 440;
+    const when = start + i * dur;
+    const t = setTimeout(() => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur*0.8);
+      osc.start(); osc.stop(audioCtx.currentTime + dur*0.8);
+    }, (when - audioCtx.currentTime)*1000);
+    timers.push(t);
+  });
+  currentPlayback = timers;
+  sts(`playing ${nn.filter(n=>n!=='R').length} notes`);
+  setTimeout(()=>{ if(currentPlayback === timers) currentPlayback = null; }, (nn.length*dur+0.5)*1000);
+}
+
+// =================================================================
+// ART DRAWING (promptComposer + individual art skills)
+// =================================================================
+function drawCanvas() {
+  canvas.width = 900; canvas.height = 500;
+  ctx.clearRect(0,0,900,500);
+  const s = settings;
+
+  if(currentSkill === 'promptComposer') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.fillStyle = '#4A148C'; ctx.font = 'bold 22px Inter'; ctx.fillText('Prompt Composer', 30, 50);
+    ctx.fillStyle = '#2D2D2D'; ctx.font = '13px monospace';
+    ctx.fillText('Prompt: ' + (s.promptText||'...'), 30, 100);
+    ctx.fillText('Art style: ' + (s.artKeyword||'?'), 30, 130);
+    ctx.fillText('Notes: ' + (s.notes||''), 30, 160);
+    ctx.fillText('Tempo: ' + (s.tempo||'') + ' BPM', 30, 190);
+    ctx.fillStyle = '#888'; ctx.font = '12px monospace';
+    ctx.fillText('Switch to an art skill in sidebar to see visual output', 30, 300);
+    return;
+  }
+
+  if(currentSkill === 'midi') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.fillStyle = '#4A148C'; ctx.font = 'bold 24px monospace'; ctx.fillText('MIDI Composer - Mike', 30, 60);
+    ctx.fillStyle = '#2D2D2D'; ctx.font = '16px monospace'; ctx.fillText('Notes: ' + (s.notes||''), 30, 120);
+    const na = (s.notes||'C4').split(',');
+    ctx.fillStyle = '#000';
+    na.forEach((n,i) => {
+      ctx.fillRect(60 + i*45, 180, 35, 30);
+      ctx.fillStyle = '#fff'; ctx.fillText(n, 68 + i*45, 200); ctx.fillStyle = '#000';
+    });
+    ctx.fillStyle = '#4A148C'; ctx.fillText('Press PLAY to hear melody', 30, 500-60);
+    return;
+  }
+
+  if(currentSkill === 'lyricStudio') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.fillStyle = '#4A148C'; ctx.font = 'bold 18px Inter'; ctx.fillText('Lyric Studio', 30, 50);
+    ctx.fillStyle = '#2D2D2D'; ctx.font = '13px monospace';
+    const lines = (s.rawText||'').split('\n');
+    let y = 90;
+    for(const l of lines) { if(y>470) break; ctx.fillText(l.slice(0,90), 30, y); y += 22; }
+    if(s.emotionalTags) { ctx.fillStyle = '#4A148C'; ctx.font = 'bold 11px monospace'; ctx.fillText('Tags: ' + s.emotionalTags, 30, canvas.height-20); }
+    return;
+  }
+
+  if(currentSkill === 'textStudio') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.fillStyle = '#4A148C'; ctx.font = 'bold 18px Inter'; ctx.fillText('Text Skills Studio', 30, 50);
+    ctx.fillStyle = '#2D2D2D'; ctx.font = '12px monospace';
+    const lines = (s.rawText||'').split('\n');
+    let y = 85;
+    for(const l of lines) { if(y>400) break; ctx.fillText(l.slice(0,100), 30, y); y += 18; }
+    if(s.lastResult) { ctx.fillStyle = '#4A148C'; ctx.font = '11px monospace'; ctx.fillText('Last result: ' + s.lastResult.slice(0,80), 30, canvas.height-20); }
+    return;
+  }
+
+  if(currentSkill === 'aphorism') {
+    ctx.fillStyle = s.bgColor || '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.fillStyle = s.textColor || '#000'; ctx.font = 'bold 44px Inter';
+    const txt = s.text || 'QUOTE';
+    const m = ctx.measureText(txt);
+    ctx.fillText(txt, (900-m.width)/2, 280);
+    return;
+  }
+
+  if(currentSkill === 'stats') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.fillStyle = s.numberColor||'#4A148C'; ctx.font = 'bold 90px Inter';
+    ctx.fillText(s.stat||'78%', 80, 220);
+    ctx.fillStyle = '#2D2D2D'; ctx.font = '22px Inter';
+    ctx.fillText(s.metric||'', 80, 280);
+    ctx.fillText(s.context||'', 80, 320);
+    return;
+  }
+
+  if(currentSkill === 'comparison') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.fillStyle = '#2D2D2D'; ctx.font = 'bold 24px Inter';
+    ctx.fillText(s.left||'Left', 80, 250); ctx.fillText(s.right||'Right', 580, 250);
+    ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.moveTo(450,0); ctx.lineTo(450,500); ctx.stroke();
+    ctx.fillStyle = s.leftColor||'#4A148C'; ctx.fillRect(80,280,280,60);
+    ctx.fillStyle = s.rightColor||'#00796B'; ctx.fillRect(580,280,280,60);
+    return;
+  }
+
+  if(currentSkill === 'framework') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(450,0); ctx.lineTo(450,500); ctx.moveTo(0,250); ctx.lineTo(900,250); ctx.stroke();
+    const l = (s.labels||'').split(',');
+    ctx.fillStyle = '#2D2D2D'; ctx.font = '16px Inter';
+    if(l[0]) ctx.fillText(l[0], 60, 130); if(l[1]) ctx.fillText(l[1], 560, 130);
+    if(l[2]) ctx.fillText(l[2], 60, 370); if(l[3]) ctx.fillText(l[3], 560, 370);
+    return;
+  }
+
+  if(currentSkill === 'timeline') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.beginPath(); ctx.moveTo(50,250); ctx.lineTo(850,250); ctx.stroke();
+    const ev = (s.events||'').split(',');
+    ev.forEach((e,i) => {
+      const x = 80 + i * 200;
+      ctx.beginPath(); ctx.arc(x, 250, 6, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#2D2D2D'; ctx.font = '12px monospace'; ctx.fillText(e, x-30, 190);
+    });
+    return;
+  }
+
+  if(currentSkill === 'comics') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    const n = s.panels || 3; const w = 800/n;
+    for(let i=0;i<n;i++) ctx.strokeRect(50+i*w, 30, w-10, 440);
+    return;
+  }
+
+  if(currentSkill === 'taxonomy') {
+    ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+    ctx.strokeStyle = s.gridColor||'#000';
+    for(let i=0;i<4;i++) for(let j=0;j<3;j++) ctx.strokeRect(120+i*170, 80+j*130, 150, 110);
+    return;
+  }
+
+  ctx.fillStyle = '#F5E6D3'; ctx.fillRect(0,0,900,500);
+  ctx.fillStyle = '#888'; ctx.font = '18px Inter'; ctx.fillText(currentSkill, 30, 80);
+}
+
+// =================================================================
+// BUILD UI (dynamic settings panel + content area per skill)
+// =================================================================
+function buildUI() {
+  const panel = document.getElementById('settingsPanel');
+  const cont = document.getElementById('canvasContainer');
+  const s = settings;
+
+  // Show/hide canvas elements based on mode
+  const isTextMode = currentSkill === 'lyricStudio' || currentSkill === 'textStudio';
+
+  // Save content area for text modes
+  let htmlContent = '';
+
+  panel.innerHTML = '';
+
+  if(currentSkill === 'promptComposer') {
+    panel.innerHTML = `
+      <div class="settings-group" style="flex:2"><label>Prompt</label><textarea id="promptInput" rows="2" style="width:280px">${s.promptText||''}</textarea></div>
+      <button id="generateBtn">Generate</button>
+      <div class="settings-group"><label>Notes</label><input id="notesInput" value="${s.notes||''}" size="30"></div>
+      <div class="settings-group"><label>Tempo</label><input id="tempoInput" value="${s.tempo||120}" size="4"></div>
+      <button id="applyBtn">Apply</button>`;
+    setTimeout(() => {
+      document.getElementById('generateBtn')?.addEventListener('click', () => generateFromPrompt(document.getElementById('promptInput').value));
+      document.getElementById('applyBtn')?.addEventListener('click', () => { s.notes = document.getElementById('notesInput').value; s.tempo = parseInt(document.getElementById('tempoInput').value); pushUndo(); drawCanvas(); renderSheetMusic(); });
+    }, 50);
+    canvas.style.display = 'block'; sheetCanvas.style.display = 'block';
+    drawCanvas(); renderSheetMusic(); return;
+  }
+
+  if(currentSkill === 'midi') {
+    panel.innerHTML = `
+      <div class="settings-group"><label>Notes</label><input id="midiNotes" value="${s.notes||'C4,E4,G4'}" size="40"></div>
+      <div class="settings-group"><label>Tempo</label><input id="midiTempo" value="${s.tempo||120}" size="4"></div>
+      <button id="midiApply">Apply</button>`;
+    canvas.style.display = 'block'; sheetCanvas.style.display = 'block';
+    document.getElementById('midiApply')?.addEventListener('click', () => { s.notes = document.getElementById('midiNotes').value; s.tempo = parseInt(document.getElementById('midiTempo').value); pushUndo(); drawCanvas(); renderSheetMusic(); });
+    drawCanvas(); renderSheetMusic(); return;
+  }
+
+  canvas.style.display = isTextMode ? 'none' : 'block';
+  sheetCanvas.style.display = currentSkill === 'lyricStudio' || currentSkill === 'textStudio' || currentSkill === 'midi' ? 'block' : 'none';
+
+  if(currentSkill === 'lyricStudio') {
+    htmlContent = `
+      <div class="dropzone" id="dz">Drop .txt or click to upload lyrics</div>
+      <div class="text-box" id="lyricBox">${esc(s.rawText||'')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0">
+        <button id="composeMidiBtn">Compose MIDI</button>
+        <button id="rewriteBtn">Rewrite (rhyme)</button>
+        <button id="emotionBtn">Detect tone</button>
+      </div>
+      <div class="result-box" id="lyricResult">Click a button</div>
+      <hr>
+      <div class="settings-group"><label>Notes</label><input id="notesField" value="${s.notes||''}" size="30"></div>
+      <div class="settings-group"><label>Tempo</label><input id="tempoField" value="${s.tempo||90}" size="4"></div>
+      <button id="applyMidi">Apply MIDI</button>
+      <div id="sheetLyric"></div>`;
+    cont.innerHTML = htmlContent;
+    setTimeout(() => {
+      setupDropzone('dz', (text) => { s.rawText = text; document.getElementById('lyricBox').innerText = text; pushUndo(); });
+      document.getElementById('composeMidiBtn')?.addEventListener('click', () => {
+        const w = (s.rawText||'').split(/\s+/); const pool = ['C4','D4','E4','F4','G4','A4','B4','C5'];
+        s.notes = w.slice(0,32).map(() => pool[Math.floor(Math.random()*pool.length)]).join(',');
+        document.getElementById('notesField').value = s.notes; renderSheetInto('sheetLyric'); pushUndo();
+      });
+      document.getElementById('rewriteBtn')?.addEventListener('click', () => {
+        s.rawText = rewriteLyricsClient(s.rawText||'');
+        document.getElementById('lyricBox').innerText = s.rawText; pushUndo(); sts('rewritten');
+      });
+      document.getElementById('emotionBtn')?.addEventListener('click', () => {
+        s.emotionalTags = detectEmotion(s.rawText||'');
+        document.getElementById('lyricResult').innerHTML = '<b>Tags:</b> ' + esc(s.emotionalTags); pushUndo();
+      });
+      document.getElementById('applyMidi')?.addEventListener('click', () => { s.notes = document.getElementById('notesField').value; s.tempo = parseInt(document.getElementById('tempoField').value); renderSheetInto('sheetLyric'); pushUndo(); });
+    }, 50);
+    renderSheetInto('sheetLyric'); return;
+  }
+
+  if(currentSkill === 'textStudio') {
+    htmlContent = `
+      <div class="dropzone" id="dz">Drop .txt file or click to upload</div>
+      <div class="settings-group"><label>Translate to</label>
+        <select id="langSel">
+          <option value="en">English</option>
+          <option value="es" ${s.translationLang==='es'?'selected':''}>Espanol</option>
+          <option value="fr" ${s.translationLang==='fr'?'selected':''}>Francais</option>
+          <option value="de" ${s.translationLang==='de'?'selected':''}>Deutsch</option>
+        </select>
+        <button id="translateBtn">Translate</button>
+      </div>
+      <div class="text-box" id="textBox">${esc(s.rawText||'')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0">
+        <button id="sumBtn">Summarize</button>
+        <button id="rewBtn">Rewrite</button>
+        <button id="genBtn">Generate</button>
+        <button id="clsBtn">Classify</button>
+        <button id="extBtn">Extract Entities</button>
+        <button id="compMidiBtn">Compose MIDI</button>
+      </div>
+      <div class="result-box" id="resBox">Click any button</div>
+      <hr>
+      <div class="settings-group"><label>Notes</label><input id="notesField" value="${s.notes||''}" size="30"></div>
+      <div class="settings-group"><label>Tempo</label><input id="tempoField" value="${s.tempo||90}" size="4"></div>
+      <button id="applyMidi">Apply MIDI</button>
+      <div id="sheetText"></div>`;
+    cont.innerHTML = htmlContent;
+    setTimeout(() => {
+      setupDropzone('dz', (text) => { s.rawText = text; document.getElementById('textBox').innerText = text; pushUndo(); });
+
+      async function doOp(skill, payload) {
+        const r = await callHook(skill, payload);
+        const el = document.getElementById('resBox');
+        if(skill === 'text_summarize') el.innerHTML = '<b>Summary:</b><br>' + esc(r.summary);
+        else if(skill === 'text_rewrite') el.innerHTML = '<b>Rewritten:</b><br>' + esc((r.variations||[])[0]||'');
+        else if(skill === 'text_generate') el.innerHTML = '<b>Generated:</b><br>' + esc((r.generated||[])[0]);
+        else if(skill === 'text_classify') el.innerHTML = '<b>Classification:</b><br>' + esc(r.primary) + ' (' + (r.confidence*100).toFixed(0) + '%)';
+        else if(skill === 'text_extract_entities') el.innerHTML = '<b>Entities:</b><br>' + esc(JSON.stringify(r.entities));
+        else if(skill === 'text_translate') el.innerHTML = '<b>Translation:</b><br>' + esc(r.translated);
+        s.lastResult = el.innerText.slice(0,100); pushUndo();
+      }
+
+      document.getElementById('sumBtn')?.addEventListener('click', () => doOp('text_summarize', {text:s.rawText, max_sentences:2}));
+      document.getElementById('rewBtn')?.addEventListener('click', () => doOp('text_rewrite', {text:s.rawText, tone:'creative'}));
+      document.getElementById('genBtn')?.addEventListener('click', () => doOp('text_generate', {template_type:'story', seed:s.rawText.slice(0,50)}));
+      document.getElementById('clsBtn')?.addEventListener('click', () => doOp('text_classify', {text:s.rawText}));
+      document.getElementById('extBtn')?.addEventListener('click', () => doOp('text_extract_entities', {text:s.rawText}));
+      document.getElementById('translateBtn')?.addEventListener('click', () => {
+        s.translationLang = document.getElementById('langSel').value;
+        doOp('text_translate', {text:s.rawText, source_lang:'en', target_lang:s.translationLang});
+      });
+      document.getElementById('compMidiBtn')?.addEventListener('click', () => {
+        const w = (s.rawText||'').split(/\s+/); const pool = ['C4','D4','E4','F4','G4','A4','B4','C5'];
+        s.notes = w.slice(0,32).map(() => pool[Math.floor(Math.random()*pool.length)]).join(',');
+        document.getElementById('notesField').value = s.notes; renderSheetInto('sheetText'); pushUndo();
+      });
+      document.getElementById('applyMidi')?.addEventListener('click', () => { s.notes = document.getElementById('notesField').value; s.tempo = parseInt(document.getElementById('tempoField').value); renderSheetInto('sheetText'); pushUndo(); });
+    }, 50);
+    renderSheetInto('sheetText'); return;
+  }
+
+  // Art skills — build per-skill settings inline in canvas
+  if(currentSkill === 'aphorism') {
+    panel.innerHTML = `
+      <div class="settings-group"><label>Text</label><input id="qt" value="${s.text||'QUOTE'}" size="30"></div>
+      <div class="settings-group"><label>BG</label><input id="bg" type="color" value="${s.bgColor||'#F5E6D3'}"></div>
+      <div class="settings-group"><label>Text color</label><input id="tc" type="color" value="${s.textColor||'#000'}"></div>
+      <button id="apApply">Apply</button>`;
+    setTimeout(() => {
+      document.getElementById('apApply')?.addEventListener('click', () => { s.text = document.getElementById('qt').value; s.bgColor = document.getElementById('bg').value; s.textColor = document.getElementById('tc').value; pushUndo(); drawCanvas(); });
+    }, 50);
+  } else if(currentSkill === 'stats') {
+    panel.innerHTML = `
+      <div class="settings-group"><label>Stat</label><input id="st" value="${s.stat||'78%'}" size="6"></div>
+      <div class="settings-group"><label>Metric</label><input id="me" value="${s.metric||'of developers'}" size="14"></div>
+      <div class="settings-group"><label>Context</label><input id="co" value="${s.context||'use AI daily'}" size="14"></div>
+      <button id="stApply">Apply</button>`;
+    setTimeout(() => {
+      document.getElementById('stApply')?.addEventListener('click', () => { s.stat = document.getElementById('st').value; s.metric = document.getElementById('me').value; s.context = document.getElementById('co').value; pushUndo(); drawCanvas(); });
+    }, 50);
+  } else if(currentSkill === 'comparison') {
+    panel.innerHTML = `
+      <div class="settings-group"><label>Left</label><input id="lft" value="${s.left||'Before'}" size="10"></div>
+      <div class="settings-group"><label>Right</label><input id="rgt" value="${s.right||'After'}" size="10"></div>
+      <button id="cpApply">Apply</button>`;
+    setTimeout(() => {
+      document.getElementById('cpApply')?.addEventListener('click', () => { s.left = document.getElementById('lft').value; s.right = document.getElementById('rgt').value; pushUndo(); drawCanvas(); });
+    }, 50);
+  } else if(currentSkill === 'framework') {
+    panel.innerHTML = `<div class="settings-group"><label>Labels</label><input id="fw" value="${s.labels||'Low,High,Simple,Complex'}" size="30"></div><button id="fwApply">Apply</button>`;
+    setTimeout(() => {
+      document.getElementById('fwApply')?.addEventListener('click', () => { s.labels = document.getElementById('fw').value; pushUndo(); drawCanvas(); });
+    }, 50);
+  } else if(currentSkill === 'timeline') {
+    panel.innerHTML = `<div class="settings-group"><label>Events (comma)</label><input id="tl" value="${s.events||'2020:A,2022:B,2025:C'}" size="40"></div><button id="tlApply">Apply</button>`;
+    setTimeout(() => {
+      document.getElementById('tlApply')?.addEventListener('click', () => { s.events = document.getElementById('tl').value; pushUndo(); drawCanvas(); });
+    }, 50);
+  } else if(currentSkill === 'comics') {
+    panel.innerHTML = `<div class="settings-group"><label>Panels</label><input id="pc" type="number" value="${s.panels||3}" min="1" max="6" size="4"></div><button id="pcApply">Apply</button>`;
+    setTimeout(() => {
+      document.getElementById('pcApply')?.addEventListener('click', () => { s.panels = parseInt(document.getElementById('pc').value); pushUndo(); drawCanvas(); });
+    }, 50);
+  } else {
+    panel.innerHTML = `<span>${currentSkill}</span><button id="redrawBtn">Redraw</button>`;
+    setTimeout(() => { document.getElementById('redrawBtn')?.addEventListener('click', () => { pushUndo(); drawCanvas(); }); }, 50);
+  }
+  canvas.style.display = 'block'; sheetCanvas.style.display = 'none';
+  drawCanvas();
+}
+
+// =================================================================
+// HELPERS
+// =================================================================
+function esc(s) { return (s||'').replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
+function renderSheetInto(id) {
+  const cont = document.getElementById(id); if(!cont) return;
+  let cv = document.getElementById('sheetDynamic');
+  if(!cv) { cv = document.createElement('canvas'); cv.id = 'sheetDynamic'; cv.width=800; cv.height=200; cv.style.maxWidth='100%'; cv.style.background='white'; cv.style.borderRadius='12px'; cont.appendChild(cv); }
+  const ns = settings.notes || 'C4,E4,G4';
+  const na = ns.split(',').map(n=>n.trim());
+  if(typeof Vex === 'undefined') return;
+  const VF = Vex.Flow;
+  const r = new VF.Renderer(cv, VF.Renderer.Backends.CANVAS); r.resize(800,200);
+  const c = r.getContext(); c.setFont('Arial',10);
+  const s = new VF.Stave(10,40,780); s.addClef('treble').addTimeSignature('4/4');
+  s.setContext(c).draw();
+  const nv = []; na.forEach(n => { if(n!=='R') nv.push(new VF.StaveNote({ keys:[n], duration:'q' })); });
+  if(!nv.length) return;
+  const v = new VF.Voice({ num_beats:nv.length, beat_value:4 });
+  v.addTickables(nv);
+  new VF.Formatter().joinVoices([v]).formatToStave([v], s);
+  v.draw(c, s);
+}
+function setupDropzone(id, cb) {
+  const dz = document.getElementById(id); if(!dz) return;
+  const fi = document.createElement('input'); fi.type='file'; fi.accept='.txt'; fi.style.display='none';
+  dz.parentElement.appendChild(fi);
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f&&f.type==='text/plain') readFile(f,cb); else sts('.txt only'); });
+  fi.addEventListener('change', e => { if(e.target.files[0]) readFile(e.target.files[0], cb); });
+}
+function readFile(file, cb) {
+  const r = new FileReader();
+  r.onload = e => cb(e.target.result);
+  r.readAsText(file);
+}
+
+// =================================================================
+// SIDEBAR
+// =================================================================
+const SKILLS = {
+  creative: [
+    { id:'promptComposer', name:'Prompt Composer' },
+    { id:'lyricStudio', name:'Lyric Studio' },
+    { id:'textStudio', name:'Text Skills Studio' },
+    { id:'midi', name:'MIDI Composer' }
+  ],
+  text: [
+    { id:'textStudio', name:'Text Skills Studio', dup:true }
+  ],
+  art: [
+    { id:'aphorism', name:'Aphorism' },
+    { id:'stats', name:'Stats' },
+    { id:'comparison', name:'Comparison' },
+    { id:'framework', name:'Framework' },
+    { id:'timeline', name:'Timeline' },
+    { id:'comics', name:'Comics' },
+    { id:'taxonomy', name:'Taxonomy' }
+  ]
+};
+
+function buildSidebar() {
+  const containerIds = ['skill-list-creative', 'skill-list-text', 'skill-list-art'];
+  const sectionKeys = ['creative', 'text', 'art'];
+  // Only show text once
+  SKILLS.text = [{ id:'textStudio', name:'Text Skills Studio' }];
+  SKILLS.art = [
+    { id:'aphorism', name:'Aphorism' },
+    { id:'stats', name:'Stats' },
+    { id:'comparison', name:'Comparison' },
+    { id:'framework', name:'Framework' },
+    { id:'timeline', name:'Timeline' },
+    { id:'comics', name:'Comics' },
+    { id:'taxonomy', name:'Taxonomy' }
+  ];
+
+  sectionKeys.forEach((key, idx) => {
+    const cont = document.getElementById(containerIds[idx]);
+    cont.innerHTML = SKILLS[key].map(sk => `<div class="skill-tab" data-id="${sk.id}">${sk.name}</div>`).join('');
+  });
+
+  document.querySelectorAll('.skill-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      currentSkill = el.dataset.id;
+      if(!settings[currentSkill] && !Object.keys(settings).length) resetSkill();
+      highlight(); buildUI(); pushUndo();
+    });
+  });
+}
+
+function highlight() {
+  document.querySelectorAll('.skill-tab').forEach(tab => { tab.classList.toggle('active', tab.dataset.id === currentSkill); });
+}
+
+// =================================================================
+// EVENT BINDINGS
+// =================================================================
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ skill:currentSkill, settings, version:6 }, null, 2)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `studio_${currentSkill}.json`; a.click(); URL.revokeObjectURL(a.href); sts('exported');
+});
+document.getElementById('importBtn').addEventListener('click', () => {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json';
+  inp.onchange = e => {
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        if(d.skill && d.settings) { currentSkill = d.skill; settings = d.settings; highlight(); buildUI(); pushUndo(); sts('imported'); }
+        else throw new Error();
+      } catch { alert('invalid file'); }
+    }; r.readAsText(e.target.files[0]);
+  }; inp.click();
+});
+document.getElementById('resetBtn').addEventListener('click', () => resetSkill());
+document.getElementById('undoBtn').addEventListener('click', () => undo());
+document.getElementById('playMidiBtn').addEventListener('click', () => { if(['lyricStudio','textStudio','promptComposer','midi'].includes(currentSkill)) playMidi(); else sts('switch to MIDI mode'); });
+
+// =================================================================
+// INIT
+// =================================================================
+buildSidebar();
+currentSkill = 'promptComposer';
+resetSkill();
+highlight();
+buildUI();
+</script>
+</body>
+</html>

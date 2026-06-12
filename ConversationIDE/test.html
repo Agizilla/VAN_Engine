@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Brain</title></head>
+<body>
+<h1>Test VAN_Engine</h1>
+<button onclick="test()">Send 'status'</button>
+<pre id="output"></pre>
+<script>
+async function test() {
+  try {
+    const res = await fetch('http://127.0.0.1:11434/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'van_engine-brain',
+        messages: [{ role: 'user', content: 'status' }]
+      })
+    });
+    const data = await res.json();
+    document.getElementById('output').innerText = JSON.stringify(data, null, 2);
+  } catch(e) {
+    document.getElementById('output').innerText = 'Error: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

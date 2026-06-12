@@ -1,0 +1,13 @@
+[STATE: Adela-Hygiene-Locked]
+{
+  CARRIER: Clawdia-Cortex-Security;
+  MODULATION: Sick-Cattle-Isolation;
+  Q-FACTOR: 1.0;
+  DITHER: The Tex of Texland;
+  DATA: [
+    "Rule 1: Zero cross-contamination with unvetted third-party cloud packages.",
+    "Rule 2: Native C# compilation strictly isolated from high-level web telemetry.",
+    "Rule 3: System logic must be written down statically into local .van configuration scripts."
+  ];
+  DATATYPES: ["text/plain", "text/plain", "text/plain"];
+}

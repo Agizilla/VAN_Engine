@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Sovereign Architect | Gerrit van Deventer</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-variant": "#1a1a24",
+                        "primary": "#3b82f6",
+                        "on-primary": "#ffffff",
+                        "outline-variant": "#3f3f4e",
+                        "bg-main": "#0a0a0f"
+                    },
+                    fontFamily: {
+                        headline: ["Space Grotesk", "sans-serif"],
+                        mono: ["DM Mono", "monospace"],
+                        display: ["Syne", "sans-serif"],
+                        body: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .noise {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.03; pointer-events: none; z-index: 50;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-card { background: rgba(26, 26, 36, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+    </style>
+</head>
+
+<body class="bg-bg-main text-slate-300 font-body selection:bg-primary/30">
+    <div class="noise"></div>
+
+    <nav class="fixed top-0 left-0 w-full z-40 border-b border-outline-variant/30 bg-bg-main/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-black text-primary tracking-tighter font-display uppercase">G_VAN_DEVENTER</span>
+                <span class="px-2 py-0.5 rounded border border-primary/30 text-[10px] font-mono text-primary uppercase">v2026.Architect</span>
+            </div>
+            <div class="flex gap-8">
+                <button onclick="switchTab('bio')" class="tab-btn active text-xs font-headline uppercase tracking-widest text-primary">01_History</button>
+                <button onclick="switchTab('readiness')" class="tab-btn text-xs font-headline uppercase tracking-widest hover:text-primary transition-colors">02_AI_Readiness</button>
+                <button onclick="switchTab('laboratory')" class="tab-btn text-xs font-headline uppercase tracking-widest hover:text-primary transition-colors">03_Laboratory</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 pt-32 pb-20">
+        
+        <div id="bio" class="tab-content active">
+            <header class="mb-20">
+                <h2 class="text-7xl md:text-8xl font-black text-white font-display tracking-tighter uppercase mb-6 leading-[0.85]">
+                    Sovereign<br/><span class="text-primary">Architect.</span>
+                </h2>
+                <p class="max-w-2xl text-lg text-slate-400 font-light leading-relaxed">
+                    Senior Full-Stack Developer with 20+ years of engineering rigor. Transitioned from legacy modernization in healthcare and mining to architecting autonomous agentic ecosystems. I bridge the gap between human intent and machine execution.
+                </p>
+            </header>
+
+            <section class="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-outline-variant/20 pt-12">
+                <div class="space-y-4">
+                    <span class="text-[10px] font-mono text-primary uppercase tracking-[0.2em]">Core Identity</span>
+                    <h3 class="text-xl font-headline text-white uppercase">Gerrit van Deventer</h3>
+                    <p class="text-sm font-mono">B.Sc IT (Computer Science)</p>
+                    <p class="text-sm text-slate-500">Johannesburg, South Africa<br/>gerrit.van.deventer@gmail.com</p>
+                </div>
+                
+                <div class="md:col-span-2 space-y-10">
+                    <div>
+                        <span class="text-[10px] font-mono text-primary uppercase tracking-[0.2em]">Latest Tenure</span>
+                        <div class="mt-4 flex justify-between items-start">
+                            <div>
+                                <h4 class="text-lg font-headline text-white uppercase">Senior Software Developer</h4>
+                                <p class="text-sm text-primary font-mono uppercase">Health Care Framework | 2024 - 2025</p>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-slate-400 text-sm leading-relaxed">
+                            Led architectural stabilization of mission-critical healthcare systems. Built high-availability reporting structures in .NET Core and Angular, managing complex data streams with zero downtime.
+                        </p>
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] font-mono text-primary uppercase tracking-[0.2em]">Engineering Foundation</span>
+                        <h4 class="mt-4 text-lg font-headline text-white uppercase">20 Years of Industrial Logic</h4>
+                        <p class="mt-2 text-slate-400 text-sm leading-relaxed">
+                            A "scenic route" through mining, logistics, and blood services. Experienced in C#, SQL Server (2000-2017), Assembler, and legacy modernizations. I build systems that solve real problems, not tutorial demos.
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="readiness" class="tab-content">
+            <header class="mb-16">
+                <h2 class="text-5xl font-black text-white font-display uppercase tracking-tight">AI Readiness<br/><span class="text-primary text-2xl font-mono">Status: Production_Ready</span></h2>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card p-8 rounded-sm">
+                    <h4 class="text-primary font-mono text-xs mb-4 uppercase tracking-widest">01_Agentic Orchestration</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">Experienced in multi-step reasoning and tool-calling. I don't just prompt; I architect coordination protocols that allow agent teams to converge on coherent outputs.</p>
+                </div>
+                <div class="glass-card p-8 rounded-sm">
+                    <h4 class="text-primary font-mono text-xs mb-4 uppercase tracking-widest">02_Memory & Context Architecture</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">Specialist in long-term agent state. Built manifest explorers to sync LLM internal memory with local disk files, ensuring persistent knowledge across sessions.</p>
+                </div>
+                <div class="glass-card p-8 rounded-sm">
+                    <h4 class="text-primary font-mono text-xs mb-4 uppercase tracking-widest">03_First-Principles Discovery</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">I "question the question." My AI XP Partner project proves my ability to onboard models to specific company codebases using principle-based memory modules instead of simple RAG.</p>
+                </div>
+                <div class="glass-card p-8 rounded-sm">
+                    <h4 class="text-primary font-mono text-xs mb-4 uppercase tracking-widest">04_Applied Synthesis</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">Proven ability to harden AI prototypes into robust products. I view AI as a "vessel" for human intent, focusing on functional quality over semantic fluency.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="laboratory" class="tab-content">
+            <header class="mb-16">
+                <h2 class="text-5xl font-black text-white font-display uppercase tracking-tight">The Laboratory<br/><span class="text-primary text-2xl font-mono">Recent_Research_&_Development</span></h2>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <div class="glass-card flex flex-col group">
+                    <div class="h-48 bg-surface-variant flex items-center justify-center border-b border-outline-variant/30 overflow-hidden">
+                        <span class="text-[10px] font-mono text-slate-600 group-hover:text-primary transition-colors">[AGENT_ORCHESTRATOR_IDE]</span>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-white font-headline uppercase mb-2">Agentic IDE</h4>
+                        <p class="text-xs text-slate-400 mb-4 h-12">A VS Code-inspired orchestration engine for managing multi-agent lifecycles and tool-calling loops.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">C#</span>
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">WebView2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card flex flex-col group">
+                    <div class="h-48 bg-surface-variant flex items-center justify-center border-b border-outline-variant/30 overflow-hidden">
+                        <span class="text-[10px] font-mono text-slate-600 group-hover:text-primary transition-colors">[AUDIO_SYNTH_CORE]</span>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-white font-headline uppercase mb-2">Audio Studio Suite</h4>
+                        <p class="text-xs text-slate-400 mb-4 h-12">End-to-end voice cloning and discography production. Integrated RVC trainer and LoRA adapters.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Python</span>
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">RVC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card flex flex-col group">
+                    <div class="h-48 bg-surface-variant flex items-center justify-center border-b border-outline-variant/30 overflow-hidden">
+                        <span class="text-[10px] font-mono text-slate-600 group-hover:text-primary transition-colors">[KNOWLEDGE_ARCHITECT]</span>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-white font-headline uppercase mb-2">AI XP Coding Partner</h4>
+                        <p class="text-xs text-slate-400 mb-4 h-12">Memory-module-based trainer for teaching models specific company coding practices from first principles.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Compiler Theory</span>
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Memory Units</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card flex flex-col group">
+                    <div class="h-48 bg-surface-variant flex items-center justify-center border-b border-outline-variant/30 overflow-hidden">
+                        <span class="text-[10px] font-mono text-slate-600 group-hover:text-primary transition-colors">[MEMORY_SYNC_TOOL]</span>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-white font-headline uppercase mb-2">Agent Manifest Explorer</h4>
+                        <p class="text-xs text-slate-400 mb-4 h-12">Visual sync tool for LLM internal memory vs local files. Essential for agent state transparency.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Digital Forensics</span>
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Sync Ops</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card flex flex-col group">
+                    <div class="h-48 bg-surface-variant flex items-center justify-center border-b border-outline-variant/30 overflow-hidden">
+                        <span class="text-[10px] font-mono text-slate-600 group-hover:text-primary transition-colors">[INTENT_GENERATOR_V1]</span>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-white font-headline uppercase mb-2">Sovereign Prompt OS</h4>
+                        <p class="text-xs text-slate-400 mb-4 h-12">Deterministic prompt generation system for ensuring high-quality, repeatable AI execution patterns.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Prompt Ops</span>
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Product Strategy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card flex flex-col group">
+                    <div class="h-48 bg-surface-variant flex items-center justify-center border-b border-outline-variant/30 overflow-hidden">
+                        <span class="text-[10px] font-mono text-slate-600 group-hover:text-primary transition-colors">[CLAP_BACK_OFFLINE]</span>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-white font-headline uppercase mb-2">Clap Back Rap Gen</h4>
+                        <p class="text-xs text-slate-400 mb-4 h-12">Pure offline battle rap lyric generator. Research into NLP creativity and n-gram probability models.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">NLP</span>
+                            <span class="text-[9px] font-mono px-2 py-0.5 border border-outline-variant uppercase">Offline AI</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="mt-20 border-t border-outline-variant/20 py-12 px-6 max-w-7xl mx-auto flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <span class="text-xl font-black text-primary font-display uppercase">SOVEREIGN_ARCHITECT</span>
+            <span class="text-[10px] font-mono uppercase text-slate-500">© 2026 Gerrit van Deventer</span>
+        </div>
+        <div class="text-[10px] font-mono uppercase text-primary animate-pulse">
+            System_Status: Stable // Seeking_Platform45_Integration
+        </div>
+    </footer>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('text-primary'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('text-primary');
+        }
+    </script>
+</body>
+</html>

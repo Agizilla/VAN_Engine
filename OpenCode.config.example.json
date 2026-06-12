@@ -1,0 +1,17 @@
+{
+  "models": [
+    {
+      "id": "van_engine-brain",
+      "name": "VAN_Engine Brain",
+      "provider": "openai-compatible",
+      "baseUrl": "http://localhost:11434/v1",
+      "apiKey": "not-needed",
+      "contextLength": 4096,
+      "supportsStreaming": true,
+      "supportsFunctions": false,
+      "supportsVision": false
+    }
+  ],
+  "defaultModel": "van_engine-brain"
+}
+

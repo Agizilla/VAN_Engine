@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>12‑Zone Facial Warp | Hybrid | Asymmetric Contempt | Stepwise ±0.1</title>
+  <style>
+    * {
+      user-select: none;
+      box-sizing: border-box;
+    }
+    body {
+      background: radial-gradient(circle at 20% 30%, #0a0f1c, #03060c);
+      font-family: 'Inter', system-ui, -apple-system, monospace;
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .dashboard {
+      max-width: 1300px;
+      width: 100%;
+      max-height: 95vh;
+      overflow-y: auto;
+      background: rgba(8, 12, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 1.5rem;
+      padding: 1.2rem;
+      border: 1px solid #2a3f60;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.6);
+    }
+    .dashboard::-webkit-scrollbar { width: 6px; }
+    .dashboard::-webkit-scrollbar-track { background: #1e2a3a; border-radius: 8px; }
+    .dashboard::-webkit-scrollbar-thumb { background: #4f6f8f; border-radius: 8px; }
+
+    h2 {
+      font-weight: 500;
+      color: #cae9ff;
+      margin: 0 0 0.2rem 0;
+      font-size: 1.3rem;
+    }
+    h2 small {
+      font-size: 0.7rem;
+      background: #1e2a3a;
+      padding: 4px 12px;
+      border-radius: 40px;
+      color: #6ea8fe;
+    }
+    .sub {
+      font-size: 0.8rem;
+      color: #9fb3dd;
+      border-left: 3px solid #3b82f6;
+      padding-left: 12px;
+      margin-bottom: 1rem;
+    }
+    .main-row {
+      display: flex;
+      flex-direction: row;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .canvases-area {
+      flex: 2;
+      min-width: 500px;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .canvas-card {
+      flex: 1;
+      min-width: 260px;
+      background: #0b0f18aa;
+      border-radius: 1rem;
+      padding: 0.7rem;
+      border: 1px solid #2a3f60;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .canvas-title {
+      font-weight: 500;
+      color: #bdd4ff;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #11161f;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px black;
+      cursor: crosshair;
+    }
+    .settings-panel {
+      flex: 0.9;
+      min-width: 260px;
+      background: #0c1022cc;
+      border-radius: 1rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .emotion-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    button {
+      background: #1f2c40;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: #ecf5ff;
+      cursor: pointer;
+      transition: 0.05s linear;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      text-align: left;
+    }
+    button:hover { filter: brightness(1.15); }
+    button.surprise { background: #2c6e6e; border-left: 4px solid #4ed9d9; }
+    button.anger { background: #8b3c2c; border-left: 4px solid #f26d5b; }
+    button.tension { background: #5a4a6e; border-left: 4px solid #a88be6; }
+    button.contempt { background: #8b5a2b; border-left: 4px solid #d99e4a; }
+    .reset-btn {
+      background: #3a4a3a;
+      border: 1px solid #4fb87c;
+      text-align: center;
+    }
+    .stats {
+      font-size: 0.7rem;
+      background: #00000044;
+      padding: 8px 12px;
+      border-radius: 8px;
+      line-height: 1.35;
+      color: #a0b4e0;
+    }
+    .drag-hint {
+      font-size: 0.65rem;
+      background: #1e2a3aaa;
+      border-radius: 8px;
+      padding: 8px;
+      color: #cae9ff;
+    }
+    .file-input {
+      background: #03070f;
+      border-radius: 8px;
+      border: 1px solid #3e5a7c;
+      color: white;
+      padding: 6px;
+      width: 100%;
+      font-size: 0.75rem;
+    }
+    @media (max-width: 900px) {
+      .main-row { flex-direction: column; }
+      .canvases-area { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard">
+  <h2>🎭 12‑Zone Facial Warp <small>Hybrid Core | Stepwise ±0.1 | True Asymmetric Contempt</small></h2>
+  <div class="sub">⚡ Left‑click = +0.1 intensity · Right‑click = –0.1 · Drag any zone (static grid detection)</div>
+
+  <div class="main-row">
+    <div class="canvases-area">
+      <div class="canvas-card">
+        <div class="canvas-title"><span>📌 CONTROL MESH (drag to scale)</span><span>↔️ width | ↕️ height</span></div>
+        <canvas id="controlCanvas" width="500" height="400"></canvas>
+        <div class="stats">✨ drag inside a zone: left/right = width, up/down = height. Scale shown in each cell.</div>
+      </div>
+      <div class="canvas-card">
+        <div class="canvas-title"><span>🌀 WARPED OUTPUT</span><span>real‑time facial deformation</span></div>
+        <canvas id="outputCanvas" width="500" height="400"></canvas>
+        <div class="stats">⚡ Piecewise affine warp – each zone scales independently (vertical per zone).</div>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <input type="file" id="uploadFace" class="file-input" accept="image/jpeg,image/png,image/webp">
+      <div class="emotion-bar">
+        <button id="surpriseBtn" class="surprise">😲 Surprise (eyes + mouth vertical)</button>
+        <button id="angerBtn" class="anger">😠 Anger (brows + jaw squeeze)</button>
+        <button id="tensionBtn" class="tension">😬 Tension (jaw horizontal)</button>
+        <button id="contemptBtn" class="contempt">😏 Contempt (asymmetric – right mouth only) 🔥</button>
+        <button id="resetBtn" class="reset-btn">⟳ Reset All Zones</button>
+      </div>
+      <div class="drag-hint">
+        🖱️ <strong>Stable drag:</strong> Zone detection uses static neutral grid → no drift.<br>
+        Right‑click any emotion button = decrease intensity (-0.1).<br>
+        <span style="color:#ffb347;">Contempt</span> changes only right mouth zone (row 4, col 1) – true smirk.
+      </div>
+      <div class="stats">
+        6 rows × 2 cols = 12 transform cells. Each cell has independent X/Y scale.<br>
+        Warp: per‑zone propagation → independent vertical scaling (asymmetric smirk works).
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // --- configuration ---
+    const ROWS = 6;
+    const COLS = 2;
+
+    // scale factors: independent per zone
+    let scaleX = Array(ROWS).fill().map(() => Array(COLS).fill(1.0));
+    let scaleY = Array(ROWS).fill().map(() => Array(COLS).fill(1.0));
+
+    // DOM elements
+    const controlCanvas = document.getElementById('controlCanvas');
+    const ctxControl = controlCanvas.getContext('2d');
+    const outputCanvas = document.getElementById('outputCanvas');
+    const ctxOutput = outputCanvas.getContext('2d');
+    const fileInput = document.getElementById('uploadFace');
+
+    let currentImage = null;
+    let neutralCorners = null;     // static 7x3 grid (neutral positions)
+    let deformedCorners = null;
+
+    // drag state
+    let isDragging = false;
+    let activeRow = -1, activeCol = -1;
+    let dragStartX = 0, dragStartY = 0;
+    let startScaleX = 1.0, startScaleY = 1.0;
+
+    // ------------------------------------------------------------------
+    // 1. Build neutral corner grid (static reference for detection & warp)
+    // ------------------------------------------------------------------
+    function buildNeutralCorners(w, h) {
+      const marginX = w * 0.05, marginY = h * 0.05;
+      const innerW = w - marginX * 2, innerH = h - marginY * 2;
+      const corners = Array(ROWS + 1);
+      for (let r = 0; r <= ROWS; r++) {
+        corners[r] = Array(COLS + 1);
+        const y = marginY + (r / ROWS) * innerH;
+        for (let c = 0; c <= COLS; c++) {
+          const x = marginX + (c / COLS) * innerW;
+          corners[r][c] = { x, y };
+        }
+      }
+      return corners;
+    }
+
+    // ------------------------------------------------------------------
+    // 2. Deformed corners with INDEPENDENT per-zone scaling (true asymmetric)
+    // ------------------------------------------------------------------
+    function updateDeformedCorners() {
+      if (!neutralCorners) return;
+      const w = controlCanvas.width, h = controlCanvas.height;
+      const marginX = w * 0.05, marginY = h * 0.05;
+      const innerW = w - marginX * 2, innerH = h - marginY * 2;
+
+      // Step 1: compute original zone dimensions (neutral)
+      const origWidth = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+      const origHeight = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+      for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+          const tl = neutralCorners[i][j];
+          const tr = neutralCorners[i][j+1];
+          const bl = neutralCorners[i+1][j];
+          origWidth[i][j] = tr.x - tl.x;
+          origHeight[i][j] = bl.y - tl.y;
+        }
+      }
+
+      // Step 2: propagate deformed corners (start from top-left fixed)
+      const deformed = Array(ROWS + 1).fill().map(() => Array(COLS + 1));
+      deformed[0][0] = { x: marginX, y: marginY };
+
+      // first row: propagate horizontally
+      for (let j = 1; j <= COLS; j++) {
+        const prev = deformed[0][j-1];
+        const zoneCol = j-1;
+        const wScale = scaleX[0][zoneCol];
+        const deltaX = origWidth[0][zoneCol] * (wScale - 1);
+        deformed[0][j] = { x: prev.x + origWidth[0][zoneCol] + deltaX, y: marginY };
+      }
+
+      // for each subsequent row, use above row's corner and scale vertically
+      for (let i = 1; i <= ROWS; i++) {
+        const zoneRowAbove = i-1;
+        for (let j = 0; j <= COLS; j++) {
+          const above = deformed[i-1][j];
+          let heightScale;
+          if (j === 0) {
+            heightScale = scaleY[zoneRowAbove][0];
+          } else if (j === COLS) {
+            heightScale = scaleY[zoneRowAbove][COLS-1];
+          } else {
+            // for internal column corners, we take the max of left and right zone? No, we need smooth transition.
+            // Better: for corners between columns, average the vertical scaling influence.
+            // But to keep independent zone scaling visually consistent, we use the average.
+            const leftScale = scaleY[zoneRowAbove][j-1];
+            const rightScale = scaleY[zoneRowAbove][j];
+            heightScale = (leftScale + rightScale) / 2;
+          }
+          const origH = origHeight[zoneRowAbove][j === 0 ? 0 : j-1];
+          const deltaY = origH * (heightScale - 1);
+          deformed[i][j] = { x: above.x, y: above.y + origH + deltaY };
+        }
+        // re-adjust horizontal positions for this row using left-to-right propagation
+        for (let j = 1; j <= COLS; j++) {
+          const left = deformed[i][j-1];
+          const zoneCol = j-1;
+          const wScale = scaleX[i-1][zoneCol];
+          const deltaX = origWidth[i-1][zoneCol] * (wScale - 1);
+          deformed[i][j] = { x: left.x + origWidth[i-1][zoneCol] + deltaX, y: deformed[i][j].y };
+        }
+      }
+      deformedCorners = deformed;
+      return deformed;
+    }
+
+    // ------------------------------------------------------------------
+    // 3. Drawing (control canvas with overlay)
+    // ------------------------------------------------------------------
+    function drawControlCanvas() {
+      const w = controlCanvas.width, h = controlCanvas.height;
+      ctxControl.clearRect(0, 0, w, h);
+      if (currentImage) {
+        const iw = currentImage.width, ih = currentImage.height;
+        const scale = Math.max(w/iw, h/ih);
+        const sw = iw * scale, sh = ih * scale;
+        const dx = (w - sw) / 2, dy = (h - sh) / 2;
+        ctxControl.drawImage(currentImage, dx, dy, sw, sh);
+      } else {
+        ctxControl.fillStyle = '#11161f';
+        ctxControl.fillRect(0, 0, w, h);
+        ctxControl.fillStyle = '#a0b4e0';
+        ctxControl.font = '12px monospace';
+        ctxControl.fillText("Upload a face image", w/2-80, h/2);
+      }
+
+      if (!deformedCorners) return;
+      for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+          const tl = deformedCorners[i][j];
+          const tr = deformedCorners[i][j+1];
+          const br = deformedCorners[i+1][j+1];
+          const bl = deformedCorners[i+1][j];
+          ctxControl.beginPath();
+          ctxControl.moveTo(tl.x, tl.y);
+          ctxControl.lineTo(tr.x, tr.y);
+          ctxControl.lineTo(br.x, br.y);
+          ctxControl.lineTo(bl.x, bl.y);
+          ctxControl.closePath();
+          ctxControl.fillStyle = `rgba(59, 130, 246, 0.12)`;
+          ctxControl.fill();
+          ctxControl.strokeStyle = 'rgba(255, 219, 142, 0.8)';
+          ctxControl.lineWidth = 1.5;
+          ctxControl.stroke();
+          // scale text
+          ctxControl.font = 'bold 10px "JetBrains Mono"';
+          ctxControl.fillStyle = '#ffe0a3';
+          const cx = (tl.x + tr.x + br.x + bl.x) / 4;
+          const cy = (tl.y + tr.y + br.y + bl.y) / 4;
+          ctxControl.fillText(`${scaleX[i][j].toFixed(2)}x${scaleY[i][j].toFixed(2)}`, cx-24, cy-4);
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // 4. Warp image to output canvas (piecewise affine)
+    // ------------------------------------------------------------------
+    function warpImageToOutput() {
+      if (!currentImage || !neutralCorners || !deformedCorners) {
+        ctxOutput.fillStyle = '#1a1f2a';
+        ctxOutput.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+        ctxOutput.fillStyle = '#ccc';
+        ctxOutput.fillText("no image", 50, 200);
+        return;
+      }
+      const w = outputCanvas.width, h = outputCanvas.height;
+      const srcGrid = neutralCorners;
+      const dstGrid = deformedCorners;
+
+      const triangles = [];
+      for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+          const p00 = srcGrid[i][j], p01 = srcGrid[i][j+1];
+          const p10 = srcGrid[i+1][j], p11 = srcGrid[i+1][j+1];
+          const q00 = dstGrid[i][j], q01 = dstGrid[i][j+1];
+          const q10 = dstGrid[i+1][j], q11 = dstGrid[i+1][j+1];
+          triangles.push({ src: [p00, p01, p10], dst: [q00, q01, q10] });
+          triangles.push({ src: [p01, p11, p10], dst: [q01, q11, q10] });
+        }
+      }
+
+      const srcCanvas = document.createElement('canvas');
+      srcCanvas.width = w; srcCanvas.height = h;
+      const srcCtx = srcCanvas.getContext('2d');
+      const iw = currentImage.width, ih = currentImage.height;
+      const scale = Math.max(w/iw, h/ih);
+      const sw = iw * scale, sh = ih * scale;
+      const dx = (w - sw) / 2, dy = (h - sh) / 2;
+      srcCtx.drawImage(currentImage, dx, dy, sw, sh);
+      const srcData = srcCtx.getImageData(0, 0, w, h);
+
+      const outImg = ctxOutput.createImageData(w, h);
+      const outData = outImg.data;
+      for (let i = 0; i < outData.length; i += 4) outData[i+3] = 255;
+
+      function barycentric(p, a, b, c) {
+        const v0 = { x: b.x - a.x, y: b.y - a.y };
+        const v1 = { x: c.x - a.x, y: c.y - a.y };
+        const v2 = { x: p.x - a.x, y: p.y - a.y };
+        const d00 = v0.x * v0.x + v0.y * v0.y;
+        const d01 = v0.x * v1.x + v0.y * v1.y;
+        const d11 = v1.x * v1.x + v1.y * v1.y;
+        const d20 = v2.x * v0.x + v2.y * v0.y;
+        const d21 = v2.x * v1.x + v2.y * v1.y;
+        const denom = d00 * d11 - d01 * d01;
+        if (Math.abs(denom) < 1e-8) return null;
+        const v = (d11 * d20 - d01 * d21) / denom;
+        const w_ = (d00 * d21 - d01 * d20) / denom;
+        const u = 1 - v - w_;
+        if (u >= -0.01 && v >= -0.01 && w_ >= -0.01 && u <= 1.01 && v <= 1.01 && w_ <= 1.01) return { u, v, w: w_ };
+        return null;
+      }
+
+      for (const tri of triangles) {
+        const [dA, dB, dC] = tri.dst;
+        const [sA, sB, sC] = tri.src;
+        let minX = Math.min(dA.x, dB.x, dC.x), maxX = Math.max(dA.x, dB.x, dC.x);
+        let minY = Math.min(dA.y, dB.y, dC.y), maxY = Math.max(dA.y, dB.y, dC.y);
+        minX = Math.max(0, Math.floor(minX)); maxX = Math.min(w-1, Math.ceil(maxX));
+        minY = Math.max(0, Math.floor(minY)); maxY = Math.min(h-1, Math.ceil(maxY));
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            const bary = barycentric({ x: x + 0.5, y: y + 0.5 }, dA, dB, dC);
+            if (bary && bary.u >= 0 && bary.v >= 0 && bary.w >= 0) {
+              const srcX = bary.u * sA.x + bary.v * sB.x + bary.w * sC.x;
+              const srcY = bary.u * sA.y + bary.v * sB.y + bary.w * sC.y;
+              const ix = Math.floor(srcX), iy = Math.floor(srcY);
+              if (ix >= 0 && ix < w && iy >= 0 && iy < h) {
+                const srcIdx = (iy * w + ix) * 4;
+                const dstIdx = (y * w + x) * 4;
+                outData[dstIdx] = srcData.data[srcIdx];
+                outData[dstIdx+1] = srcData.data[srcIdx+1];
+                outData[dstIdx+2] = srcData.data[srcIdx+2];
+                outData[dstIdx+3] = 255;
+              }
+            }
+          }
+        }
+      }
+      ctxOutput.putImageData(outImg, 0, 0);
+    }
+
+    function refreshAll() {
+      updateDeformedCorners();
+      drawControlCanvas();
+      warpImageToOutput();
+    }
+
+    function setZoneScale(row, col, sx, sy) {
+      scaleX[row][col] = Math.min(2.2, Math.max(0.4, sx));
+      scaleY[row][col] = Math.min(2.2, Math.max(0.4, sy));
+      refreshAll();
+    }
+
+    function resetAllScales() {
+      for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+          scaleX[i][j] = 1.0;
+          scaleY[i][j] = 1.0;
+        }
+      }
+      refreshAll();
+    }
+
+    // ------------------------------------------------------------------
+    // 5. Drag detection using STATIC neutral grid (no drift)
+    // ------------------------------------------------------------------
+    function getStaticZoneFromPoint(px, py) {
+      if (!neutralCorners) return null;
+      const w = controlCanvas.width, h = controlCanvas.height;
+      const marginX = w * 0.05, marginY = h * 0.05;
+      const innerW = w - marginX * 2, innerH = h - marginY * 2;
+      if (px < marginX || px > marginX + innerW || py < marginY || py > marginY + innerH) return null;
+      const col = Math.floor((px - marginX) / (innerW / COLS));
+      const row = Math.floor((py - marginY) / (innerH / ROWS));
+      return {
+        row: Math.min(ROWS - 1, Math.max(0, row)),
+        col: Math.min(COLS - 1, Math.max(0, col))
+      };
+    }
+
+    function onPointerDown(e) {
+      e.preventDefault();
+      const rect = controlCanvas.getBoundingClientRect();
+      const sx = controlCanvas.width / rect.width;
+      const sy = controlCanvas.height / rect.height;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const canvasX = (clientX - rect.left) * sx;
+      const canvasY = (clientY - rect.top) * sy;
+      const zone = getStaticZoneFromPoint(canvasX, canvasY);
+      if (zone) {
+        isDragging = true;
+        activeRow = zone.row;
+        activeCol = zone.col;
+        dragStartX = canvasX;
+        dragStartY = canvasY;
+        startScaleX = scaleX[activeRow][activeCol];
+        startScaleY = scaleY[activeRow][activeCol];
+        controlCanvas.style.cursor = 'grabbing';
+        controlCanvas.setPointerCapture(e.pointerId);
+      }
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging || activeRow === -1) return;
+      e.preventDefault();
+      const rect = controlCanvas.getBoundingClientRect();
+      const sx = controlCanvas.width / rect.width;
+      const sy = controlCanvas.height / rect.height;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const canvasX = (clientX - rect.left) * sx;
+      const canvasY = (clientY - rect.top) * sy;
+      const deltaX = canvasX - dragStartX;
+      const deltaY = canvasY - dragStartY;
+      const sensitivity = 0.005;
+      const newSx = startScaleX + deltaX * sensitivity;
+      const newSy = startScaleY + deltaY * sensitivity;
+      setZoneScale(activeRow, activeCol, newSx, newSy);
+    }
+
+    function onPointerUp(e) {
+      if (isDragging) {
+        isDragging = false;
+        activeRow = -1;
+        controlCanvas.style.cursor = 'crosshair';
+        controlCanvas.releasePointerCapture?.(e.pointerId);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // 6. Emotion buttons with stepwise ±0.1 (left/right click)
+    // ------------------------------------------------------------------
+    function bindEmotionButton(id, modifierFn) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        modifierFn(0.1);
+        refreshAll();
+      });
+      btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        modifierFn(-0.1);
+        refreshAll();
+        return false;
+      });
+    }
+
+    function initEmotions() {
+      bindEmotionButton('surpriseBtn', (delta) => {
+        // eyes (row2) + mouth (row4): vertical stretch/squeeze
+        for (let col of [0, 1]) {
+          scaleY[2][col] = Math.min(2.2, Math.max(0.4, scaleY[2][col] + delta));
+          scaleY[4][col] = Math.min(2.2, Math.max(0.4, scaleY[4][col] + delta));
+        }
+      });
+      bindEmotionButton('angerBtn', (delta) => {
+        // brows (row1) vertical squeeze, jaw (row5) vertical squeeze + horizontal squeeze
+        for (let col of [0, 1]) {
+          scaleY[1][col] = Math.min(2.2, Math.max(0.4, scaleY[1][col] - delta));
+          scaleY[5][col] = Math.min(2.2, Math.max(0.4, scaleY[5][col] - delta));
+          scaleX[5][col] = Math.min(2.2, Math.max(0.4, scaleX[5][col] - delta * 0.6));
+        }
+      });
+      bindEmotionButton('tensionBtn', (delta) => {
+        // jaw horizontal squeeze + slight eyes vertical squeeze
+        for (let col of [0, 1]) {
+          scaleX[5][col] = Math.min(2.2, Math.max(0.4, scaleX[5][col] - delta));
+          scaleY[2][col] = Math.min(2.2, Math.max(0.4, scaleY[2][col] - delta * 0.5));
+        }
+      });
+      bindEmotionButton('contemptBtn', (delta) => {
+        // ASYMMETRIC: only right mouth zone (row4, col=1) vertical stretch
+        // also slight horizontal and brow asymmetry
+        scaleY[4][1] = Math.min(2.2, Math.max(0.4, scaleY[4][1] + delta));
+        scaleX[4][1] = Math.min(2.2, Math.max(0.4, scaleX[4][1] + delta * 0.4));
+        scaleY[1][1] = Math.min(2.2, Math.max(0.4, scaleY[1][1] - delta * 0.2));
+      });
+      document.getElementById('resetBtn').addEventListener('click', resetAllScales);
+    }
+
+    // ------------------------------------------------------------------
+    // 7. Image upload
+    // ------------------------------------------------------------------
+    function loadImageAndReset(img) {
+      currentImage = img;
+      const w = controlCanvas.width, h = controlCanvas.height;
+      neutralCorners = buildNeutralCorners(w, h);
+      resetAllScales();
+    }
+
+    // ------------------------------------------------------------------
+    // 8. Initialization
+    // ------------------------------------------------------------------
+    function init() {
+      controlCanvas.width = 500; controlCanvas.height = 400;
+      outputCanvas.width = 500; outputCanvas.height = 400;
+      neutralCorners = buildNeutralCorners(controlCanvas.width, controlCanvas.height);
+      resetAllScales();
+
+      fileInput.addEventListener('change', e => {
+        if (e.target.files[0]) {
+          const reader = new FileReader();
+          const img = new Image();
+          img.onload = () => loadImageAndReset(img);
+          reader.onload = ev => img.src = ev.target.result;
+          reader.readAsDataURL(e.target.files[0]);
+        }
+      });
+
+      initEmotions();
+
+      controlCanvas.addEventListener('pointerdown', onPointerDown);
+      controlCanvas.addEventListener('pointermove', onPointerMove);
+      controlCanvas.addEventListener('pointerup', onPointerUp);
+      controlCanvas.style.touchAction = 'none';
+      controlCanvas.style.cursor = 'crosshair';
+
+      refreshAll();
+    }
+
+    init();
+  })();
+</script>
+</body>
+</html>

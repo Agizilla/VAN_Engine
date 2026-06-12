@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Butler Media Deck AI",
+  "version": "1.0.0",
+  "description": "Adds an advanced text-to-speech audio control ribbon panel directly to AI interfaces.",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ]
+}

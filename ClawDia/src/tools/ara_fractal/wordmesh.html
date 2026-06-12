@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WordMesh — Triangle Geometry Builder</title>
+<style id="theme-styles">
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #080808; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden; height: 100vh; transition: background 0.4s;
+  }
+  #scene-container { width: 100vw; height: 100vh; display: block; position: relative; }
+  canvas { display: block; }
+
+  #panel {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  #panel > * { pointer-events: auto; }
+
+  #input-row {
+    display: flex; gap: 4px; align-items: center;
+    background: rgba(10,10,10,0.88); backdrop-filter: blur(12px);
+    border: 1px solid #1e1e1e; border-radius: 10px;
+    padding: 5px 6px 5px 14px; transition: background 0.4s, border-color 0.4s;
+  }
+  #word-input {
+    background: none; border: none; color: #e0e0e0; font-size: 14px;
+    outline: none; width: 200px; font-family: inherit; transition: color 0.4s;
+  }
+  #word-input::placeholder { color: #444; }
+  .complete-btn {
+    background: transparent; border: 1px solid #2a2a2a; color: #666;
+    cursor: pointer; padding: 5px 8px; border-radius: 4px;
+    font-size: 10px; font-family: monospace; transition: all 0.2s; white-space: nowrap;
+  }
+  .complete-btn:hover { border-color: #3c964a; color: #3c964a; background: rgba(60,150,74,0.06); }
+  .complete-btn:disabled { opacity: 0.2; cursor: default; border-color: #1a1a1a; color: #333; }
+  #btn-add {
+    background: #3c964a; border: none; color: #fff; cursor: pointer;
+    padding: 7px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
+    transition: background 0.2s, opacity 0.4s;
+  }
+  #btn-add:hover { background: #4db85e; }
+
+  #info-bar {
+    display: flex; gap: 12px; align-items: center;
+    background: rgba(10,10,10,0.65); backdrop-filter: blur(8px);
+    border: 1px solid #181818; border-radius: 8px;
+    padding: 4px 12px; font-size: 10px; color: #555; font-family: monospace;
+    transition: background 0.4s, border-color 0.4s;
+  }
+  #info-bar span { display: flex; align-items: center; gap: 3px; }
+  #info-bar .num { color: #888; font-weight: 600; }
+
+  #selected-info {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    background: rgba(10,10,10,0.7); backdrop-filter: blur(8px);
+    border: 1px solid rgba(60,150,74,0.2); border-radius: 8px;
+    padding: 6px 16px; display: none; gap: 8px; align-items: center;
+    font-size: 12px; transition: background 0.4s, border-color 0.4s;
+  }
+  #selected-info.visible { display: flex; }
+  #selected-info .sel-word { color: #3c964a; font-weight: 600; font-size: 14px; }
+  #selected-info .sel-type { color: #555; font-size: 10px; }
+  #selected-info .sel-actions { display: flex; gap: 4px; pointer-events: auto; }
+  #selected-info .sel-actions button {
+    background: transparent; border: 1px solid #2a2a2a; color: #777;
+    padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; transition: all 0.15s;
+  }
+  #selected-info .sel-actions button:hover { border-color: #3c964a; color: #3c964a; }
+  #selected-info .sel-close {
+    background: none; border: none; color: #444; cursor: pointer;
+    font-size: 14px; pointer-events: auto; padding: 0 4px;
+  }
+  #selected-info .sel-close:hover { color: #fff; }
+
+  #top-panel {
+    position: fixed; top: 52px; left: 14px; z-index: 10; pointer-events: none;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  #top-panel > * { pointer-events: auto; }
+
+  #warp-panel {
+    position: fixed; right: 14px; bottom: 80px; z-index: 10;
+    display: flex; flex-direction: column; gap: 4px;
+    background: rgba(10,10,10,0.8); backdrop-filter: blur(8px);
+    border: 1px solid #1a1a1a; border-radius: 8px; padding: 10px;
+    pointer-events: none; transition: background 0.4s, border-color 0.4s;
+  }
+  #warp-panel > * { pointer-events: auto; }
+  #warp-panel label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  #warp-panel input[type="range"] {
+    width: 90px; height: 3px; -webkit-appearance: none;
+    background: #222; border-radius: 2px; outline: none;
+  }
+  #warp-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 10px; height: 10px;
+    border-radius: 50%; background: #8270a0; cursor: pointer;
+    transition: background 0.4s;
+  }
+  .warp-toggle { display: flex; align-items: center; gap: 6px; }
+  .warp-toggle input[type="checkbox"] {
+    -webkit-appearance: none; width: 28px; height: 14px;
+    background: #1a1a1a; border-radius: 7px; position: relative; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .warp-toggle input[type="checkbox"]:checked { background: #8270a0; }
+  .warp-toggle input[type="checkbox"]::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 10px; height: 10px; border-radius: 50%; background: #555;
+    transition: all 0.2s;
+  }
+  .warp-toggle input[type="checkbox"]:checked::after { left: 16px; background: #fff; }
+  .warp-toggle .label { font-size: 10px; color: #888; }
+
+  #theme-panel {
+    position: fixed; right: 14px; top: 56px; z-index: 10;
+    display: flex; flex-direction: column; gap: 3px;
+    background: rgba(10,10,10,0.8); backdrop-filter: blur(8px);
+    border: 1px solid #1a1a1a; border-radius: 8px; padding: 8px;
+    pointer-events: none; transition: background 0.4s, border-color 0.4s;
+  }
+  #theme-panel > * { pointer-events: auto; }
+  #theme-panel label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .theme-btn {
+    background: transparent; border: 1px solid #2a2a2a; color: #777;
+    padding: 3px 10px; border-radius: 4px; cursor: pointer;
+    font-size: 10px; transition: all 0.15s; text-align: left;
+  }
+  .theme-btn:hover { border-color: #555; color: #ccc; }
+  .theme-btn.active { border-color: #3c964a; color: #3c964a; background: rgba(60,150,74,0.08); }
+
+  #universe-panel {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .univ-btn {
+    background: transparent; border: 1px solid #2a2a2a; color: #666;
+    padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    font-size: 9px; font-family: monospace; transition: all 0.15s;
+  }
+  .univ-btn:hover { border-color: #555; }
+  .univ-btn.active { border-color: #8270a0; color: #8270a0; background: rgba(130,112,160,0.08); }
+
+  #add-random {
+    background: transparent; border: 1px solid #2a2a2a; color: #666;
+    padding: 3px 10px; border-radius: 4px; cursor: pointer;
+    font-size: 10px; transition: all 0.2s;
+  }
+  #add-random:hover { border-color: #444; color: #999; }
+
+  #drop-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 500; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    border: 2px dashed #3c964a; transition: border-color 0.4s;
+  }
+  #drop-overlay.visible { display: flex; }
+  #drop-overlay .drop-msg {
+    font-size: 16px; color: #3c964a; font-weight: 300; letter-spacing: 2px;
+    text-align: center; transition: color 0.4s;
+  }
+  #drop-overlay .drop-msg small { display: block; font-size: 11px; color: #555; margin-top: 6px; }
+
+  #rhyme-panel {
+    position: fixed; left: 14px; top: 50%; transform: translateY(-50%);
+    z-index: 10; pointer-events: none;
+    display: none; flex-direction: column;
+    background: rgba(10,10,10,0.8); backdrop-filter: blur(8px);
+    border: 1px solid #1a1a1a; border-radius: 8px; padding: 10px;
+    max-height: 300px; overflow-y: auto; transition: background 0.4s, border-color 0.4s;
+  }
+  #rhyme-panel.visible { display: flex; }
+  #rhyme-panel label { font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 6px; }
+  #rhyme-panel .rhyme-word {
+    font-size: 11px; color: #888; padding: 2px 0; cursor: pointer;
+    transition: color 0.15s;
+  }
+  #rhyme-panel .rhyme-word:hover { color: #3c964a; }
+  #rhyme-panel .rhyme-word::before { content: '· '; color: #444; }
+
+  #play-bar {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    display: none; align-items: center; gap: 10px;
+    background: rgba(10,10,10,0.8); backdrop-filter: blur(8px);
+    border: 1px solid #2a2a2a; border-radius: 8px; padding: 8px 16px;
+    transition: background 0.4s, border-color 0.4s;
+  }
+  #play-bar.visible { display: flex; }
+  #play-bar .play-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #3c964a; border: none; color: #fff; cursor: pointer;
+    font-size: 12px; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; pointer-events: auto;
+  }
+  #play-bar .play-btn:hover { background: #4db85e; }
+  #play-bar .play-info { font-size: 11px; color: #888; }
+  #play-bar .play-info strong { color: #bbb; }
+
+  @media (max-width: 700px) {
+    #word-input { width: 100px; font-size: 12px; }
+    #input-row { padding: 4px 4px 4px 10px; }
+    .complete-btn { font-size: 8px; padding: 2px 4px; }
+    #selected-info { font-size: 10px; padding: 5px 10px; top: 8px; flex-wrap: wrap; }
+    #warp-panel, #theme-panel { right: 6px; padding: 6px; }
+    #warp-panel { bottom: 70px; }
+    #rhyme-panel { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene-container">
+  <div id="drop-overlay">
+    <div class="drop-msg">
+      DROP FILES HERE
+      <small>.txt / .md &rarr; lyrics &nbsp;|&nbsp; .mp3 &rarr; audio node</small>
+    </div>
+  </div>
+</div>
+
+<div id="selected-info">
+  <span class="sel-word" id="sel-word"></span>
+  <span class="sel-type" id="sel-type"></span>
+  <span class="sel-actions" id="sel-actions"></span>
+  <button class="sel-close" id="sel-close">&times;</button>
+</div>
+
+<div id="top-panel">
+  <div id="universe-panel">
+    <button class="univ-btn" id="univ-normal">NORM</button>
+    <button class="univ-btn" id="univ-inverse">INV</button>
+    <button class="univ-btn" id="univ-parallel">PAR</button>
+  </div>
+</div>
+
+<div id="rhyme-panel">
+  <label>Rhymes</label>
+  <div id="rhyme-list"></div>
+</div>
+
+<div id="play-bar">
+  <button class="play-btn" id="play-btn">&#9654;</button>
+  <div class="play-info" id="play-info">Loading...</div>
+</div>
+
+<div id="theme-panel">
+  <label>Theme</label>
+  <button class="theme-btn active" data-theme="default">Default</button>
+  <button class="theme-btn" data-theme="winamp">Classic Winamp</button>
+  <button class="theme-btn" data-theme="day">Day</button>
+  <button class="theme-btn" data-theme="night">Night</button>
+  <button class="theme-btn" data-theme="cyberpunk">CyberPunk</button>
+  <button class="theme-btn" data-theme="erotic">Erotic</button>
+</div>
+
+<div id="warp-panel">
+  <div class="warp-toggle">
+    <input type="checkbox" id="warp-enable">
+    <span class="label">3D Warp</span>
+  </div>
+  <label>Intensity</label><input type="range" id="warp-intensity" min="0" max="200" value="80">
+  <label>Frequency</label><input type="range" id="warp-freq" min="1" max="50" value="12">
+  <button id="add-random">+ Seed</button>
+</div>
+
+<div id="panel">
+  <div id="input-row">
+    <input type="text" id="word-input" placeholder="word | 'tok' | [pivot]" autocomplete="off">
+    <button class="complete-btn" id="comp-left" disabled>&larr; C</button>
+    <button class="complete-btn" id="comp-right" disabled>C &rarr;</button>
+    <button id="btn-add">ADD</button>
+  </div>
+  <div id="info-bar">
+    <span>N:<span class="num" id="stat-nodes">0</span></span>
+    <span>A:<span class="num" id="stat-anchors">0</span></span>
+    <span>P:<span class="num" id="stat-pivots">0</span></span>
+    <span>&#9651;:<span class="num" id="stat-tris">0</span></span>
+    <span>O:<span class="num" id="stat-open">0</span></span>
+    <span id="view-label">TOP</span>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ================================================================
+// DICTIONARIES
+// ================================================================
+const RHYMES = {
+  desire: ['fire','liar','higher','choir','mire','spire','tire','entire'],
+  midnight: ['light','bright','night','sight','white','fight','tight','right'],
+  rage: ['page','age','cage','stage','engage','wage','sage'],
+  fractal: ['factual','tactile','crackle','shackle','article'],
+  skin: ['in','thin','win','begin','pin','sin','grin','within'],
+  touch: ['much','such','clutch','crutch','hutch'],
+  infinite: ['definite','opposite','favorite','composite'],
+  recursion: ['version','diversion','excursion','immersion'],
+  deeper: ['keeper','sleeper','weeper','creaper','cheaper'],
+  ecstasy: ['fantasy','agony','harmony','destiny'],
+  surrender: ['tender','slender','splendor','bender','gender'],
+  bound: ['found','round','sound','ground','wound','around','compound'],
+  teal: ['feel','real','deal','meal','steal','seal','reveal'],
+  shadow: ['fallow','hollow','swallow','wallow'],
+  whisper: ['gripper','lispy','crisper'],
+  crave: ['wave','save','brave','gave','behave','enslave'],
+  burn: ['turn','learn','yearn','churn','sunburn'],
+  melt: ['felt','belt','dwelt','svelte'],
+  love: ['dove','glove','above','shove','of'],
+  dream: ['beam','stream','cream','gleam','team','seem'],
+  soul: ['whole','goal','pole','scroll','control'],
+  void: ['avoid','employed','destroyed','noise'],
+  dark: ['mark','spark','bark','lark','remark','park'],
+  light: ['sight','might','night','bright','right','flight','polite'],
+  truth: ['youth','booth','tooth','uncouth'],
+  bleed: ['feed','need','seed','deed','indeed','proceed'],
+  rise: ['eyes','wise','size','prize','disguise','realize'],
+  fall: ['all','call','small','ball','hall','install'],
+  tears: ['fears','years','ears','spears','endears'],
+  blood: ['flood','mud','thud','stud'],
+  gold: ['cold','hold','old','sold','told','fold','mold'],
+  rain: ['pain','brain','vain','chain','explain','complain'],
+  key: ['free','tree','see','be','sea','degree','agree'],
+  red: ['dead','head','lead','read','spread','instead','ahead'],
+  blue: ['true','view','new','through','clue','grew'],
+  green: ['scene','lean','clean','queen','between','obscene'],
+  soft: ['loft','often','coffee'],
+  hard: ['card','guard','yard','retard','safeguard'],
+  deep: ['sleep','keep','creep','sheep','weep','leap'],
+  sweet: ['feet','meet','treat','complete','defeat'],
+  cold: ['old','hold','bold','gold','sold','told'],
+  hot: ['not','lot','got','shot','plot','forgot','robot'],
+  run: ['fun','sun','done','won','begun','overrun'],
+  fly: ['sky','high','why','try','buy','deny','supply'],
+  sea: ['free','see','key','tree','be','degree'],
+  time: ['rhyme','climb','prime','crime','sublime','chime'],
+};
+
+const ANTONYMS = {
+  desire: 'disgust', love: 'hate', light: 'dark', truth: 'lie',
+  hot: 'cold', deep: 'shallow', soft: 'hard', sweet: 'bitter',
+  rise: 'fall', high: 'low', big: 'small', fast: 'slow',
+  new: 'old', strong: 'weak', rich: 'poor', open: 'closed',
+  begin: 'end', life: 'death', day: 'night', black: 'white',
+  good: 'evil', bright: 'dim', full: 'empty', wild: 'tame',
+  safe: 'danger', war: 'peace', friend: 'foe', give: 'take',
+  find: 'lose', win: 'fail', create: 'destroy', build: 'break',
+  bind: 'free', void: 'full', chaos: 'order', pain: 'pleasure',
+  tears: 'laughter', bleed: 'heal', burn: 'freeze',
+  soul: 'flesh', dream: 'wake', midnight: 'noon',
+  shadow: 'light', rage: 'calm', crave: 'loathe',
+  surrender: 'resist', bound: 'free', melt: 'harden',
+  fall: 'rise', rain: 'sun', pleasure: 'pain',
+};
+
+const SYNONYMS = {
+  desire: 'longing', love: 'affection', light: 'radiance', truth: 'honesty',
+  hot: 'scorching', deep: 'profound', soft: 'velvet', sweet: 'honeyed',
+  rise: 'ascend', high: 'lofty', big: 'grand', fast: 'swift',
+  new: 'fresh', strong: 'mighty', rich: 'opulent', open: 'unveiled',
+  begin: 'commence', life: 'existence', day: 'daylight', black: 'ebony',
+  good: 'virtuous', bright: 'luminous', full: 'brimming', wild: 'untamed',
+  safe: 'secure', war: 'conflict', friend: 'ally', give: 'bestow',
+  find: 'discover', win: 'triumph', create: 'forge', deep: 'abyssal',
+  dream: 'vision', soul: 'essence', midnight: 'witching',
+  shadow: 'silhouette', rage: 'fury', crave: 'yearn',
+  surrender: 'submit', bound: 'tethered', melt: 'liquefy',
+  pleasure: 'bliss', skin: 'epidermis', touch: 'caress',
+  fractal: 'fragment', recursion: 'repetition', ecstasy: 'rapture',
+  void: 'abyss', bleed: 'seep', burn: 'scorch',
+  teal: 'cyan', whisper: 'murmur', gold: 'gilded',
+  rain: 'downpour', sea: 'ocean', run: 'sprint',
+  fly: 'soar', cold: 'frigid', red: 'crimson', blue: 'azure',
+  green: 'verdant', hard: 'rigid', time: 'eternity',
+  water: 'aqua', fire: 'inferno', wind: 'zephyr',
+  earth: 'terra', star: 'celestial', moon: 'lunar',
+};
+
+// ================================================================
+// THEMES
+// ================================================================
+const THEMES = {
+  default: {
+    name:'Default', bg:'#080808', fg:'#e0e0e0', panelBg:'rgba(10,10,10,0.8)',
+    border:'#1a1a1a', accent:'#3c964a', accent2:'#8270a0', grid:'#1a1a1a',
+    nodeAnchor:0x3c964a, nodeWord:0x6688aa, nodePivot:0x8270a0, nodeMp3:0xf39c12,
+    edgeNorm:0x2a2a2a, edgeAnchor:0x3c964a, edgePivot:0x8270a0,
+    faceHue:0.33, clear:0x080808, dotIntensity:0.25,
+  },
+  winamp: {
+    name:'Classic Winamp', bg:'#1a1a2e', fg:'#c0c0c0', panelBg:'rgba(20,20,40,0.85)',
+    border:'#2a2a4e', accent:'#00cc00', accent2:'#6644cc', grid:'#2a2a4e',
+    nodeAnchor:0x00cc00, nodeWord:0x4488ff, nodePivot:0x6644cc, nodeMp3:0xff8800,
+    edgeNorm:0x2a2a4e, edgeAnchor:0x00cc00, edgePivot:0x6644cc,
+    faceHue:0.3, clear:0x1a1a2e, dotIntensity:0.35,
+  },
+  day: {
+    name:'Day', bg:'#f0ebe3', fg:'#3a3a3a', panelBg:'rgba(240,235,227,0.85)',
+    border:'#d0c8bc', accent:'#2d7d46', accent2:'#7a6b8a', grid:'#d0c8bc',
+    nodeAnchor:0x2d7d46, nodeWord:0x5577aa, nodePivot:0x7a6b8a, nodeMp3:0xcc7733,
+    edgeNorm:0xccc0b0, edgeAnchor:0x2d7d46, edgePivot:0x7a6b8a,
+    faceHue:0.35, clear:0xf0ebe3, dotIntensity:0.2,
+  },
+  night: {
+    name:'Night', bg:'#0a0a1a', fg:'#8090b0', panelBg:'rgba(8,8,24,0.85)',
+    border:'#1a1a3a', accent:'#4488cc', accent2:'#8866bb', grid:'#1a1a3a',
+    nodeAnchor:0x4488cc, nodeWord:0x6688aa, nodePivot:0x8866bb, nodeMp3:0xdd8844,
+    edgeNorm:0x1a1a3a, edgeAnchor:0x4488cc, edgePivot:0x8866bb,
+    faceHue:0.6, clear:0x0a0a1a, dotIntensity:0.3,
+  },
+  cyberpunk: {
+    name:'CyberPunk', bg:'#0a0015', fg:'#ff00ff', panelBg:'rgba(10,0,20,0.85)',
+    border:'#440066', accent:'#ff00ff', accent2:'#00ffff', grid:'#440066',
+    nodeAnchor:0xff00ff, nodeWord:0x00ffff, nodePivot:0xff8800, nodeMp3:0xffff00,
+    edgeNorm:0x440066, edgeAnchor:0xff00ff, edgePivot:0xff8800,
+    faceHue:0.85, clear:0x0a0015, dotIntensity:0.5,
+  },
+  erotic: {
+    name:'Erotic', bg:'#0d0508', fg:'#e8c4a8', panelBg:'rgba(13,5,8,0.85)',
+    border:'#3c1a1a', accent:'#e84c4c', accent2:'#3c964a', grid:'#2a0a0a',
+    nodeAnchor:0xe84c4c, nodeWord:0xd4a88c, nodePivot:0x3c964a, nodeMp3:0xff8844,
+    edgeNorm:0x3c1a1a, edgeAnchor:0xe84c4c, edgePivot:0x3c964a,
+    faceHue:0.02, clear:0x0d0508, dotIntensity:0.35,
+  },
+};
+
+// ================================================================
+// TOKENIZER
+// ================================================================
+const ASTART = new Set(['<','{','(','[']);
+function tokenize(input) {
+  const tokens=[]; let i=0, buf='';
+  while (i<input.length) {
+    const ch=input[i];
+    if (ch==="'") {
+      if (buf.trim()) { tokens.push({type:'word', value:buf.trim().toLowerCase()}); buf=''; }
+      i++; let tok='';
+      while (i<input.length && input[i]!=="'") { tok+=input[i]; i++; }
+      i++;
+      if (tok.trim()) tokens.push({type:'word', value:tok.trim().toLowerCase()});
+      continue;
+    }
+    if (ASTART.has(ch)) {
+      if (buf.trim()) { tokens.push({type:'word', value:buf.trim().toLowerCase()}); buf=''; }
+      const closer = ch==='<'?'>':ch==='{'?'}':ch==='('?')':']';
+      i++; let tok='', depth=1;
+      while (i<input.length && depth>0) {
+        if (input[i]===ch) depth++;
+        else if (input[i]===closer) depth--;
+        if (depth>0) { tok+=input[i]; i++; }
+      }
+      i++;
+      if (tok.trim()) tokens.push({type:'pivot', value:tok.trim().toLowerCase()});
+      continue;
+    }
+    buf+=ch; i++;
+  }
+  if (buf.trim()) tokens.push({type:'word', value:buf.trim().toLowerCase()});
+  return tokens;
+}
+
+// ================================================================
+// WORD MESH ENGINE
+// ================================================================
+class WordMesh {
+  constructor() {
+    this.nodes = [];
+    this.triangles = [];
+    this.triSet = new Set();
+    this.wordMap = new Map();
+    this.anchors = [];
+    this.pivots = [];
+    this.firstAnchor = null;
+    this.selectedIdx = -1;
+    this.isViewFromBelow = false;
+    this.mp3Data = null;
+    this.currentTheme = 'default';
+    this.universeMode = 'normal'; // 'normal' | 'inverse' | 'parallel'
+    this.shiftHeld = false;
+
+    this._initScene();
+    this._initUI();
+    this._initDrop();
+  }
+
+  _initScene() {
+    const container = document.getElementById('scene-container');
+    const W = container.clientWidth, H = container.clientHeight;
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer.setSize(W, H);
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    container.insertBefore(this.renderer.domElement, container.firstChild);
+
+    this.labelRenderer = new CSS2DRenderer();
+    this.labelRenderer.setSize(W, H);
+    this.labelRenderer.domElement.style.position = 'absolute';
+    this.labelRenderer.domElement.style.top = '0'; this.labelRenderer.domElement.style.left = '0';
+    this.labelRenderer.domElement.style.pointerEvents = 'none';
+    container.insertBefore(this.labelRenderer.domElement, container.firstChild);
+
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(50, W/H, 0.1, 200);
+    this.camera.position.set(0, 0, 20);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.minDistance = 3;
+    this.controls.maxDistance = 80;
+    this.controls.target.set(0, 0, 0);
+    this.controls.addEventListener('change', () => this._checkViewSide());
+    this.controls.update();
+
+    const amb = new THREE.AmbientLight(0x404060, 0.8);
+    this.scene.add(amb);
+    this.ambientLight = amb;
+    this.keys = [];
+    this.fills = [];
+
+    this.vg = new THREE.Group(); this.eg = new THREE.Group();
+    this.fg = new THREE.Group(); this.lg = new THREE.Group();
+    this.osg = new THREE.Group(); this.plg = new THREE.Group();
+    this.hg = new THREE.Group();
+    this.scene.add(this.vg, this.eg, this.fg, this.lg, this.osg, this.plg, this.hg);
+
+    this.grid = new THREE.GridHelper(30, 20, 0x1a1a1a, 0x111111);
+    this.grid.position.y = -6;
+    this.scene.add(this.grid);
+
+    window.addEventListener('resize', () => this._resize());
+    this._animate();
+
+    this.warpEnabled = false;
+    this.warpIntensity = 0.8;
+    this.warpFreq = 12;
+
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    this.renderer.domElement.addEventListener('click', (e) => this._onClick(e));
+
+    // Track shift
+    document.addEventListener('keydown', (e) => { if (e.key==='Shift') this.shiftHeld = true; });
+    document.addEventListener('keyup', (e) => { if (e.key==='Shift') this.shiftHeld = false; });
+
+    this._applyTheme('default');
+  }
+
+  _initUI() {
+    const input = document.getElementById('word-input');
+    const btnAdd = document.getElementById('btn-add');
+
+    const doAdd = () => {
+      const t = input.value.trim();
+      if (!t) return;
+      this.addText(t);
+      input.value=''; input.focus();
+    };
+    btnAdd.addEventListener('click', doAdd);
+    input.addEventListener('keydown', (e) => { if (e.key==='Enter') doAdd(); });
+
+    // Keyboard nav — only with Shift
+    document.addEventListener('keydown', (e) => {
+      if (e.key.startsWith('Arrow') && this.shiftHeld) {
+        e.preventDefault();
+        this._navigateKey(e.key);
+      }
+    });
+
+    document.getElementById('comp-left').addEventListener('click', () => this._autoComplete('left'));
+    document.getElementById('comp-right').addEventListener('click', () => this._autoComplete('right'));
+    document.getElementById('sel-close').addEventListener('click', () => this._selectNode(-1));
+
+    // Warp
+    document.getElementById('warp-enable').addEventListener('change', (e) => {
+      this.warpEnabled = e.target.checked;
+      if (this.warpEnabled) this._applyWarp(); else this._flatten();
+    });
+    document.getElementById('warp-intensity').addEventListener('input', (e) => {
+      this.warpIntensity = parseFloat(e.target.value)/100;
+      if (this.warpEnabled) this._applyWarp();
+    });
+    document.getElementById('warp-freq').addEventListener('input', (e) => {
+      this.warpFreq = parseInt(e.target.value);
+      if (this.warpEnabled) this._applyWarp();
+    });
+    document.getElementById('add-random').addEventListener('click', () => {
+      const picks = ["'midnight rage'",'[desire]',"'fractal skin'",'[recursion]',"'teal fire'",'[ecstasy]',"'bound soul'",'[surrender]'];
+      this.addText(picks[Math.floor(Math.random()*picks.length)]);
+    });
+
+    // Themes
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._applyTheme(btn.dataset.theme);
+      });
+    });
+
+    // Universe
+    document.getElementById('univ-normal').addEventListener('click', () => this._setUniverse('normal'));
+    document.getElementById('univ-inverse').addEventListener('click', () => this._setUniverse('inverse'));
+    document.getElementById('univ-parallel').addEventListener('click', () => this._setUniverse('parallel'));
+
+    document.getElementById('play-btn').addEventListener('click', () => this._playMp3());
+  }
+
+  _initDrop() {
+    const container = document.getElementById('scene-container');
+    const overlay = document.getElementById('drop-overlay');
+    container.addEventListener('dragover', (e) => { e.preventDefault(); overlay.classList.add('visible'); });
+    container.addEventListener('dragleave', (e) => {
+      if (!e.relatedTarget || !container.contains(e.relatedTarget)) overlay.classList.remove('visible');
+    });
+    container.addEventListener('drop', (e) => {
+      e.preventDefault(); overlay.classList.remove('visible');
+      Array.from(e.dataTransfer.files).forEach(f => this._handleFile(f));
+    });
+  }
+
+  _handleFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (['txt','md','json','csv'].includes(ext)) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('word-input').value = e.target.result.trim().substring(0,2000).replace(/\s+/g,' ');
+        document.getElementById('word-input').focus();
+        this._toast('Lyrics loaded from '+file.name);
+      };
+      reader.readAsText(file);
+    } else if (ext==='mp3') {
+      this._handleMp3(file);
+    }
+  }
+
+  _handleMp3(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const tags = this._parseId3(e.target.result);
+      const title = tags.title||file.name.replace('.mp3','');
+      const artist = tags.artist||'unknown';
+      this.mp3Data = { name:file.name, title, artist, url:URL.createObjectURL(file) };
+      if (this.selectedIdx>=0 && this.selectedIdx<this.nodes.length) {
+        this.nodes[this.selectedIdx].mp3 = this.mp3Data;
+        this._toast(`MP3 "${title}" attached to node`);
+        this._updateSelectedInfo();
+        this._showPlayBar(title, artist);
+      } else {
+        this.addText(`[${this._sanitize(title)}]`);
+        this._showPlayBar(title, artist);
+        this._toast(`MP3 loaded: ${title}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  _parseId3(buf) {
+    const tags={}, dv=new DataView(buf);
+    if (dv.getUint8(0)!==0x49||dv.getUint8(1)!==0x44||dv.getUint8(2)!==0x33) return tags;
+    const size=((dv.getUint8(6)&0x7f)<<21)|((dv.getUint8(7)&0x7f)<<14)|((dv.getUint8(8)&0x7f)<<7)|(dv.getUint8(9)&0x7f);
+    let off=10;
+    while (off<10+size) {
+      const id=String.fromCharCode(dv.getUint8(off),dv.getUint8(off+1),dv.getUint8(off+2),dv.getUint8(off+3));
+      if (id==='\0\0\0\0') break;
+      const sz=((dv.getUint8(off+4)&0x7f)<<21)|((dv.getUint8(off+5)&0x7f)<<14)|((dv.getUint8(off+6)&0x7f)<<7)|(dv.getUint8(off+7)&0x7f);
+      if (id==='TIT2'||id==='TPE1') {
+        const str=[]; for (let i=off+11; i<off+10+sz; i++) { const c=dv.getUint8(i); if (c>0) str.push(String.fromCharCode(c)); }
+        if (id==='TIT2') tags.title=str.join('');
+        if (id==='TPE1') tags.artist=str.join('');
+      }
+      off+=10+sz;
+    }
+    return tags;
+  }
+
+  _sanitize(s) { return s.replace(/[^a-zA-Z0-9 ]/g,'').substring(0,30).trim()||'audio'; }
+  _playMp3() {
+    if (!this.mp3Data) return;
+    const a = new Audio(this.mp3Data.url);
+    a.play().catch(()=>{});
+    document.getElementById('play-btn').textContent='\u25A0';
+    a.onended=()=>{ document.getElementById('play-btn').textContent='\u25B6'; };
+  }
+  _showPlayBar(title, artist) {
+    const bar=document.getElementById('play-bar');
+    bar.classList.add('visible');
+    document.getElementById('play-info').innerHTML=`<strong>${title}</strong> &middot; ${artist}`;
+  }
+
+  // --- Theme ---
+  _applyTheme(name) {
+    const th = THEMES[name]||THEMES.default;
+    this.currentTheme = name;
+
+    // CSS variables
+    document.body.style.background = th.bg;
+    document.querySelectorAll('#input-row,#info-bar,#warp-panel,#theme-panel,#rhyme-panel,#play-bar,#selected-info').forEach(el => {
+      el.style.background = th.panelBg;
+      el.style.borderColor = th.border;
+    });
+    document.getElementById('drop-overlay').style.borderColor = th.accent;
+    document.getElementById('drop-overlay').querySelector('.drop-msg').style.color = th.accent;
+    document.querySelectorAll('.theme-btn.active').forEach(b => {
+      b.style.borderColor = th.accent;
+      b.style.color = th.accent;
+    });
+
+    // Three.js colors
+    this.renderer.setClearColor(th.clear);
+    this.grid.material.color.setHex(th.grid);
+
+    // Ambient light tint
+    const ambColor = new THREE.Color(th.bg);
+    this.ambientLight.color.setHSL(
+      name==='cyberpunk'?0.75:name==='erotic'?0.0:name==='night'?0.65:0.6,
+      0.3, 0.3
+    );
+
+    this._rebuildMesh();
+    this._toast(`Theme: ${th.name}`);
+  }
+
+  // --- Universe ---
+  _setUniverse(mode) {
+    this.universeMode = mode;
+    document.querySelectorAll('.univ-btn').forEach(b => b.classList.remove('active'));
+    const map = { normal:'univ-normal', inverse:'univ-inverse', parallel:'univ-parallel' };
+    document.getElementById(map[mode]).classList.add('active');
+    this._rebuildLabels();
+    this._toast(mode==='normal'?'Normal Universe':
+               mode==='inverse'?'INVERSE UNIVERSE — all words flipped':
+               'PARALLEL UNIVERSE — synonyms shown');
+  }
+
+  // --- Universe label lookup ---
+  _getDisplayWord(node) {
+    if (this.universeMode === 'inverse') {
+      return ANTONYMS[node.word] || '~'+node.word;
+    }
+    if (this.universeMode === 'parallel') {
+      return SYNONYMS[node.word] || '~'+node.word;
+    }
+    return node.word;
+  }
+
+  // --- Add text ---
+  addText(text) {
+    const tokens = tokenize(text);
+    if (tokens.length===0) return;
+    for (const tok of tokens) {
+      if (tok.type==='pivot') { this._addPivot(tok.value); continue; }
+      const existing = this.wordMap.get(tok.value);
+      if (existing&&existing.length>0) { this._followPathOfLeastResistance(tok.value, existing); }
+      else { this._addAnchor(tok.value); }
+    }
+    this._formTriangles();
+    this._relax(25);
+    this._rebuildMesh();
+    this._updateStats();
+  }
+
+  _addAnchor(word) {
+    const idx=this.nodes.length;
+    const a=this.anchors.length*2.3999, r=2.5+this.anchors.length*0.8;
+    const x=Math.cos(a)*r, y=Math.sin(a)*r;
+    this.nodes.push({ word,x,y,z:0, connections:[], openSlots:3, isAnchor:true, isPivot:false, anchorCount:0, mp3:null });
+    this.anchors.push(idx);
+    if (this.firstAnchor===null) this.firstAnchor=idx;
+    if (!this.wordMap.has(word)) this.wordMap.set(word,[]);
+    this.wordMap.get(word).push(idx);
+    if (this.anchors.length>1) this._connect(idx, this.anchors[this.anchors.length-2]);
+    return idx;
+  }
+
+  _followPathOfLeastResistance(word, existing) {
+    const ai=existing.find(i=>this.nodes[i].isAnchor);
+    if (ai!==undefined) this.nodes[ai].anchorCount=(this.nodes[ai].anchorCount||0)+1;
+    const st=existing[existing.length-1];
+    const path=this._findPath(st);
+    if (path.length>0) {
+      const end=path[path.length-1];
+      const ni=this._addWordBetween(word, st, end);
+      this._connect(ni,end); this._connect(ni,st);
+      for (let pi=0;pi<path.length-1;pi++) { if (Math.random()<0.35) this._connect(ni,path[pi]); }
+    } else { this._addWordNear(word,st); }
+  }
+
+  _findPath(st) {
+    const vis=new Set([st]), q=[{idx:st,path:[]}];
+    let best=[], bestScore=Infinity;
+    while (q.length>0) {
+      const {idx,path}=q.shift();
+      const node=this.nodes[idx];
+      if (node.openSlots>0&&path.length>0) {
+        const s=path.length+(3-node.openSlots)*0.5;
+        if (s<bestScore) { bestScore=s; best=[...path]; }
+      }
+      const nb=node.connections.map(ni=>({idx:ni,cc:this.nodes[ni].connections.length})).sort((a,b)=>a.cc-b.cc);
+      for (const n of nb) { if (!vis.has(n.idx)) { vis.add(n.idx); q.push({idx:n.idx,path:[...path,n.idx]}); } }
+    }
+    return best;
+  }
+
+  _addWordBetween(word, aIdx, bIdx) {
+    const idx=this.nodes.length;
+    const a=this.nodes[aIdx], b=this.nodes[bIdx];
+    const t=0.5+(Math.random()-0.5)*0.3;
+    const x=a.x+(b.x-a.x)*t+(Math.random()-0.5)*0.5, y=a.y+(b.y-a.y)*t+(Math.random()-0.5)*0.5;
+    this.nodes.push({ word,x,y,z:0, connections:[], openSlots:3, isAnchor:false, isPivot:false, anchorCount:0, mp3:null });
+    if (!this.wordMap.has(word)) this.wordMap.set(word,[]);
+    this.wordMap.get(word).push(idx);
+    return idx;
+  }
+
+  _addWordNear(word, targetIdx) {
+    const idx=this.nodes.length, t=this.nodes[targetIdx];
+    const a=Math.random()*Math.PI*2, d=1.2+Math.random()*0.5;
+    this.nodes.push({ word, x:t.x+Math.cos(a)*d, y:t.y+Math.sin(a)*d, z:0, connections:[], openSlots:3, isAnchor:false, isPivot:false, anchorCount:0, mp3:null });
+    if (!this.wordMap.has(word)) this.wordMap.set(word,[]);
+    this.wordMap.get(word).push(idx);
+    this._connect(idx, targetIdx);
+    return idx;
+  }
+
+  _addPivot(word) {
+    const idx=this.nodes.length, pc=this.pivots.length;
+    const a=pc*2.0, r=4+pc*1.2;
+    const x=Math.cos(a)*r, y=Math.sin(a)*r, z=(pc%2===0)?3+Math.random()*1.5:-(3+Math.random()*1.5);
+    this.nodes.push({ word,x,y,z, connections:[], openSlots:6, isAnchor:false, isPivot:true, anchorCount:0, mp3:null, pivotUp:z>=0 });
+    this.pivots.push(idx);
+    if (!this.wordMap.has(word)) this.wordMap.set(word,[]);
+    this.wordMap.get(word).push(idx);
+    const sa=[...this.anchors].map(ai=>({idx:ai,dist:this._dist2D(ai,idx)})).sort((a,b)=>a.dist-b.dist);
+    for (let i=0;i<Math.min(2,sa.length);i++) this._connect(idx,sa[i].idx);
+    return idx;
+  }
+
+  _connect(a,b) {
+    if (a===b) return;
+    const na=this.nodes[a], nb=this.nodes[b];
+    if (!na||!nb||na.connections.includes(b)) return;
+    na.connections.push(b); nb.connections.push(a);
+    if (na.openSlots>0) na.openSlots--;
+    if (nb.openSlots>0) nb.openSlots--;
+  }
+
+  _formTriangles() {
+    const n=this.nodes.length;
+    for (let a=0;a<n;a++) {
+      const ca=this.nodes[a].connections;
+      for (let bi=0;bi<ca.length;bi++) {
+        const b=ca[bi]; if (b<=a) continue;
+        for (let ci=bi+1;ci<ca.length;ci++) {
+          const c=ca[ci]; if (c<=a) continue;
+          if (this.nodes[b].connections.includes(c)) {
+            const key=[a,b,c].sort((x,y)=>x-y).join(',');
+            if (!this.triSet.has(key)) { this.triSet.add(key); this.triangles.push({a,b,c}); }
+          }
+        }
+      }
+    }
+  }
+
+  _relax(iters) {
+    const n=this.nodes.length; if (n<2) return;
+    const REST=2.5, REPEL=0.025, ATTRACT=0.015, DAMP=0.55, PREST=4;
+    const vx=new Float64Array(n), vy=new Float64Array(n), vz=new Float64Array(n);
+    for (let it=0;it<iters;it++) {
+      for (let i=0;i<n;i++) {
+        for (const j of this.nodes[i].connections) {
+          const dx=this.nodes[j].x-this.nodes[i].x, dy=this.nodes[j].y-this.nodes[i].y, dz=this.nodes[j].z-this.nodes[i].z;
+          const dist=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.001;
+          const td=(this.nodes[i].isPivot||this.nodes[j].isPivot)?PREST:REST;
+          const f=(dist-td)*ATTRACT*0.5;
+          vx[i]+=(dx/dist)*f; vy[i]+=(dy/dist)*f; vz[i]+=(dz/dist)*f;
+          vx[j]-=(dx/dist)*f; vy[j]-=(dy/dist)*f; vz[j]-=(dz/dist)*f;
+        }
+      }
+      for (let i=0;i<n;i++) {
+        for (let j=i+1;j<n;j++) {
+          const dx=this.nodes[j].x-this.nodes[i].x, dy=this.nodes[j].y-this.nodes[i].y, dz=this.nodes[j].z-this.nodes[i].z;
+          const dist=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.001;
+          if (dist<10) { const f=REPEL/(dist+0.1);
+            vx[i]-=(dx/dist)*f; vy[i]-=(dy/dist)*f; vz[i]-=(dz/dist)*f*0.3;
+            vx[j]+=(dx/dist)*f; vy[j]+=(dy/dist)*f; vz[j]+=(dz/dist)*f*0.3; }
+        }
+      }
+      for (let i=0;i<n;i++) { vx[i]*=DAMP; vy[i]*=DAMP; vz[i]*=DAMP;
+        this.nodes[i].x+=vx[i]; this.nodes[i].y+=vy[i]; this.nodes[i].z+=vz[i]; }
+    }
+  }
+
+  _applyWarp() { for (const n of this.nodes) { if (n.isPivot) continue; n.z=Math.sin(Math.sqrt(n.x*n.x+n.y*n.y)*this.warpFreq*0.1)*this.warpIntensity*2; } this._rebuildMesh(); }
+  _flatten() { for (const n of this.nodes) { if (n.isPivot) continue; n.z=0; } this._rebuildMesh(); }
+  _dist2D(a,b) { const na=this.nodes[a],nb=this.nodes[b]; return Math.sqrt((na.x-nb.x)**2+(na.y-nb.y)**2); }
+
+  _selectNode(idx) { this.selectedIdx=idx; this._rebuildMesh(); this._updateSelectedInfo(); this._updateAutoComplete(); this._updateRhymes(); }
+
+  _onClick(event) {
+    const rect=this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x=((event.clientX-rect.left)/rect.width)*2-1;
+    this.mouse.y=-((event.clientY-rect.top)/rect.height)*2+1;
+    this.raycaster.setFromCamera(this.mouse,this.camera);
+    const meshes=[]; this.vg.children.forEach(c=>{if(c.isMesh) meshes.push(c);});
+    const hits=this.raycaster.intersectObjects(meshes);
+    if (hits.length>0) {
+      const idx=this.vg.children.indexOf(hits[0].object);
+      this._selectNode(idx);
+    } else { this._selectNode(-1); }
+  }
+
+  _navigateKey(key) {
+    if (this.selectedIdx<0) { if (this.nodes.length>0) this._selectNode(0); return; }
+    const node=this.nodes[this.selectedIdx];
+    if (!node||node.connections.length===0) return;
+    if (key==='ArrowUp'||key==='ArrowLeft') this._selectNode(node.connections[0]);
+    else this._selectNode(node.connections[node.connections.length-1]);
+  }
+
+  _autoComplete(dir) {
+    if (this.selectedIdx<0) return;
+    const node=this.nodes[this.selectedIdx];
+    if (!node||node.connections.length===0) return;
+    const nbs=node.connections.map(i=>this.nodes[i]);
+    if (dir==='left') {
+      const l=nbs.filter(n=>n.connections.length<=node.connections.length);
+      if (l.length>0) document.getElementById('word-input').value=l[0].word;
+    } else {
+      const r=nbs.filter(n=>n.connections.length>=node.connections.length);
+      if (r.length>0) document.getElementById('word-input').value=r[r.length-1].word;
+    }
+  }
+
+  _checkViewSide() {
+    this.isViewFromBelow=this.camera.position.y<this.controls.target.y;
+    document.getElementById('view-label').textContent=this.isViewFromBelow?'BOTTOM':'TOP';
+    document.getElementById('view-label').style.color=this.isViewFromBelow?'#8270a0':'#3c964a';
+    if (this.universeMode==='normal') this._rebuildLabels();
+  }
+
+  _updateSelectedInfo() {
+    const info=document.getElementById('selected-info');
+    const we=document.getElementById('sel-word'), te=document.getElementById('sel-type'), ae=document.getElementById('sel-actions');
+    if (this.selectedIdx<0||this.selectedIdx>=this.nodes.length) { info.classList.remove('visible'); return; }
+    const node=this.nodes[this.selectedIdx];
+    info.classList.add('visible');
+    we.textContent=node.word+(node.anchorCount>0?' +'+node.anchorCount:'');
+    te.textContent=(node.isPivot?'PIVOT':node.isAnchor?'ANCHOR':'WORD')+' \xb7 c:'+node.connections.length+' \xb7 o:'+node.openSlots;
+    ae.innerHTML='';
+    if (node.mp3) {
+      const b=document.createElement('button');
+      b.textContent='\u25B6 Play'; b.addEventListener('click',()=>{this.mp3Data=node.mp3;this._playMp3();this._showPlayBar(node.mp3.title,node.mp3.artist);});
+      ae.appendChild(b);
+    }
+    const br=document.createElement('button');
+    br.textContent='Rhyme'; br.addEventListener('click',()=>this._toggleRhymes());
+    ae.appendChild(br);
+  }
+
+  _updateAutoComplete() {
+    document.getElementById('comp-left').disabled=this.selectedIdx<0||this.nodes[this.selectedIdx]?.connections.length===0;
+    document.getElementById('comp-right').disabled=this.selectedIdx<0||this.nodes[this.selectedIdx]?.connections.length===0;
+  }
+
+  _toggleRhymes() { document.getElementById('rhyme-panel').classList.toggle('visible'); this._updateRhymes(); }
+
+  _updateRhymes() {
+    const list=document.getElementById('rhyme-list'); list.innerHTML='';
+    if (this.selectedIdx<0) { document.getElementById('rhyme-panel').classList.remove('visible'); return; }
+    const word=this.nodes[this.selectedIdx].word;
+    const rhymes=RHYMES[word];
+    if (!rhymes||rhymes.length===0) { list.innerHTML='<div style="color:#444;font-size:10px;">No rhymes found</div>'; return; }
+    for (const r of rhymes) {
+      const el=document.createElement('div'); el.className='rhyme-word'; el.textContent=r;
+      el.addEventListener('click',()=>{document.getElementById('word-input').value=r;document.getElementById('rhyme-panel').classList.remove('visible');});
+      list.appendChild(el);
+    }
+  }
+
+  // --- Rebuild ---
+  _rebuildMesh() {
+    this._clearGroup(this.vg); this._clearGroup(this.eg); this._clearGroup(this.fg);
+    this._clearGroup(this.lg); this._clearGroup(this.osg); this._clearGroup(this.plg); this._clearGroup(this.hg);
+
+    const n=this.nodes.length; if (n===0) return;
+    const th=THEMES[this.currentTheme]||THEMES.default;
+    const aMat=new THREE.MeshStandardMaterial({ color:th.nodeAnchor, emissive:th.nodeAnchor, emissiveIntensity:th.dotIntensity });
+    const wMat=new THREE.MeshStandardMaterial({ color:th.nodeWord, emissive:th.nodeWord, emissiveIntensity:th.dotIntensity*0.4 });
+    const pMat=new THREE.MeshStandardMaterial({ color:th.nodePivot, emissive:th.nodePivot, emissiveIntensity:th.dotIntensity*1.2 });
+    const mMat=new THREE.MeshStandardMaterial({ color:th.nodeMp3, emissive:th.nodeMp3, emissiveIntensity:th.dotIntensity*1.5 });
+    const oDot=new THREE.MeshStandardMaterial({ color:0x555,emissive:0x333 });
+    const oLine=new THREE.LineDashedMaterial({ color:0x555,dashSize:0.15,gapSize:0.1,transparent:true,opacity:0.25 });
+    const pLine=new THREE.LineBasicMaterial({ color:th.edgePivot,transparent:true,opacity:0.12 });
+    const ringMat=new THREE.MeshBasicMaterial({ color:th.accent,transparent:true,opacity:0.4,side:THREE.DoubleSide,depthWrite:false });
+    const ringGeo=new THREE.RingGeometry(0.5,0.65,24);
+
+    for (let i=0;i<n;i++) {
+      const node=this.nodes[i];
+      const sz=node.isPivot?0.45:node.isAnchor?0.35:0.22;
+      const dot=new THREE.Mesh(new THREE.SphereGeometry(sz,node.isPivot?12:8,node.isPivot?12:8),
+        node.isPivot?pMat:node.isAnchor?(node.mp3?mMat:aMat):wMat);
+      dot.position.set(node.x,node.y,node.z); this.vg.add(dot);
+
+      if (i===this.selectedIdx) {
+        const r1=new THREE.Mesh(ringGeo,ringMat); r1.position.set(node.x,node.y,node.z); r1.rotation.x=-Math.PI/2; this.hg.add(r1);
+        const r2=new THREE.Mesh(new THREE.RingGeometry(0.7,0.78,24),
+          new THREE.MeshBasicMaterial({ color:th.accent,transparent:true,opacity:0.15,side:THREE.DoubleSide,depthWrite:false }));
+        r2.position.set(node.x,node.y,node.z); r2.rotation.x=-Math.PI/2; r2.userData.isPulse=true; this.hg.add(r2);
+      }
+
+      if (node.isPivot) {
+        const pts=[new THREE.Vector3(node.x,node.y,0),new THREE.Vector3(node.x,node.y,node.z)];
+        this.plg.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),pLine));
+        const ring=new THREE.Mesh(new THREE.RingGeometry(0.35,0.45,16),
+          new THREE.MeshBasicMaterial({ color:th.edgePivot,transparent:true,opacity:0.12,side:THREE.DoubleSide,depthWrite:false }));
+        ring.position.set(node.x,node.y,0); ring.rotation.x=-Math.PI/2; this.plg.add(ring);
+      }
+    }
+
+    this._rebuildLabels();
+
+    const edgeMat=new THREE.LineBasicMaterial({ color:th.edgeNorm,transparent:true,opacity:0.3 });
+    const aeMat=new THREE.LineBasicMaterial({ color:th.edgeAnchor,transparent:true,opacity:0.5 });
+    const peMat=new THREE.LineBasicMaterial({ color:th.edgePivot,transparent:true,opacity:0.35 });
+    const se=new Set();
+    for (let i=0;i<n;i++) {
+      for (const j of this.nodes[i].connections) {
+        const k=i<j?`${i}-${j}`:`${j}-${i}`; if (se.has(k)) continue; se.add(k);
+        const a=this.nodes[i],b=this.nodes[j];
+        const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,a.y,a.z),new THREE.Vector3(b.x,b.y,b.z)]);
+        const m=(a.isPivot||b.isPivot)?peMat:(a.isAnchor&&b.isAnchor)?aeMat:edgeMat;
+        this.eg.add(new THREE.Line(g,m));
+      }
+    }
+
+    for (let i=0;i<n;i++) {
+      const node=this.nodes[i];
+      for (let s=0;s<node.openSlots;s++) {
+        const a=(s/Math.max(1,node.openSlots))*Math.PI*2+i*1.7+node.connections.length;
+        const len=node.isPivot?2:1.2;
+        const ex=node.x+Math.cos(a)*len,ey=node.y+Math.sin(a)*len,ez=node.z;
+        const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(node.x,node.y,node.z),new THREE.Vector3(ex,ey,ez)]);
+        const l=new THREE.Line(g,oLine); l.computeLineDistances(); this.osg.add(l);
+        const d=new THREE.Mesh(new THREE.SphereGeometry(0.07,6,6),oDot); d.position.set(ex,ey,ez); this.osg.add(d);
+      }
+    }
+
+    if (this.triangles.length>0) {
+      const pos=[],col=[];
+      for (const tri of this.triangles) {
+        const va=this.nodes[tri.a],vb=this.nodes[tri.b],vc=this.nodes[tri.c];
+        if (!va||!vb||!vc) continue;
+        const hp=va.isPivot||vb.isPivot||vc.isPivot;
+        const hue=hp?0.75:th.faceHue+((va.x+vb.x+vc.x)/3)*0.015;
+        const c=new THREE.Color().setHSL(hue%1,hp?0.5:0.35,hp?0.18:0.1);
+        pos.push(va.x,va.y,va.z,vb.x,vb.y,vb.z,vc.x,vc.y,vc.z);
+        for (let k=0;k<3;k++) col.push(c.r,c.g,c.b);
+      }
+      if (pos.length>0) {
+        const g=new THREE.BufferGeometry();
+        g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+        g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+        g.computeVertexNormals();
+        this.fg.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({ vertexColors:true,transparent:true,opacity:0.25,side:THREE.DoubleSide,depthWrite:false })));
+      }
+    }
+  }
+
+  _rebuildLabels() {
+    this._clearGroup(this.lg);
+    for (let i=0;i<this.nodes.length;i++) {
+      const node=this.nodes[i];
+
+      // Determine display word
+      let displayWord;
+      let isAntonym=false, isSynonym=false;
+
+      if (this.universeMode==='inverse') {
+        displayWord = ANTONYMS[node.word] || '~'+node.word;
+        if (ANTONYMS[node.word]) isAntonym=true;
+      } else if (this.universeMode==='parallel') {
+        displayWord = SYNONYMS[node.word] || '~'+node.word;
+        if (SYNONYMS[node.word]) isSynonym=true;
+      } else if (this.isViewFromBelow && !node.isPivot) {
+        displayWord = ANTONYMS[node.word] || '~'+node.word;
+        if (ANTONYMS[node.word]) isAntonym=true;
+      } else {
+        displayWord = node.word;
+      }
+
+      const div=document.createElement('div');
+      div.textContent = node.isPivot ? `[${node.word}]` : displayWord + (node.isAnchor&&node.anchorCount>0?' +'+node.anchorCount:'');
+
+      const th=THEMES[this.currentTheme]||THEMES.default;
+      let color,bg,border;
+      if (node.isPivot) { color='#a088c0'; bg='rgba(130,112,160,0.12)'; border='rgba(130,112,160,0.2)'; }
+      else if (isAntonym) { color='#c0392b'; bg='rgba(192,57,43,0.08)'; border='rgba(192,57,43,0.15)'; }
+      else if (isSynonym) { color='#3498db'; bg='rgba(52,152,219,0.08)'; border='rgba(52,152,219,0.15)'; }
+      else if (node.isAnchor) { color='#'+th.accent.toString(16).padStart(6,'0'); bg='rgba(60,150,74,0.1)'; border='rgba(60,150,74,0.15)'; }
+      else { color='#'+th.nodeWord.toString(16).padStart(6,'0'); bg='rgba(0,0,0,0.4)'; border='rgba(255,255,255,0.06)'; }
+
+      div.style.color=color;
+      div.style.fontSize=node.isPivot?'12px':'11px';
+      div.style.fontFamily='monospace';
+      div.style.textShadow='0 0 8px rgba(0,0,0,0.9)';
+      div.style.padding='2px 7px';
+      div.style.background=bg;
+      div.style.borderRadius='4px';
+      div.style.border='1px solid '+border;
+      div.style.whiteSpace='nowrap';
+      div.style.pointerEvents='none';
+
+      if (isAntonym) div.title=`ANTONYM: "${node.word}" → "${ANTONYMS[node.word]}"`;
+      if (isSynonym) div.title=`SYNONYM: "${node.word}" → "${SYNONYMS[node.word]}"`;
+
+      const label=new CSS2DObject(div);
+      label.position.set(node.x,node.y+(node.isPivot?-0.7:-0.5),node.z);
+      this.lg.add(label);
+    }
+  }
+
+  _clearGroup(g) { while (g.children.length>0) { const c=g.children[0]; g.remove(c); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); } }
+
+  _updateStats() {
+    document.getElementById('stat-nodes').textContent=this.nodes.length;
+    document.getElementById('stat-anchors').textContent=this.anchors.length;
+    document.getElementById('stat-pivots').textContent=this.pivots.length;
+    document.getElementById('stat-tris').textContent=this.triangles.length;
+    document.getElementById('stat-open').textContent=this.nodes.reduce((s,n)=>s+n.openSlots,0);
+  }
+
+  _toast(msg) {
+    const el=document.getElementById('toast')||(()=>{
+      const t=document.createElement('div'); t.id='toast';
+      t.style.cssText='position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:8px 18px;color:#aaa;font-size:12px;z-index:600;opacity:0;transition:opacity 0.3s;';
+      document.body.appendChild(t); return t;
+    })();
+    el.textContent=msg; el.style.opacity='1';
+    clearTimeout(el._t); el._t=setTimeout(()=>el.style.opacity='0',2500);
+  }
+
+  _resize() {
+    const c=document.getElementById('scene-container');
+    const W=c.clientWidth,H=c.clientHeight;
+    this.camera.aspect=W/H; this.camera.updateProjectionMatrix();
+    this.renderer.setSize(W,H); this.labelRenderer.setSize(W,H);
+  }
+
+  _animate() {
+    requestAnimationFrame(()=>this._animate());
+    if (this.selectedIdx>=0) {
+      const t=Date.now()*0.003;
+      this.hg.children.forEach((c,i)=>{
+        if (c.userData.isPulse&&c.material) {
+          c.material.opacity=0.08+Math.sin(t+i)*0.05;
+          c.scale.setScalar(1+Math.sin(t*0.7+i*0.5)*0.03);
+        }
+      });
+    }
+    this.controls.update();
+    this.renderer.render(this.scene,this.camera);
+    this.labelRenderer.render(this.scene,this.camera);
+  }
+}
+
+// ================================================================
+// BOOT
+// ================================================================
+const mesh = new WordMesh();
+window.mesh = mesh;
+</script>
+</body>
+</html>

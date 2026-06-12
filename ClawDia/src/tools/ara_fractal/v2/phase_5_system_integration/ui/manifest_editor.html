@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VAN Engine · Nexus Editor | Direct Edit + Artifact Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0f1c;
+            font-family: 'Inter', 'Segoe UI', system-ui, monospace;
+            margin: 0;
+            padding: 20px;
+            color: #eef2ff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 16px;
+        }
+        .toolbar {
+            background: #0f172acc;
+            backdrop-filter: blur(8px);
+            border-radius: 2rem;
+            padding: 10px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #2d3a60;
+        }
+        .stats {
+            background: #111b2e;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        button {
+            background: #1f2a48;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        button.primary {
+            background: #3b6eff;
+        }
+        button.primary:hover {
+            background: #2f5ae0;
+        }
+        button:hover {
+            background: #33416a;
+        }
+        .three-panels {
+            display: flex;
+            flex: 1;
+            gap: 18px;
+            min-height: 0;
+            overflow: hidden;
+        }
+        /* left panel: tree */
+        .panel-left {
+            width: 30%;
+            background: #0e1625cc;
+            border-radius: 28px;
+            border: 1px solid #263455;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+        }
+        .panel-left h3 {
+            margin: 0;
+            padding: 14px 20px;
+            background: #131c30;
+            font-size: 1rem;
+            border-bottom: 1px solid #2a3a60;
+        }
+        .tree-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .tree-node {
+            margin-left: 16px;
+            list-style: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .tree-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            margin: 2px 0;
+        }
+        .tree-row.selected {
+            background: #2a3f6e;
+            box-shadow: 0 0 0 1px #5b7ecf;
+        }
+        .tree-row:hover {
+            background: #1f2e4a;
+        }
+        .node-key {
+            font-weight: 700;
+            color: #b7d0ff;
+        }
+        .node-preview {
+            color: #91a9d1;
+            font-size: 0.7rem;
+            margin-left: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 150px;
+        }
+        /* center panel: collapsible + inline inputs */
+        .panel-center {
+            flex: 1;
+            background: #0f172ad9;
+            border-radius: 28px;
+            border: 1px solid #2a3a60;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-center-header {
+            padding: 12px 20px;
+            background: #121c30;
+            border-bottom: 1px solid #2f4570;
+            font-weight: 600;
+        }
+        .json-editor-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px;
+        }
+        .collapsible-card {
+            background: #0b1124;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            border: 1px solid #293a60;
+        }
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            background: #111b2e;
+            border-radius: 20px;
+            flex-wrap: wrap;
+        }
+        .collapsible-header span.key {
+            min-width: 140px;
+            color: #ffd966;
+        }
+        .inline-edit {
+            background: #010b1a;
+            border: 1px solid #3e6a97;
+            border-radius: 24px;
+            padding: 6px 12px;
+            flex: 1;
+            font-family: monospace;
+            color: #d6e6ff;
+        }
+        .collapsible-content {
+            padding: 12px 16px;
+            border-top: 1px solid #25375a;
+            display: none;
+        }
+        .collapsible-card.open .collapsible-content {
+            display: block;
+        }
+        .value-badge {
+            background: #1f3850;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+        }
+        /* right panel: artifact viewer */
+        .panel-right {
+            width: 32%;
+            background: #0e1625cc;
+            border-radius: 28px;
+            border: 1px solid #263455;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-right h3 {
+            margin: 0;
+            padding: 14px 20px;
+            background: #131c30;
+            font-size: 1rem;
+            border-bottom: 1px solid #2a3a60;
+        }
+        .artifact-viewer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .artifact-placeholder {
+            color: #8ba0c0;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        textarea.artifact-text {
+            width: 100%;
+            height: 300px;
+            background: #010b1a;
+            border: 1px solid #3e6a97;
+            border-radius: 20px;
+            color: #eef2ff;
+            padding: 12px;
+            font-family: monospace;
+        }
+        canvas.artifact-canvas {
+            max-width: 100%;
+            background: #1e2a3a;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px black;
+        }
+        pre.json-preview {
+            background: #030a18;
+            padding: 12px;
+            border-radius: 20px;
+            overflow: auto;
+            font-size: 0.75rem;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e2b44;
+            padding: 10px 20px;
+            border-radius: 40px;
+            z-index: 999;
+            border-left: 4px solid #3b6eff;
+        }
+        .drop-zone-bar {
+            background: #121c30;
+            border-radius: 60px;
+            padding: 6px 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            cursor: grab;
+            border: 1px dashed #4e73b3;
+        }
+        .add-prop-tool {
+            margin: 12px;
+        }
+        @media (max-width: 800px) {
+            .three-panels { flex-direction: column; }
+            .panel-left, .panel-right { width: 100%; height: 30%; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <div class="toolbar">
+        <div style="display: flex; gap: 16px; align-items: center;">
+            <strong>⚙️ VAN MANIFEST STUDIO</strong>
+            <div class="stats" id="memoryStats">📦 JSON size: -- KB</div>
+            <div class="drop-zone-bar" id="globalDropZone">🎯 Drag & drop: lyrics, mp3, mp4, image → selected node</div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <select id="voiceModelSelect" style="background:#1f2a48;border:none;border-radius:30px;padding:6px 14px;color:white;font-family:inherit;font-size:0.8rem;min-width:160px;"></select>
+            <button id="voiceTestBtn" style="background:#3b6eff;border:none;color:white;padding:6px 14px;border-radius:30px;cursor:pointer;">🔊 Play</button>
+            <button id="importBtn">📂 IMPORT</button>
+            <input type="file" id="fileImport" accept=".json,application/json" hidden>
+            <button id="exportBtn" class="primary">💾 EXPORT</button>
+            <button id="resetBtn">⟳ Reset</button>
+        </div>
+    </div>
+
+    <div class="three-panels">
+        <!-- LEFT: Tree navigation -->
+        <div class="panel-left">
+            <h3>📁 MANIFEST TREE</h3>
+            <div class="tree-container" id="treePanel"></div>
+        </div>
+
+        <!-- CENTER: collapsible cards with inline inputs -->
+        <div class="panel-center">
+            <div class="panel-center-header">
+                🧩 DIRECT EDIT · <span id="selectedNodePathLabel">(no node selected)</span>
+                <button id="globalAddPropBtn" style="margin-left: 12px; background:#2c6e4e;">➕ Add property</button>
+            </div>
+            <div class="json-editor-area" id="centerEditor">
+                <div style="padding: 20px; text-align: center; color: #95adcc;">◀ Select a node from left tree</div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Artifact Viewer (context sensitive) -->
+        <div class="panel-right">
+            <h3>🖼️ ARTIFACT VIEWER</h3>
+            <div class="artifact-viewer" id="artifactViewer">
+                <div class="artifact-placeholder">Select a property (click on any input or key) to view full content<br>🔍 Supports large text, base64 images, JSON</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ======================= ORIGINAL MANIFEST
+    const ORIGINAL_MANIFEST = {
+      "VAN_ENGINE_COMPANION_MANIFEST": {
+        "manifest_version": "2.0.0",
+        "storage_gate_limit_bytes": 4194304,
+        "active_mode_context": "CodeMode",
+        "active_persona_context": "Clawdia_Core",
+        "COMPANION_MODES": {
+          "OpenSkillMode": { "description": "Manual skill orchestration layer.", "enforce_human_in_the_loop": true, "allow_ephemeral_browser_download": true, "base_skills": ["isolate_payload", "verify_preview"], "specialized_skills": ["compile_standalone_html"], "default_voice_persona": "vessel_neutral_onnx", "lexicon_config": { "type": "parent_universal", "lexicon_file_path": "src/core/lexicons/universal_base.json" } },
+          "ChatMode": { "description": "Conversational, educational", "enforce_human_in_the_loop": false, "SUB_PERSONALITIES": { "Educational": { "tone_quirks": ["analytical"], "lexicon_file_path": "src/core/lexicons/chat_educational.json" } } },
+          "CodeMode": { "description": "Sovereign programming substrate", "enforce_human_in_the_loop": true, "specialized_skills": ["Review", "Fix"] },
+          "ResearchMode": { "description": "Fact-checking" },
+          "MusicMode": {
+            "description": "Neural vocal orchestration",
+            "enforce_human_in_the_loop": true,
+            "base_skills": ["load_artist_catalog_persona"],
+            "specialized_skills": ["generate_verse_line"],
+            "default_voice_persona": "music_orchestrator_base",
+            "LOCAL_VAULT_REFERENCE": { "vault_root_path": "Vaults/ArtistVault/", "sub_folders": ["Lyrics", "Songs", "Music_Videos"] },
+            "MUSIC_PERSONAS_CATALOG": {
+              "Ekoh": {
+                "lexicon_file_path": "Vaults/ArtistVault/Lyrics/ekoh_lyrics_corpus.json",
+                "slang_density_coefficient": 0.85,
+                "default_rhyme_pattern": "abab",
+                "ASSET_STRATA_LINKS": { "ImageArt": { "album_art_nodes": [] }, "Songs": { "manifest_path": "tracks.json" } }
+              }
+            }
+          }
+        },
+        "RUNTIME_DYNAMIC_MEMORY_MODULE": { "VocabularyInMemory": { "description": "Markov-chain", "markov_chain_matrix": { "we": { "should": 0.4 } } } }
+      }
+    };
+
+    let jsonData = JSON.parse(JSON.stringify(ORIGINAL_MANIFEST));
+    let selectedPath = [];
+    let selectedNode = null;
+    const expandedPaths = new Set();
+
+    // Helper functions
+    function getNodeByPath(pathArr) {
+        if (!pathArr.length) return jsonData;
+        let cur = jsonData;
+        for (let seg of pathArr) {
+            if (cur === undefined || cur === null) return null;
+            cur = cur[seg];
+        }
+        return cur;
+    }
+
+    function setValueByPath(obj, pathArr, newVal) {
+        let cur = obj;
+        for(let i=0; i<pathArr.length-1; i++) {
+            let seg = pathArr[i];
+            if(!cur[seg] || typeof cur[seg] !== 'object') cur[seg] = {};
+            cur = cur[seg];
+        }
+        cur[pathArr[pathArr.length-1]] = newVal;
+        updateMemorySize();
+        refreshAfterMutation();
+    }
+
+    function updateMemorySize() {
+        const str = JSON.stringify(jsonData);
+        const bytes = new Blob([str]).size;
+        const kb = (bytes / 1024).toFixed(2);
+        document.getElementById('memoryStats').innerHTML = `📦 JSON size: ${kb} KB (${bytes} bytes)`;
+    }
+
+    function refreshAfterMutation() {
+        selectNode(selectedPath);
+        updateMemorySize();
+    }
+
+    // Tree rendering — collapsible
+    function pathKey(p) { return JSON.stringify(p); }
+
+    function renderTree(container, data, currentPath = []) {
+        container.innerHTML = '';
+        if (!data || typeof data !== 'object') return;
+        const rootDiv = document.createElement('div');
+        const keys = Object.keys(data);
+        for (let key of keys) {
+            const value = data[key];
+            const pathHere = [...currentPath, key];
+            const pk = pathKey(pathHere);
+            const isSelected = JSON.stringify(selectedPath) === pk;
+            const hasChildren = value && typeof value === 'object';
+            const isExpanded = expandedPaths.has(pk);
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+
+            const row = document.createElement('div');
+            row.className = `tree-row ${isSelected ? 'selected' : ''}`;
+
+            const toggleSpan = document.createElement('span');
+            toggleSpan.style.cssText = 'width:16px;flex-shrink:0;cursor:pointer;color:#555;font-size:10px;text-align:center;user-select:none;';
+            if (hasChildren) {
+                toggleSpan.textContent = isExpanded ? '▼' : '▶';
+                toggleSpan.onclick = (e) => {
+                    e.stopPropagation();
+                    if (isExpanded) expandedPaths.delete(pk); else expandedPaths.add(pk);
+                    renderTree(container, data, currentPath);
+                };
+            } else {
+                toggleSpan.textContent = '  ';
+            }
+
+            const keySpan = document.createElement('span');
+            keySpan.className = 'node-key';
+            keySpan.textContent = key;
+
+            const previewSpan = document.createElement('span');
+            previewSpan.className = 'node-preview';
+            previewSpan.textContent = getPreview(value);
+
+            row.appendChild(toggleSpan);
+            row.appendChild(keySpan);
+            row.appendChild(previewSpan);
+            row.onclick = (e) => {
+                if (e.target === toggleSpan) return;
+                selectNode(pathHere);
+            };
+            nodeDiv.appendChild(row);
+
+            if (hasChildren && isExpanded) {
+                const childContainer = document.createElement('div');
+                childContainer.style.marginLeft = '18px';
+                renderTree(childContainer, value, pathHere);
+                nodeDiv.appendChild(childContainer);
+            }
+            rootDiv.appendChild(nodeDiv);
+        }
+        container.appendChild(rootDiv);
+    }
+
+    function getPreview(val) {
+        if (val === null) return 'null';
+        if (typeof val === 'string') return `"${val.slice(0, 40)}${val.length > 40 ? '…' : ''}"`;
+        if (typeof val === 'number') return `${val}`;
+        if (typeof val === 'boolean') return `${val}`;
+        if (Array.isArray(val)) return `[${val.length}] array`;
+        if (typeof val === 'object') return `{${Object.keys(val).length}} keys`;
+        return '';
+    }
+
+    function selectNode(path) {
+        selectedPath = [...path];
+        selectedNode = getNodeByPath(selectedPath);
+        renderTree(document.getElementById('treePanel'), jsonData);
+        renderCenterEditor(selectedNode, selectedPath);
+        // clear artifact viewer when node changes
+        document.getElementById('artifactViewer').innerHTML = `<div class="artifact-placeholder">Select a property (click on any input or key) to view full content</div>`;
+        updateMemorySize();
+    }
+
+    // CENTER EDITOR: collapsible cards, each header contains key + inline input (for primitive) or summary for complex
+    function renderCenterEditor(node, path) {
+        const editorDiv = document.getElementById('centerEditor');
+        const pathLabel = document.getElementById('selectedNodePathLabel');
+        pathLabel.innerText = path.join(' → ') || 'root';
+        
+        if (!node || (typeof node !== 'object' && !Array.isArray(node))) {
+            // primitive root
+            editorDiv.innerHTML = `<div class="collapsible-card open">
+                <div class="collapsible-header"><span class="key">value</span>
+                <input class="inline-edit" id="primitiveRootEdit" value='${escapeHtml(String(node ?? ''))}' />
+                </div></div>`;
+            const inp = document.getElementById('primitiveRootEdit');
+            if(inp) inp.addEventListener('change', (e) => {
+                let newVal = e.target.value;
+                try { newVal = JSON.parse(newVal); } catch(e) {}
+                setValueByPath(jsonData, selectedPath, newVal);
+                selectNode(selectedPath);
+            });
+            return;
+        }
+
+        const isArrayNode = Array.isArray(node);
+        let html = '';
+        const entries = isArrayNode ? node.map((v, idx) => [idx, v]) : Object.entries(node);
+        
+        for (let [key, val] of entries) {
+            const childPath = [...path, key];
+            const isComplex = (val && typeof val === 'object');
+            const valueType = isComplex ? (Array.isArray(val) ? 'array' : 'object') : typeof val;
+            const displayKey = isArrayNode ? `[${key}]` : key;
+            const inputId = `input_${childPath.join('_')}`;
+            let inputHtml = '';
+            
+            if (!isComplex) {
+                const isVoiceProp = key === 'default_voice_persona';
+                inputHtml = `<input class="inline-edit" data-path='${JSON.stringify(childPath)}' id="${inputId}" value='${escapeHtml(String(val ?? ''))}' />`;
+                if (isVoiceProp) {
+                    inputHtml += `<button class="voice-play-btn" data-voice="${escapeHtml(String(val ?? ''))}" style="background:#3b6eff;border:none;color:white;padding:6px 12px;border-radius:30px;cursor:pointer;font-size:13px;flex-shrink:0;" title="Test this voice">🔊</button>`;
+                }
+            } else {
+                // complex: show badge and "view in artifact" button
+                inputHtml = `<span class="value-badge">📦 ${valueType} (${Object.keys(val).length} items)</span>
+                             <button class="view-artifact-btn" data-path='${JSON.stringify(childPath)}' style="background:#3f5e8c;">🔍 View in Artifact</button>`;
+            }
+            
+            html += `<div class="collapsible-card" data-path='${JSON.stringify(childPath)}'>
+                        <div class="collapsible-header" onclick="toggleCard(this.parentElement)">
+                            <span class="key">${displayKey}</span>
+                            ${inputHtml}
+                        </div>
+                        <div class="collapsible-content">
+                            ${isComplex ? `<div class="nested-hint">Complex value — use Artifact Viewer (right panel) to inspect/edit JSON</div>` : ''}
+                        </div>
+                    </div>`;
+        }
+        
+        editorDiv.innerHTML = html;
+        
+        // Attach event listeners for primitive inputs
+        document.querySelectorAll('.inline-edit[data-path]').forEach(inp => {
+            inp.removeEventListener('change', (e) => {});
+            inp.addEventListener('change', (e) => {
+                const pathArr = JSON.parse(inp.getAttribute('data-path'));
+                let newVal = inp.value;
+                try { newVal = JSON.parse(newVal); } catch(e) {}
+                setValueByPath(jsonData, pathArr, newVal);
+                selectNode(selectedPath);
+                showToast(`✅ updated ${pathArr.slice(-1)[0]}`);
+            });
+            // also on blur to save
+            inp.addEventListener('blur', (e) => {
+                const pathArr = JSON.parse(inp.getAttribute('data-path'));
+                let newVal = inp.value;
+                try { newVal = JSON.parse(newVal); } catch(e) {}
+                setValueByPath(jsonData, pathArr, newVal);
+                selectNode(selectedPath);
+            });
+        });
+        
+        // Attach view artifact buttons for complex values
+        document.querySelectorAll('.view-artifact-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const pathArr = JSON.parse(btn.getAttribute('data-path'));
+                const complexNode = getNodeByPath(pathArr);
+                showArtifactForValue(complexNode, pathArr);
+            });
+        });
+    }
+    
+    // Right panel artifact viewer
+    function showArtifactForValue(value, valuePath) {
+        const viewerDiv = document.getElementById('artifactViewer');
+        if (value === undefined || value === null) {
+            viewerDiv.innerHTML = `<div class="artifact-placeholder">null or undefined</div>`;
+            return;
+        }
+        
+        // Detect base64 image (data:image or long base64)
+        const isBase64Image = (typeof value === 'string' && (value.startsWith('data:image') || (value.length > 200 && /^[A-Za-z0-9+/=]+$/.test(value.slice(0,100)))));
+        const isLargeText = (typeof value === 'string' && value.length > 500);
+        const isObject = typeof value === 'object';
+        
+        if (isBase64Image) {
+            viewerDiv.innerHTML = `
+                <div><strong>🖼️ Base64 Image</strong> <button id="copyBase64Btn" style="margin-left:8px;">📋 Copy</button></div>
+                <canvas id="artifactCanvas" class="artifact-canvas" style="max-width:100%; margin-top:12px;"></canvas>
+                <textarea class="artifact-text" id="artifactRawText" readonly style="height:120px; margin-top:12px;">${escapeHtml(value.slice(0, 500))}${value.length>500?'…' : ''}</textarea>
+            `;
+            const canvas = document.getElementById('artifactCanvas');
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = value;
+            document.getElementById('copyBase64Btn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(value);
+                showToast("Base64 copied");
+            });
+        } 
+        else if (typeof value === 'string') {
+            viewerDiv.innerHTML = `
+                <div><strong>📄 Text / String (${value.length} chars)</strong> <button id="copyTextBtn">Copy</button></div>
+                <textarea id="artifactTextarea" class="artifact-text">${escapeHtml(value)}</textarea>
+                <button id="saveTextBtn" class="primary" style="margin-top:10px;">💾 Save changes to JSON</button>
+            `;
+            const textarea = document.getElementById('artifactTextarea');
+            document.getElementById('copyTextBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(textarea.value);
+                showToast("Copied");
+            });
+            document.getElementById('saveTextBtn')?.addEventListener('click', () => {
+                const newVal = textarea.value;
+                setValueByPath(jsonData, valuePath, newVal);
+                selectNode(selectedPath);
+                showToast("Text updated");
+            });
+        }
+        else if (isObject) {
+            const jsonStr = JSON.stringify(value, null, 2);
+            viewerDiv.innerHTML = `
+                <div><strong>📦 ${Array.isArray(value) ? 'Array' : 'Object'}</strong> <button id="copyJsonBtn">Copy JSON</button></div>
+                <textarea id="artifactJsonEdit" class="artifact-text" style="height:300px;">${escapeHtml(jsonStr)}</textarea>
+                <button id="applyJsonBtn" class="primary" style="margin-top:10px;">✏️ Apply & Replace</button>
+            `;
+            document.getElementById('copyJsonBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(jsonStr);
+                showToast("JSON copied");
+            });
+            document.getElementById('applyJsonBtn')?.addEventListener('click', () => {
+                try {
+                    const parsed = JSON.parse(document.getElementById('artifactJsonEdit').value);
+                    setValueByPath(jsonData, valuePath, parsed);
+                    selectNode(selectedPath);
+                    showToast("Complex value updated");
+                } catch(e) { showToast("Invalid JSON", true); }
+            });
+        }
+        else {
+            viewerDiv.innerHTML = `<div class="artifact-placeholder">Type: ${typeof value} — ${String(value)}</div>`;
+        }
+    }
+    
+    // Toggle collapsible card
+    window.toggleCard = (card) => {
+        card.classList.toggle('open');
+    };
+    
+    // Add property modal
+    function openAddPropertyForSelected() {
+        if (!selectedNode || typeof selectedNode !== 'object' || Array.isArray(selectedNode)) {
+            showToast("Select an object node to add property", true);
+            return;
+        }
+        const modalDiv = document.createElement('div');
+        modalDiv.style.position = 'fixed'; modalDiv.style.top=0; modalDiv.style.left=0; modalDiv.style.width='100%'; modalDiv.style.height='100%';
+        modalDiv.style.background='rgba(0,0,0,0.8)'; modalDiv.style.backdropFilter='blur(6px)'; modalDiv.style.zIndex=3000;
+        modalDiv.style.display='flex'; modalDiv.style.alignItems='center'; modalDiv.style.justifyContent='center';
+        modalDiv.innerHTML = `
+            <div style="background:#111b2f; border-radius: 28px; max-width: 450px; width:90%; padding:24px;">
+                <h3>➕ Add property to "${selectedPath.slice(-1)[0] || 'node'}"</h3>
+                <label>Property name</label><input id="propName" placeholder="thumbnail, vocal_trait" style="width:100%"/>
+                <label>Type</label><select id="propType"><option>string</option><option>numeric</option><option>date</option><option>base64</option><option>FilePath</option><option>collection</option></select>
+                <label>Value / default</label><input id="propValue" placeholder="value" style="width:100%"/>
+                <label><input type="checkbox" id="applyToSiblings" /> ✨ Add to all siblings (same level objects)</label>
+                <div style="display:flex; gap:12px; margin-top:18px;"><button id="cancelModal">Cancel</button><button id="confirmAddProp" class="primary">Apply</button></div>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+        document.getElementById('cancelModal').onclick = () => modalDiv.remove();
+        document.getElementById('confirmAddProp').onclick = () => {
+            const propName = document.getElementById('propName').value.trim();
+            if(!propName) { showToast("name required", true); return; }
+            let rawVal = document.getElementById('propValue').value;
+            const type = document.getElementById('propType').value;
+            let finalVal = rawVal;
+            if(type === 'numeric') finalVal = parseFloat(rawVal);
+            else if(type === 'date') finalVal = rawVal || new Date().toISOString();
+            else if(type === 'collection') finalVal = [];
+            const applyToSiblings = document.getElementById('applyToSiblings').checked;
+            selectedNode[propName] = finalVal;
+            if(applyToSiblings && selectedPath.length > 0) {
+                const parentPath = selectedPath.slice(0, -1);
+                const parentObj = getNodeByPath(parentPath);
+                if(parentObj && typeof parentObj === 'object') {
+                    Object.keys(parentObj).forEach(key => {
+                        if(parentObj[key] !== selectedNode && parentObj[key] && typeof parentObj[key] === 'object' && !Array.isArray(parentObj[key])) {
+                            parentObj[key][propName] = finalVal;
+                        }
+                    });
+                    showToast(`✔️ Property added to siblings`);
+                }
+            }
+            updateMemorySize();
+            selectNode(selectedPath);
+            modalDiv.remove();
+            showToast(`Property "${propName}" added`);
+        };
+    }
+    
+    // Drag & drop handler (attaches to selected node)
+    async function handleDroppedFile(file, targetNode, targetPath) {
+        if (!targetNode || typeof targetNode !== 'object') {
+            showToast("Selected node is not an object — cannot attach asset", true);
+            return false;
+        }
+        const fname = file.name;
+        const type = file.type;
+        if (type.startsWith('image/')) {
+            const base64 = await fileToBase64(file);
+            const location = prompt("📸 Image usage: type 'album', 'song', 'verse'", "album");
+            if (location === 'album') { if(!targetNode.album_art) targetNode.album_art = []; targetNode.album_art.push(base64); showToast("Album art added"); }
+            else if (location === 'song') { if(!targetNode.song_art) targetNode.song_art = []; targetNode.song_art.push(base64); }
+            else { if(!targetNode.verse_images) targetNode.verse_images = []; targetNode.verse_images.push(base64); }
+            refreshAfterMutation();
+            return true;
+        }
+        if (type === 'audio/mpeg' || fname.endsWith('.mp3')) {
+            if(!targetNode.songs) targetNode.songs = [];
+            targetNode.songs.push({ name: fname, added: new Date().toISOString() });
+            showToast(`🎵 MP3 attached`);
+            refreshAfterMutation();
+            return true;
+        }
+        if (type === 'video/mp4') {
+            if(!targetNode.videos) targetNode.videos = [];
+            targetNode.videos.push(fname);
+            showToast("🎬 Video added");
+            refreshAfterMutation();
+            return true;
+        }
+        if (type === 'text/plain' || fname.endsWith('.txt')) {
+            const text = await file.text();
+            if(!targetNode.lyrics_collection) targetNode.lyrics_collection = [];
+            targetNode.lyrics_collection.push({ content: text, source: fname });
+            showToast("📜 Lyrics appended");
+            refreshAfterMutation();
+            return true;
+        }
+        showToast("Unsupported drop type", true);
+        return false;
+    }
+    
+    async function fileToBase64(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function showToast(msg, isErr=false) {
+        const t = document.createElement('div'); t.className='toast'; t.innerText=msg;
+        if(isErr) t.style.borderLeftColor='#ff7b72';
+        document.body.appendChild(t);
+        setTimeout(()=>t.remove(), 2800);
+    }
+    
+    // Event binding
+    document.getElementById('importBtn').onclick = () => {
+        document.getElementById('fileImport').click();
+    };
+    document.getElementById('fileImport').onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const parsed = JSON.parse(ev.target.result);
+                if (typeof parsed !== 'object' || parsed === null) {
+                    showToast('Invalid JSON: must be an object at root', true); return;
+                }
+                jsonData = parsed;
+                selectedPath = [];
+                selectedNode = jsonData;
+                expandedPaths.clear();
+                updateMemorySize();
+                selectNode([]);
+                populateVoiceDropdown();
+                showToast(`Imported ${file.name}`);
+            } catch(err) {
+                showToast('Import error: ' + err.message, true);
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+    document.getElementById('exportBtn').onclick = () => {
+        const dataStr = JSON.stringify(jsonData, null, 2);
+        const blob = new Blob([dataStr], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `van_export_${Date.now()}.json`;
+        a.click(); URL.revokeObjectURL(url);
+        showToast("Export complete");
+    };
+    document.getElementById('resetBtn').onclick = () => {
+        jsonData = JSON.parse(JSON.stringify(ORIGINAL_MANIFEST));
+        selectedPath = [];
+        selectedNode = jsonData;
+        expandedPaths.clear();
+        updateMemorySize();
+        selectNode([]);
+        populateVoiceDropdown();
+        showToast("Reset to original");
+    };
+    document.getElementById('globalAddPropBtn').onclick = openAddPropertyForSelected;
+    
+    // Drop zone
+    const dropZoneDiv = document.getElementById('globalDropZone');
+    dropZoneDiv.addEventListener('dragover', e => { e.preventDefault(); dropZoneDiv.style.background = '#2a4370'; });
+    dropZoneDiv.addEventListener('dragleave', () => dropZoneDiv.style.background = '#121c30');
+    dropZoneDiv.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropZoneDiv.style.background = '#121c30';
+        const files = Array.from(e.dataTransfer.files);
+        if (!files.length) return;
+        if (!selectedNode) { showToast("Select a node first to attach assets", true); return; }
+        for (let f of files) await handleDroppedFile(f, selectedNode, selectedPath);
+    });
+    
+    // Collect all default_voice_persona values from manifest
+    function collectVoiceModels() {
+        const voices = new Set();
+        const modes = jsonData?.VAN_ENGINE_COMPANION_MANIFEST?.COMPANION_MODES;
+        if (modes && typeof modes === 'object') {
+            for (const mode of Object.values(modes)) {
+                if (mode && typeof mode === 'object' && mode.default_voice_persona) {
+                    voices.add(mode.default_voice_persona);
+                }
+            }
+        }
+        // Also check MUSIC_PERSONAS_CATALOG engine_targets
+        const musicCatalog = modes?.MusicMode?.MUSIC_PERSONAS_CATALOG;
+        if (musicCatalog && typeof musicCatalog === 'object') {
+            for (const persona of Object.values(musicCatalog)) {
+                const vm = persona?.ASSET_STRATA_LINKS?.VoiceModel;
+                if (vm?.engine_target) voices.add(vm.engine_target);
+            }
+        }
+        return [...voices].sort();
+    }
+
+    function populateVoiceDropdown() {
+        const sel = document.getElementById('voiceModelSelect');
+        const voices = collectVoiceModels();
+        sel.innerHTML = voices.map(v => `<option value="${escapeHtml(v)}">${v}</option>`).join('');
+    }
+
+    document.getElementById('voiceTestBtn').onclick = () => {
+        const sel = document.getElementById('voiceModelSelect');
+        const voiceName = sel.value;
+        if (!voiceName) { showToast('No voice model selected', true); return; }
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(`Voice test. This is the ${voiceName} persona speaking.`);
+        utter.rate = 0.9;
+        utter.pitch = 1.0;
+        loadVoices();
+        const match = allVoices.find(v => v.name.toLowerCase().includes(voiceName.toLowerCase()));
+        if (match) utter.voice = match;
+        const btn = document.getElementById('voiceTestBtn');
+        btn.textContent = '⏹ Stop';
+        utter.onend = () => { btn.textContent = '🔊 Play'; };
+        window.speechSynthesis.speak(utter);
+        showToast(`🔊 Testing voice: ${voiceName}${match ? ' (matched: ' + match.name + ')' : ''}`);
+    };
+
+    // Pre-load speech voices for voice play button
+    let allVoices = [];
+    function loadVoices() { allVoices = window.speechSynthesis.getVoices(); }
+    loadVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // Voice play button — delegated click on center editor
+    document.getElementById('centerEditor').addEventListener('click', e => {
+        const btn = e.target.closest('.voice-play-btn');
+        if (!btn) return;
+        const voiceName = btn.getAttribute('data-voice');
+        if (!voiceName) return;
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(`Voice test. This is the ${voiceName} persona speaking.`);
+        utter.rate = 0.9;
+        utter.pitch = 1.0;
+        loadVoices();
+        const match = allVoices.find(v => v.name.toLowerCase().includes(voiceName.toLowerCase()));
+        if (match) utter.voice = match;
+        btn.textContent = '⏹';
+        utter.onend = () => { btn.textContent = '🔊'; };
+        window.speechSynthesis.speak(utter);
+        showToast(`🔊 Testing voice: ${voiceName}${match ? ' (matched: ' + match.name + ')' : ''}`);
+    });
+
+    // Initialize — auto-expand first level
+    expandedPaths.add(pathKey(['VAN_ENGINE_COMPANION_MANIFEST']));
+    const initModes = jsonData?.VAN_ENGINE_COMPANION_MANIFEST?.COMPANION_MODES;
+    if (initModes) Object.keys(initModes).forEach(k => expandedPaths.add(pathKey(['VAN_ENGINE_COMPANION_MANIFEST', 'COMPANION_MODES', k])));
+    populateVoiceDropdown();
+    selectNode([]);
+    updateMemorySize();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "rgb": {
+    "r": 124,
+    "g": 107,
+    "b": 94,
+    "hex": "#7c6b5e"
+  },
+  "region_colors": {
+    "upper_body": {
+      "r": 120,
+      "g": 105,
+      "b": 94
+    },
+    "mid_body": {
+      "r": 123,
+      "g": 107,
+      "b": 97
+    },
+    "lower_body": {
+      "r": 130,
+      "g": 110,
+      "b": 96
+    }
+  },
+  "color_temperature": "warm",
+  "sample_count": 57544,
+  "sources": 1
+}

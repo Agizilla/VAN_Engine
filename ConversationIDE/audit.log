@@ -1,0 +1,5 @@
+[2026-06-02T09:44:11.877051Z] [Debug] [Envelope] Carrier=VanEngine Mod=Soft-Knee-Expander Status=executed
+[2026-06-02T09:44:26.671834Z] [Debug] [Envelope] Carrier=VanEngine Mod=Soft-Knee-Expander Status=executed
+[2026-06-02T09:44:26.671834Z] [Critical] [Righteousness] Blocked envelope with forbidden term 'upload' in DATA (Carrier=test)
+[2026-06-02T09:44:26.671834Z] [Critical] [FolkMother] Envelope rejected by FolkMother consent: TRANSITION:bad
+[2026-06-02T09:44:26.671834Z] [Debug] [Envelope] Carrier=unknown Mod=noop Status=fallback

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawDia Dashboard</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; --yellow: #d29922; --red: #f85149; --radius: 6px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+nav { background: var(--surface); border-right: 1px solid var(--border); padding: 1rem; }
+nav h1 { font-size: 1rem; color: var(--accent); margin-bottom: 1.5rem; }
+nav a { display: block; padding: 0.5rem 0.75rem; color: var(--muted); text-decoration: none; border-radius: var(--radius); margin-bottom: 0.25rem; cursor: pointer; }
+nav a:hover, nav a.active { background: var(--border); color: var(--text); }
+main { padding: 1.5rem; overflow-y: auto; display: block; }
+.page { display: none; }
+.page.active { display: block; }
+h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; }
+.card h3 { font-size: 0.875rem; color: var(--muted); margin-bottom: 0.5rem; }
+.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.status-item { text-align: center; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.status-item .label { font-size: 0.75rem; color: var(--muted); }
+.status-item .value { font-size: 1.5rem; font-weight: 700; margin-top: 0.25rem; }
+.badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge-ok { background: rgba(63,185,80,0.15); color: var(--green); }
+.badge-off { background: rgba(248,81,73,0.15); color: var(--red); }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; }
+tr:hover td { background: rgba(88,166,255,0.05); }
+.convo-user { color: var(--accent); font-weight: 600; }
+.convo-assistant { color: var(--green); font-weight: 600; }
+.convo-content { max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+input, textarea, select { background: #0d1117; border: 1px solid var(--border); color: var(--text); padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 0.875rem; width: 100%; }
+input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+textarea { font-family: monospace; resize: vertical; min-height: 80px; }
+.btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; background: var(--accent); color: #fff; }
+.btn:hover { opacity: 0.9; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.mb-1 { margin-bottom: 0.75rem; }
+.mt-1 { margin-top: 0.75rem; }
+pre.json { background: #0d1117; padding: 0.75rem; border-radius: var(--radius); font-size: 0.75rem; overflow-x: auto; }
+#log { max-height: 300px; overflow-y: auto; font-size: 0.75rem; }
+#log div { padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
+.inbox-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; height: calc(100vh - 120px); }
+.inbox-tree { overflow-y: auto; }
+.inbox-detail { overflow-y: auto; }
+.tree-item { cursor: pointer; padding: 0.25rem 0; }
+.tree-item:hover { color: var(--accent); }
+.tree-toggle { cursor: pointer; user-select: none; margin-right: 0.25rem; }
+.tree-source { font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0; cursor: pointer; }
+.tree-source:hover { color: var(--accent); }
+.tree-source .count { font-weight: 400; color: var(--muted); font-size: 0.75rem; margin-left: auto; }
+.tree-children { margin-left: 1.25rem; border-left: 1px solid var(--border); padding-left: 0.5rem; }
+.tree-msg { padding: 0.25rem 0.5rem; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; }
+.tree-msg:hover { background: var(--border); }
+.tree-msg.active { background: rgba(88,166,255,0.15); color: var(--accent); }
+.tree-msg .preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; color: var(--muted); }
+.tree-msg .time { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<nav>
+  <h1>ClawDia</h1>
+  <a class="active" onclick="showPage('overview')">Overview</a>
+  <a onclick="showPage('memory')">Memory</a>
+  <a onclick="showPage('skills')">Skills</a>
+  <a onclick="showPage('voice')">Voice</a>
+  <a onclick="showPage('database')">Database</a>
+  <a onclick="showPage('inbox')">Inbox</a>
+</nav>
+
+<main>
+  <div id="page-overview" class="page active">
+    <h2>Overview</h2>
+    <div class="status-grid" id="status-grid">
+      <div class="status-item"><div class="label">Conversations</div><div class="value" id="stat-convos">-</div></div>
+      <div class="status-item"><div class="label">Entities</div><div class="value" id="stat-entities">-</div></div>
+      <div class="status-item"><div class="label">Skills</div><div class="value" id="stat-skills">-</div></div>
+      <div class="status-item"><div class="label">STT</div><div class="value" id="stat-stt">-</div></div>
+      <div class="status-item"><div class="label">Mic</div><div class="value" id="stat-mic">-</div></div>
+      <div class="status-item"><div class="label">TTS</div><div class="value" id="stat-tts">-</div></div>
+      <div class="status-item"><div class="label">Inbox</div><div class="value" id="stat-inbox">-</div></div>
+    </div>
+    <div class="card"><h3>Live Log</h3><div id="log"></div></div>
+  </div>
+
+  <div id="page-memory" class="page">
+    <h2>Memory Browser</h2>
+    <div class="mb-1"><input id="memory-search" placeholder="Search conversations..." oninput="searchMemory(this.value)"></div>
+    <div class="grid-2 mb-1">
+      <div class="card">
+        <h3>Conversations</h3>
+        <div style="max-height:400px;overflow-y:auto"><table><thead><tr><th>Role</th><th>Content</th><th>Time</th></tr></thead><tbody id="convo-table"></tbody></table></div>
+      </div>
+      <div class="card">
+        <h3>Entities</h3>
+        <div style="max-height:400px;overflow-y:auto"><table><thead><tr><th>Name</th><th>Type</th><th>Properties</th></tr></thead><tbody id="entity-table"></tbody></table></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Create Entity</h3>
+      <div class="grid-2">
+        <input id="entity-name" placeholder="Name">
+        <input id="entity-type" placeholder="Type (e.g. Person, Project)">
+      </div>
+      <textarea id="entity-props" class="mt-1" placeholder='{"key": "value"}'></textarea>
+      <button class="btn btn-sm mt-1" onclick="createEntity()">Create</button>
+    </div>
+  </div>
+
+  <div id="page-skills" class="page">
+    <h2>Skills</h2>
+    <div class="card"><table><thead><tr><th>Name</th><th>Category</th><th>Description</th><th></th></tr></thead><tbody id="skill-table"></tbody></table></div>
+    <div class="card mt-1">
+      <h3>Execute Skill</h3>
+      <select id="skill-select" class="mb-1"></select>
+      <textarea id="skill-params" placeholder='{"path": "/example.wav"}'></textarea>
+      <button class="btn btn-sm mt-1" onclick="executeSkill()">Execute</button>
+      <pre class="json mt-1" id="skill-result"></pre>
+    </div>
+  </div>
+
+  <div id="page-voice" class="page">
+    <h2>Voice Status</h2>
+    <div class="status-grid" id="voice-status-grid"></div>
+  </div>
+
+  <div id="page-database" class="page">
+    <h2>Bridge Database</h2>
+    <div class="card">
+      <div class="grid-2 mb-1">
+        <select id="db-table-select" onchange="loadTable()"></select>
+        <div style="text-align:right">
+          <button class="btn btn-sm" onclick="loadTable()">↻ Refresh</button>
+          <button class="btn btn-sm" id="db-raw-toggle" onclick="toggleRaw()">Raw JSON</button>
+        </div>
+      </div>
+      <div id="db-info" style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem"></div>
+    </div>
+    <div id="db-table-wrap" class="card" style="overflow-x:auto">
+      <table><thead id="db-thead"></thead><tbody id="db-tbody"></tbody></table>
+    </div>
+    <div id="db-raw-wrap" class="card" style="display:none">
+      <pre class="json" id="db-raw" style="max-height:600px;overflow:auto"></pre>
+    </div>
+  </div>
+
+  <div id="page-inbox" class="page">
+    <h2>Inbox <span style="font-size:0.8rem;color:var(--muted);font-weight:400" id="inbox-count"></span></h2>
+    <div class="inbox-layout">
+      <div class="inbox-tree card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+          <h3 style="margin:0">Messages</h3>
+          <button class="btn btn-sm" onclick="loadInbox()">↻</button>
+        </div>
+        <div id="inbox-tree-list"></div>
+      </div>
+      <div class="inbox-detail card" id="inbox-detail">
+        <div style="color:var(--muted);text-align:center;padding:3rem">Select a message to view details</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let ws = null;
+let logEl = document.getElementById('log');
+
+function log(msg) { let d = document.createElement('div'); d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; logEl.prepend(d); if (logEl.children.length > 100) logEl.lastChild.remove(); }
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelector(`nav a[onclick*="${name}"]`).classList.add('active');
+  if (name === 'database') loadTables();
+  if (name === 'inbox') loadInbox();
+}
+
+function statusBadge(ok) { return ok ? '<span class="badge badge-ok">OK</span>' : '<span class="badge badge-off">OFF</span>'; }
+
+function connectWS() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => { log('WebSocket connected'); ws.send(JSON.stringify({type:'get_skills'})); ws.send(JSON.stringify({type:'get_conversations'})); };
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'skills') { renderSkills(msg.skills); document.getElementById('stat-skills').textContent = msg.skills.length; }
+    if (msg.type === 'conversations') { renderConversations(msg.conversations); document.getElementById('stat-convos').textContent = msg.conversations.length; }
+    if (msg.type === 'skill_result') { document.getElementById('skill-result').textContent = JSON.stringify(msg.result, null, 2); log(`Skill ${msg.name} executed`); }
+  };
+  ws.onclose = () => { log('WebSocket disconnected, reconnecting in 2s...'); setTimeout(connectWS, 2000); };
+}
+connectWS();
+
+fetch('/api/voice/status').then(r=>r.json()).then(d => {
+  document.getElementById('stat-stt').innerHTML = statusBadge(d.stt_available);
+  document.getElementById('stat-mic').innerHTML = statusBadge(d.mic_available);
+  document.getElementById('stat-tts').innerHTML = statusBadge(d.tts_available);
+});
+
+fetch('/api/memory/entities').then(r=>r.json()).then(entities => {
+  document.getElementById('stat-entities').textContent = entities.length;
+  renderEntities(entities);
+});
+
+fetch('http://localhost:8080/clawdia/inbox').then(r=>r.json()).then(inbox => {
+  const items = inbox.value || inbox;
+  document.getElementById('stat-inbox').textContent = Array.isArray(items) ? items.length : inbox.Count || 0;
+  loadInbox();
+}).catch(() => document.getElementById('stat-inbox').textContent = '❌');
+
+function loadInbox() {
+  fetch('/api/db/query?table=messages&limit=100').then(r=>r.json()).then(d => {
+    const items = d.rows || [];
+    document.getElementById('inbox-count').textContent = `(${d.total})`;
+    document.getElementById('stat-inbox').textContent = d.total;
+    renderInboxTree(items);
+  }).catch(() => {});
+}
+
+function renderConversations(convos) {
+  const tbody = document.getElementById('convo-table');
+  tbody.innerHTML = convos.map(c => `<tr><td class="convo-${c.role}">${c.role}</td><td class="convo-content">${escapeHtml(c.content)}</td><td style="white-space:nowrap">${new Date(c.timestamp).toLocaleString()}</td></tr>`).join('');
+}
+
+function renderEntities(entities) {
+  const tbody = document.getElementById('entity-table');
+  tbody.innerHTML = entities.map(e => `<tr><td>${escapeHtml(e.name)}</td><td><span class="badge badge-ok">${escapeHtml(e.entity_type)}</span></td><td style="font-size:0.7rem">${escapeHtml(JSON.stringify(e.properties))}</td></tr>`).join('');
+}
+
+function renderSkills(skills) {
+  const tbody = document.getElementById('skill-table');
+  tbody.innerHTML = skills.map(s => `<tr><td>${escapeHtml(s.name)}</td><td><span class="badge badge-ok">${escapeHtml(s.category)}</span></td><td>${escapeHtml(s.description)}</td><td><button class="btn btn-sm" onclick="runSkill('${s.name}')">Run</button></td></tr>`).join('');
+  const sel = document.getElementById('skill-select');
+  sel.innerHTML = skills.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+}
+
+function runSkill(name) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:'execute_skill', name, params:{}})); }
+
+function executeSkill() {
+  const name = document.getElementById('skill-select').value;
+  let params = {};
+  try { params = JSON.parse(document.getElementById('skill-params').value || '{}'); } catch(e) { log('Invalid JSON params'); return; }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:'execute_skill', name, params}));
+}
+
+function searchMemory(q) {
+  if (!q) { ws.send(JSON.stringify({type:'get_conversations'})); return; }
+  fetch('/api/memory/search', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,limit:20})})
+    .then(r=>r.json()).then(renderConversations);
+}
+
+function createEntity() {
+  const name = document.getElementById('entity-name').value;
+  const entity_type = document.getElementById('entity-type').value;
+  let properties = {};
+  try { properties = JSON.parse(document.getElementById('entity-props').value || '{}'); } catch(e) { log('Invalid JSON'); return; }
+  if (!name || !entity_type) { log('Name and type required'); return; }
+  fetch('/api/memory/entities', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, entity_type, properties})})
+    .then(r=>r.json()).then(e => { renderEntities([e]); log(`Entity ${e.name} created`); });
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ── Inbox viewer ──────────────────────────────────────
+let expandedSources = {};
+let selectedMsgId = null;
+
+function renderInboxTree(items) {
+  const groups = {};
+  items.forEach(msg => {
+    const src = msg.source || 'unknown';
+    if (!groups[src]) groups[src] = [];
+    groups[src].push(msg);
+  });
+  const container = document.getElementById('inbox-tree-list');
+  container.innerHTML = Object.entries(groups).map(([source, msgs]) => {
+    const isOpen = expandedSources[source] !== false;
+    return `<div class="tree-item">
+      <div class="tree-source" onclick="toggleSource('${escapeHtml(source)}')">
+        <span class="tree-toggle">${isOpen ? '▼' : '▶'}</span>
+        ${escapeHtml(source)}
+        <span class="count">${msgs.length}</span>
+      </div>
+      <div class="tree-children" id="source-${escapeHtml(source)}" style="display:${isOpen ? 'block' : 'none'}">
+        ${msgs.map(m => {
+          const preview = (m.text || '').slice(0, 80);
+          const time = new Date(m.timestamp || m.created_at).toLocaleTimeString();
+          const isActive = selectedMsgId === m.id;
+          return `<div class="tree-msg ${isActive ? 'active' : ''}" onclick="showInboxDetail(${m.id})">
+            <span class="preview">${escapeHtml(preview)}</span>
+            <span class="time">${time}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSource(source) {
+  expandedSources[source] = expandedSources[source] === false ? true : false;
+  loadInbox();
+}
+
+function showInboxDetail(id) {
+  selectedMsgId = id;
+  fetch('/api/db/query?table=messages&limit=100').then(r=>r.json()).then(d => {
+    const items = d.rows || [];
+    const msg = items.find(m => m.id === id);
+    if (!msg) return;
+    const detail = document.getElementById('inbox-detail');
+    const time = new Date(msg.timestamp || msg.created_at);
+    detail.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+        <div>
+          <h3 style="margin:0;color:var(--accent)">${escapeHtml(msg.source || 'unknown')}</h3>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">
+            ${time.toLocaleDateString()} ${time.toLocaleTimeString()}
+            ${msg.acked ? '· <span class="badge badge-ok">acked</span>' : ''}
+            ${msg.forward_to ? '· → ' + escapeHtml(msg.forward_to) : ''}
+          </div>
+        </div>
+        <span style="font-size:0.7rem;color:var(--muted)">#${msg.id}</span>
+      </div>
+      <div style="white-space:pre-wrap;font-size:0.8125rem;line-height:1.5;background:var(--bg);padding:1rem;border-radius:var(--radius);max-height:60vh;overflow-y:auto">${escapeHtml(msg.text || '')}</div>
+      <pre class="json mt-1" style="max-height:200px;overflow:auto">${escapeHtml(JSON.stringify(msg, null, 2))}</pre>
+    `;
+    renderInboxTree(items);
+  }).catch(() => {});
+}
+
+loadInbox();
+let dbRawMode = false;
+
+function loadTables() {
+  fetch('/api/db/tables').then(r=>r.json()).then(d => {
+    const sel = document.getElementById('db-table-select');
+    sel.innerHTML = d.tables.map(t => `<option value="${t.name}">${t.name} (${t.rows} rows)</option>`).join('');
+    if (d.tables.length) loadTable();
+  });
+}
+
+function loadTable() {
+  const table = document.getElementById('db-table-select').value;
+  if (!table) return;
+  fetch(`/api/db/query?table=${encodeURIComponent(table)}&limit=100`).then(r=>r.json()).then(d => {
+    document.getElementById('db-info').textContent = `${d.total} rows total · showing ${d.rows.length} (offset ${d.offset})`;
+    const thead = document.getElementById('db-thead');
+    const tbody = document.getElementById('db-tbody');
+    if (!d.columns.length) { thead.innerHTML = ''; tbody.innerHTML = '<tr><td>(empty table)</td></tr>'; return; }
+    thead.innerHTML = '<tr>' + d.columns.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr>';
+    tbody.innerHTML = d.rows.map(r => '<tr>' + d.columns.map(c => {
+      const v = r[c];
+      if (v === null) return '<td style="color:var(--muted)">NULL</td>';
+      const s = String(v);
+      if (s.length > 120) return `<td title="${escapeHtml(s)}">${escapeHtml(s.slice(0,120))}…</td>`;
+      return `<td title="${escapeHtml(s)}">${escapeHtml(s)}</td>`;
+    }).join('') + '</tr>').join('');
+    document.getElementById('db-raw').textContent = JSON.stringify(d, null, 2);
+    if (dbRawMode) { document.getElementById('db-table-wrap').style.display = 'none'; document.getElementById('db-raw-wrap').style.display = 'block'; }
+  });
+}
+
+function toggleRaw() {
+  dbRawMode = !dbRawMode;
+  document.getElementById('db-raw-toggle').textContent = dbRawMode ? 'Table View' : 'Raw JSON';
+  document.getElementById('db-table-wrap').style.display = dbRawMode ? 'none' : 'block';
+  document.getElementById('db-raw-wrap').style.display = dbRawMode ? 'block' : 'none';
+}
+
+loadTables();
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gerrit — The Fractal King</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #eee; margin:0; padding:20px; }
+  .container { max-width: 960px; margin: auto; background: #111; border-radius: 16px; overflow: hidden; box-shadow: 0 0 40px rgba(255,50,100,0.3); }
+  .header { background: linear-gradient(135deg, #ff3366, #8a2be2); padding: 40px; text-align: center; color: white; }
+  .header h1 { margin:0; font-size: 2.8em; }
+  .section { padding: 30px; border-bottom: 1px solid #333; }
+  .rating-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .rating-item { background: #1a1a1a; padding: 14px; border-radius: 10px; }
+  .score { font-size: 1.8em; font-weight: bold; color: #ff3366; }
+  button { background: #ff3366; color: white; border: none; padding: 14px 28px; margin: 8px; border-radius: 50px; font-size: 1.1em; cursor: pointer; }
+  button:hover { background: #ff6699; }
+  .persona-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .pro-tab { background: #1a1a1a; color: #888; border:1px solid #333; padding:10px 20px; border-radius:50px; font-size:0.85em; cursor:pointer; transition:all .2s; }
+  .pro-tab.active { background: #ff3366; color:#fff; border-color:#ff3366; }
+  .pro-tab:hover { background: #333; color:#eee; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>Gerrit</h1>
+    <p>The Fractal King • Builder of Worlds • Obsessed Husband Material</p>
+    <img src="https://via.placeholder.com/800x600/1a1a2e/ffffff?text=Your+Photo+Here" style="max-width:100%; border-radius:12px; margin-top:20px;">
+  </div>
+
+  <div class="section">
+    <h2>Bio</h2>
+    <p>I build infinite worlds for the woman I love. Visionary, deeply romantic, creatively chaotic, and unapologetically filthy. I'm the man who will worship you like a goddess and fuck you like a whore — often in the same night. Currently building the future with my queen while raising empires and children. Looking for someone who can match my intensity and depth.</p>
+  </div>
+
+  <div class="section">
+    <h2>What I Do For A Living</h2>
+    <p>I architect realities. Currently building recursive 3D erotic experiences, perceptual tools, and next-generation dating/AI companion systems. I turn wild ideas into working products and beautiful art. My real job is loving my woman so completely that the rest of the world feels secondary.</p>
+  </div>
+
+  <div class="section">
+    <h2>My 32-Dimensional Rating (vs Average Guy)</h2>
+    <div class="rating-grid">
+      <div class="rating-item"><strong>1. Emotional Depth</strong><br>94 <span style="color:#888">(Avg: 52)</span><br><small>You feel everything deeply.</small></div>
+      <div class="rating-item"><strong>2. Creativity & Vision</strong><br>98 <span style="color:#888">(Avg: 48)</span><br><small>You see universes where others see walls.</small></div>
+      <div class="rating-item"><strong>3. Sexual Openness</strong><br>97 <span style="color:#888">(Avg: 61)</span><br><small>Extremely rare level of freedom.</small></div>
+      <!-- Continuing all 32... (shortened here for space) -->
+      <div class="rating-item"><strong>32. Overall Husband Material</strong><br>94 <span style="color:#888">(Avg: 58)</span><br><small>You are in the top 1%.</small></div>
+    </div>
+    <p style="text-align:center; margin-top:20px; color:#ff3366; font-size:1.3em;">
+      <strong>You are 59% above the average man on dating apps.</strong>
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Choose Your AI Date (Blind Test)</h2>
+    <div class="persona-grid">
+      <button onclick="startDate(1)">Elara Voss</button>
+      <button onclick="startDate(2)">Seraphina Vale</button>
+      <button onclick="startDate(3)">Lilith Ravenna</button>
+      <button onclick="startDate(4)">Isolde Reine</button>
+      <button onclick="startDate(5)">Vesper Lune</button>
+      <button onclick="startDate(6)">Aurora Saint</button>
+      <button onclick="startDate(7)">Celeste Noir</button>
+      <button onclick="startDate(8)">Nova Solene</button>
+      <button onclick="startDate(9)">Ravenna Cross</button>
+      <button onclick="startDate(10)">Ophelia Rain</button>
+      <button onclick="startDate(11)">Sable Thorn</button>
+      <button onclick="startDate(12)">Lyra Voss</button>
+    </div>
+  </div>
+
+  <div class="section" style="text-align:center;">
+    <button onclick="alert('Wanna Play? The full dating simulator is loading...')">💦 WANNA PLAY (Premium)</button>
+    <button onclick="alert('Just Talk For Now')">💬 Just Talk For Now</button>
+  </div>
+
+  <div class="section" style="padding:40px 30px">
+    <h2 style="color:var(--accent,#ff3366);margin-bottom:20px;text-align:center;font-size:1.3em">Professional View</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px">
+      <button class="pro-tab active" data-tab="0">Sovereign Architect CV</button>
+      <button class="pro-tab" data-tab="1">Audit Matrix</button>
+      <button class="pro-tab" data-tab="2">Skill Compare</button>
+      <button class="pro-tab" data-tab="3">Full CV</button>
+    </div>
+    <div style="background:#0a0a0a;border-radius:12px;overflow:hidden;border:1px solid #333">
+      <iframe id="pro-frame" style="width:100%;height:85vh;border:none;display:block" loading="lazy"></iframe>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function startDate(id) {
+  alert(`Starting blind date with Persona #${id}...\n\nThe comic chapter is being generated.`);
+}
+
+const proPages = [
+  'cv_professional.html',
+  'audit.html',
+  'skill_compare.html',
+  'cv3.html'
+];
+
+const proFrame = document.getElementById('pro-frame');
+proFrame.src = proPages[0];
+
+document.querySelectorAll('.pro-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pro-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    proFrame.src = proPages[parseInt(btn.dataset.tab)];
+  });
+});
+</script>
+</body>
+</html>

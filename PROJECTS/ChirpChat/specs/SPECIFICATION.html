@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChirpChat — Zero-Internet Mesh Messaging Specification</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'SF Mono', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #00ffcc; border-left: 4px solid #00ffcc; padding-left: 1rem; margin-bottom: 1rem; }
+        .subtitle { color: #94a3b8; margin-bottom: 2rem; padding-left: calc(1rem + 4px); }
+        h2 { color: #ffcc00; margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+        h3 { color: #ff9966; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        h4 { color: #e0e0e0; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #333;
+        }
+        .badge {
+            display: inline-block;
+            background: #00ffcc20;
+            color: #00ffcc;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            font-family: monospace;
+        }
+        .badge-warn {
+            background: #ffcc0020;
+            color: #ffcc00;
+        }
+        .badge-orange {
+            background: #ff996620;
+            color: #ff9966;
+        }
+        .code-block {
+            background: #0d0d0d;
+            border-left: 3px solid #00ffcc;
+            padding: 1rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        th { background: #00ffcc10; color: #00ffcc; }
+        .success { color: #00ffaa; }
+        .warn { color: #ffcc00; }
+        hr { border-color: #333; margin: 2rem 0; }
+        ul, ol { margin: 1rem 0; padding-left: 1.5rem; }
+        li { margin-bottom: 0.5rem; }
+        .footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #333;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .toc { background: #111; padding: 1.5rem; border-radius: 8px; }
+        .toc a { color: #00ffcc; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .toc ul { list-style: none; padding-left: 0; }
+        .toc li { padding: 0.25rem 0; }
+        .toc li li { padding-left: 1.5rem; }
+        .arch-diagram {
+            background: #0d0d0d;
+            padding: 2rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            white-space: pre;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h1>ChirpChat</h1>
+    <p class="subtitle">Zero-Internet Mesh Messaging — Complete Unified Specification</p>
+
+    <div class="toc">
+        <strong>Contents</strong>
+        <ul>
+            <li><a href="#s1">1. Executive Summary</a></li>
+            <li><a href="#s2">2. System Scope</a></li>
+            <li><a href="#s3">3. Architecture Overview</a></li>
+            <li><a href="#s4">4. Ultrasonic Pairing Protocol</a></li>
+            <li><a href="#s5">5. Wi-Fi Mesh Layer</a></li>
+            <li><a href="#s6">6. Message Protocol</a></li>
+            <li><a href="#s7">7. File Sharing</a></li>
+            <li><a href="#s8">8. Security Model</a></li>
+            <li><a href="#s9">9. Data Storage</a></li>
+            <li><a href="#s10">10. UI/UX</a></li>
+            <li><a href="#s11">11. Tech Stack</a></li>
+            <li><a href="#s12">12. Implementation Roadmap</a></li>
+            <li><a href="#s13">13. Open Questions</a></li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 1 ========== -->
+    <h2 id="s1">1. Executive Summary</h2>
+    <div class="card">
+        <p>ChirpChat is a <strong>zero-internet, decentralized mesh messaging application</strong> that enables peer-to-peer text messaging, group chat, and file sharing without any cloud infrastructure, cellular connectivity, or internet access.</p>
+        <p><span class="badge">PAIRING</span> Devices discover and authenticate using <strong>ultrasonic audio chirps</strong> (19-24kHz, inaudible to humans)</p>
+        <p><span class="badge">MESH</span> Messages route over <strong>Wi-Fi Direct / local hotspot</strong> mesh, not the internet</p>
+        <p><span class="badge">SECURITY</span> End-to-end encrypted with <strong>forward secrecy</strong>, no server to compromise</p>
+        <p><span class="badge">OFFLINE</span> Functions in disaster zones, remote areas, air-gapped environments, or any scenario without network infrastructure</p>
+    </div>
+
+    <!-- ========== SECTION 2 ========== -->
+    <h2 id="s2">2. System Scope</h2>
+    <div class="card">
+        <h3>What ChirpChat Is</h3>
+        <ul>
+            <li>A decentralized messaging app that works without internet, cellular towers, or any centralized infrastructure</li>
+            <li>A mesh network where every device acts as both client and router</li>
+            <li>An ultrasonic pairing mechanism for zero-touch device discovery</li>
+            <li>A privacy-first communication tool with end-to-end encryption by default</li>
+        </ul>
+        <h3>What ChirpChat Is Not</h3>
+        <ul>
+            <li>Not a WhatsApp replacement for online use</li>
+            <li>Not a cloud-backed service</li>
+            <li>Not compatible with standard email or SMS</li>
+            <li>Not a peer-to-peer file sharing network (BitTorrent-style)</li>
+            <li>Not designed for real-time voice/video calls (future consideration)</li>
+        </ul>
+        <p><span class="badge">ISO_004</span> ChirpChat is a separate project from VAN_Engine. No cross-project merging.</p>
+        <p><span class="badge">ISO_019</span> No external bridges or cloud dependencies. Fully offline by default.</p>
+        <p><span class="badge">PLATFORMS</span> Mobile-first (Android/iOS). Desktop companion (Windows/macOS/Linux) for file transfers.</p>
+    </div>
+
+    <!-- ========== SECTION 3 ========== -->
+    <h2 id="s3">3. Architecture Overview</h2>
+    <div class="card">
+        <p>ChirpChat uses a <strong>three-layer architecture</strong> separating concerns for audio pairing, mesh networking, and application logic.</p>
+
+        <h3>Three-Layer Model</h3>
+        <table>
+            <tr><th>Layer</th><th>Responsibility</th><th>Technology</th></tr>
+            <tr><td><strong>Layer 1: Audio Pairing</strong></td><td>Device discovery, handshake, key exchange via ultrasonic chirps</td><td>PCM audio encoding, FSK/OOK modulation, 19-24kHz</td></tr>
+            <tr><td><strong>Layer 2: Mesh Transport</strong></td><td>Node routing, message relay, peer-to-peer connectivity</td><td>Wi-Fi Direct, WebRTC, mDNS, TCP/UDP</td></tr>
+            <tr><td><strong>Layer 3: Application</strong></td><td>Messaging, file sharing, UI, encryption, persistence</td><td>Flutter/React Native, SQLite, libsodium</td></tr>
+        </table>
+
+        <h3>Component Diagram</h3>
+        <div class="arch-diagram">
++--------------------------------------------------------------------+
+|                        CHIRPCHAT SYSTEM                             |
++--------------------------------------------------------------------+
+|                                                                     |
+|  +-------------------------+  +--------------------------------+   |
+|  |   LAYER 3: APPLICATION  |  |  UI (Conversation List, Chat,  |   |
+|  |                         |  |       Pairing, Settings)       |   |
+|  |  +-------------------+  |  +--------------------------------+   |
+|  |  | Message Manager   |  |  +--------------------------------+   |
+|  |  | File Share Engine |  |  |  Local DB (SQLite + encrypted) |   |
+|  |  | Group Coordinator |  |  +--------------------------------+   |
+|  |  +-------------------+  |                                        |
+|  +-------------------------+                                        |
+|                                                                     |
+|  +-------------------------+  +--------------------------------+   |
+|  |   LAYER 2: MESH        |  |  Node Discovery (mDNS + audio)  |   |
+|  |                         |  |  Message Routing (flooding)     |   |
+|  |  +-------------------+  |  |  Connection Manager (WiFi-Direct|   |
+|  |  | Router            |  |  |    + WebRTC)                   |   |
+|  |  | Connection Pool   |  |  +--------------------------------+   |
+|  |  | Sync Engine       |  |                                        |
+|  |  +-------------------+  |                                        |
+|  +-------------------------+                                        |
+|                                                                     |
+|  +-------------------------+  +--------------------------------+   |
+|  |   LAYER 1: AUDIO       |  |  Chirp Encoder/Decoder         |   |
+|  |                         |  |  Frequency Modulator (19-24kHz)|   |
+|  |  +-------------------+  |  |  Handshake State Machine       |   |
+|  |  | Chirp Transceiver |  |  +--------------------------------+   |
+|  |  +-------------------+  |                                        |
+|  +-------------------------+                                        |
++--------------------------------------------------------------------+
+        </div>
+
+        <h3>Data Flow: Device Pairing</h3>
+        <div class="arch-diagram">
+Device A                         Device B
+   |                                |
+   |--- [ultrasonic] Discover ----->|  (19-24kHz chirp: "I am here")
+   |<-- [ultrasonic] Challenge -----|  (nonce + ephemeral public key)
+   |--- [ultrasonic] Response ----->|  (signed challenge + ephemeral key)
+   |<-- [ultrasonic] Confirm -------|  (session key fingerprint)
+   |                                |
+   |--- [Wi-Fi Direct] Connect ---->|  (TCP connection established)
+   |--- [encrypted] Messages -------|  (AEAD-encrypted, E2E)
+        </div>
+
+        <h3>Data Flow: Message Relay</h3>
+        <div class="arch-diagram">
+Alice sends: "Hello group"
+   |
+   v
+[Alice's Router] -- encrypts with group key
+   |
+   v
+[Alice's Mesh Layer] -- broadcasts to connected peers
+   |
+   +--->[Bob] -- decrypts, displays, re-broadcasts
+   |
+   +--->[Carol] -- decrypts, displays, re-broadcasts
+   |        |
+   |        +--->[Dave] -- decrypts, displays (TTL expired)
+   |
+   +--->[Eve] -- not a group member, can't decrypt (stores encrypted blob)
+        </div>
+    </div>
+
+    <!-- ========== SECTION 4 ========== -->
+    <h2 id="s4">4. Ultrasonic Pairing Protocol</h2>
+    <div class="card">
+        <p><span class="badge">SPEC</span> Version 1.0</p>
+        <p><span class="badge">BAND</span> 19,000 Hz - 24,000 Hz (inaudible to most humans, above typical hearing range)</p>
+
+        <h3>4.1 Frequency Allocations</h3>
+        <table>
+            <tr><th>Frequency</th><th>Purpose</th></tr>
+            <tr><td>19,000 - 19,500 Hz</td><td>Discovery chirp / presence beacon</td></tr>
+            <tr><td>19,500 - 20,000 Hz</td><td>Handshake control frames</td></tr>
+            <tr><td>20,000 - 22,000 Hz</td><td>Data payload (key exchange material)</td></tr>
+            <tr><td>22,000 - 24,000 Hz</td><td>Error correction / redundancy guard band</td></tr>
+        </table>
+
+        <h3>4.2 Chirp Frame Structure</h3>
+        <div class="code-block">
+Frame format (each chirp = ~100ms duration):
+
++---------+----------+-----------+-----------+------------+
+| Preamble| Sync Word| Header    | Payload   | CRC-32     |
+| 16 bits | 16 bits  | 16 bits   | Variable  | 32 bits    |
++---------+----------+-----------+-----------+------------+
+
+Preamble: 0xAAAA (alternating bits for clock recovery)
+Sync:     0xCB3C (unique word for frame detection)
+Header:   [4 bits: frame type][4 bits: version][8 bits: length]
+Payload:  Frame-type-specific data (see 4.3)
+CRC-32:   IEEE 802.3 CRC over Header + Payload
+
+Modulation: Frequency Shift Keying (FSK) with 2 carriers
+  - Mark (1): center frequency + 200 Hz
+  - Space (0): center frequency - 200 Hz
+Bit rate: ~200 bps (after error correction)
+        </div>
+
+        <h3>4.3 Frame Types</h3>
+        <table>
+            <tr><th>Type</th><th>Code</th><th>Payload</th><th>Direction</th></tr>
+            <tr><td>DISCOVER</td><td>0x01</td><td>DeviceID (8 bytes) + Capabilities (4 bytes)</td><td>Broadcast</td></tr>
+            <tr><td>CHALLENGE</td><td>0x02</td><td>Nonce (16 bytes) + Ephemeral Public Key (32 bytes)</td><td>Unicast response</td></tr>
+            <tr><td>RESPONSE</td><td>0x03</td><td>Signed Nonce (64 bytes) + Ephemeral Public Key (32 bytes)</td><td>Unicast response</td></tr>
+            <tr><td>CONFIRM</td><td>0x04</td><td>Session Fingerprint (4 bytes) + Connection Token (16 bytes)</td><td>Unicast</td></tr>
+            <tr><td>ACK</td><td>0x05</td><td>Frame sequence number (2 bytes)</td><td>Unicast</td></tr>
+            <tr><td>ERROR</td><td>0xFF</td><td>Error code (1 byte) + Reason (variable)</td><td>Unicast</td></tr>
+        </table>
+
+        <h3>4.4 Handshake Sequence</h3>
+        <ol>
+            <li><strong>Discover:</strong> Device A broadcasts DISCOVER chirp every 3 seconds while in pairing mode. Includes DeviceID and capabilities flag (supports Wi-Fi Direct, WebRTC, file sharing).</li>
+            <li><strong>Challenge:</strong> Device B hears DISCOVER, responds with CHALLENGE containing a random 16-byte nonce and its X25519 ephemeral public key.</li>
+            <li><strong>Response:</strong> Device A signs B's nonce with its Ed25519 identity key, includes its own ephemeral public key, and sends RESPONSE.</li>
+            <li><strong>Confirm:</strong> Device B verifies the signature, derives shared secret via X25519(eph_sk, eph_pk), sends CONFIRM with first 4 bytes of session fingerprint (SHA-256 of shared secret).</li>
+            <li><strong>Key Established:</strong> Both devices now share a session key. Connection token is passed via audio; devices switch to Wi-Fi Direct for data channel.</li>
+        </ol>
+
+        <h3>4.5 Collision Detection</h3>
+        <p>When multiple devices chirp simultaneously, collisions occur. Mitigation strategies:</p>
+        <ul>
+            <li><strong>Random backoff:</strong> Each device waits a random interval (500-2000ms) between DISCOVER chirps. The interval is seeded by DeviceID to reduce birthday collisions.</li>
+            <li><strong>Carrier sensing:</strong> Before chirping, listen on the discovery frequency for ~50ms. If energy detected, skip this cycle.</li>
+            <li><strong>CRC failure retry:</strong> If CRC-32 check fails, receiver sends no ACK. Sender retransmits after backoff (exponential: 100ms, 200ms, 400ms, max 3 retries).</li>
+            <li><strong>Collision domain:</strong> The discovery channel is shared; once CHALLENGE/RESPONSE phase begins, devices hop to a frequency derived from the DeviceID pair (frequency = 20,000 + hash(id_a XOR id_b) % 2,000).</li>
+        </ul>
+
+        <h3>4.6 Fallback Pairing</h3>
+        <p>If ultrasonic pairing fails after 3 attempts (ambient noise, hardware filtering, hearing impairment):</p>
+        <ul>
+            <li><strong>QR code:</strong> Device A displays a QR code encoding the same DISCOVER payload + ephemeral key. Device B scans.</li>
+            <li><strong>NFC:</strong> Devices tap to exchange handshake material via NDEF record.</li>
+            <li><strong>Manual code:</strong> 6-digit numeric code displayed on one device, entered on the other. Derives ephemeral key from code + device secret.</li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 5 ========== -->
+    <h2 id="s5">5. Wi-Fi Mesh Layer</h2>
+    <div class="card">
+        <p>The mesh layer connects devices after ultrasonic pairing establishes trust. It manages node discovery, message routing, and connection maintenance.</p>
+
+        <h3>5.1 Topology: Flooding Mesh</h3>
+        <p>ChirpChat uses a <strong>flooding mesh</strong> topology where every message received by a node is re-broadcast to all connected peers within a Time-To-Live (TTL) limit. This is the simplest mesh routing strategy and appropriate for the expected scale (dozens of devices, not thousands).</p>
+        <table>
+            <tr><th>Property</th><th>Value</th></tr>
+            <tr><td>Topology type</td><td>Flooding mesh (epidemic routing)</td></tr>
+            <tr><td>Max mesh size</td><td>256 nodes (target), 64 nodes (v1.0)</td></tr>
+            <tr><td>Default TTL</td><td>7 hops</td></tr>
+            <tr><td>Re-broadcast delay</td><td>50-200ms jitter (random per hop)</td></tr>
+        </table>
+
+        <h3>5.2 Node Identity</h3>
+        <ul>
+            <li>Each device generates an <strong>Ed25519 keypair</strong> on first launch</li>
+            <li><strong>NodeID</strong> = base58(public_key[0:8]) (8-byte truncated hash, collision-resistant for mesh scale)</li>
+            <li>A human-readable <strong>display name</strong> is settable by the user (default: random adjective-noun pair)</li>
+            <li>NodeID is stable across restarts. Display name can change.</li>
+        </ul>
+
+        <h3>5.3 Node Discovery</h3>
+        <p>After ultrasonic pairing, the connection token is used to establish a transport link:</p>
+        <ol>
+            <li><strong>Wi-Fi Direct (P2P):</strong> One device becomes the Group Owner (GO), the other connects as client. GO assignment negotiated during pairing (device with more battery becomes GO).</li>
+            <li><strong>mDNS:</strong> Each node announces itself via mDNS on the local subnet with service type <code>_chirpchat._tcp</code>. Nodes previously paired by audio can reconnect via mDNS without re-chirping.</li>
+            <li><strong>Periodic presence:</strong> Every 30 seconds, each node broadcasts a lightweight PRESENCE chirp (ultrasonic) containing only NodeID + IP hash for re-discovery.</li>
+        </ol>
+
+        <h3>5.4 Message Propagation</h3>
+        <div class="code-block">
+Message envelope (routing layer):
+{
+  "msg_id": "base58(32-byte random)",
+  "origin_node": "NodeID of sender",
+  "sender_node": "NodeID of last hop",
+  "ttl": 7,
+  "hop_count": 0,
+  "payload_hash": "SHA-256 of encrypted payload",
+  "payload_size": 1234,
+  "payload": "encrypted message blob (base64)"
+}
+
+Routing algorithm:
+1. Receive message
+2. If msg_id in seen_cache (last 10,000 messages), DROP
+3. If ttl <= 0, DROP
+4. Store encrypted blob (for sync)
+5. Decrypt if intended recipient or group member
+6. Decrement ttl, increment hop_count
+7. Forward to all connected peers (except origin_node)
+8. Wait random jitter (50-200ms) before each forward
+        </div>
+
+        <h3>5.5 NAT / Network Boundaries</h3>
+        <ul>
+            <li><strong>Wi-Fi Direct:</strong> Operates at Layer 2, bypasses IP routing entirely. No NAT issues.</li>
+            <li><strong>LAN (same subnet):</strong> mDNS + TCP direct. No NAT.</li>
+            <li><strong>Mesh bridge:</strong> A node connected to two separate mesh islands (e.g., in two rooms) acts as a bridge. It re-broadcasts messages between the islands. No STUN/TURN needed.</li>
+            <li><strong>Cellular fallback:</strong> Explicitly disabled per ISO_019. ChirpChat never uses cellular data unless user enables bridge mode.</li>
+        </ul>
+
+        <h3>5.6 Database Sync / Conflict Resolution</h3>
+        <ul>
+            <li>Each message has a <strong>Lamport timestamp</strong> (node clock + NodeID tiebreaker) for causal ordering</li>
+            <li>Conflicts (concurrent edits on different nodes) are resolved by <strong>last-writer-wins</strong> based on Lamport timestamp</li>
+            <li>Deleted messages are tombstoned (deletion marker + timestamp), never truly erased from mesh</li>
+            <li>Each node syncs its message store incrementally when they detect a peer with a higher max timestamp</li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 6 ========== -->
+    <h2 id="s6">6. Message Protocol</h2>
+    <div class="card">
+        <p>The application-layer message protocol defines how messages are structured, serialized, encrypted, and delivered.</p>
+
+        <h3>6.1 Wire Format: Protocol Buffers</h3>
+        <p>Messages are serialized using <strong>Protocol Buffers (protobuf)</strong> for compact binary encoding and cross-platform compatibility. Protobuf was chosen over JSON for smaller wire footprint (~30% smaller) which matters for ultrasonic backup channels.</p>
+
+        <div class="code-block">
+syntax = "proto3";
+
+message Envelope {
+    string msg_id = 1;           // Unique message ID (base58)
+    string conversation_id = 2;  // Conversation identifier
+    uint64 timestamp = 3;        // Lamport timestamp (milliseconds)
+    MessageType type = 4;        // Message type enum
+    bytes encrypted_payload = 5; // AEAD-encrypted Content
+    bytes sender_signature = 6;  // Ed25519 signature of (msg_id + timestamp + encrypted_payload)
+    uint32 ttl = 7;              // Remaining TTL
+    string origin_node = 8;      // Originating NodeID
+}
+
+enum MessageType {
+    TEXT = 0;
+    IMAGE = 1;
+    FILE_METADATA = 2;
+    FILE_CHUNK = 3;
+    TYPING = 4;
+    DELIVERY_RECEIPT = 5;
+    READ_RECEIPT = 6;
+    GROUP_CREATE = 7;
+    GROUP_ADD = 8;
+    GROUP_REMOVE = 9;
+}
+
+message Content {
+    oneof content {
+        TextMessage text = 1;
+        FileMetadata file_meta = 2;
+        FileChunk file_chunk = 3;
+        TypingIndicator typing = 4;
+        Receipt receipt = 5;
+        GroupAction group = 6;
+    }
+}
+
+message TextMessage {
+    string body = 1;             // UTF-8 text (max 4096 bytes)
+    repeated string mentions = 2; // Mentioned NodeIDs
+    string reply_to = 3;         // Optional: msg_id being replied to
+}
+        </div>
+
+        <h3>6.2 Message Types</h3>
+        <table>
+            <tr><th>Type</th><th>Code</th><th>Description</th><th>Delivery</th></tr>
+            <tr><td>TEXT</td><td>0</td><td>Plain text message, up to 4096 bytes</td><td>At-least-once</td></tr>
+            <tr><td>IMAGE</td><td>1</td><td>Inline image (resized to 1920px, JPEG, max 5MB)</td><td>At-least-once</td></tr>
+            <tr><td>FILE_METADATA</td><td>2</td><td>File name, size, hash, total chunks, erasure coding params</td><td>At-least-once</td></tr>
+            <tr><td>FILE_CHUNK</td><td>3</td><td>One chunk of an erasure-coded file (max 64KB each)</td><td>Best-effort</td></tr>
+            <tr><td>TYPING</td><td>4</td><td>"User is typing" indicator (not stored)</td><td>At-most-once</td></tr>
+            <tr><td>DELIVERY_RECEIPT</td><td>5</td><td>Message was received by device</td><td>At-most-once</td></tr>
+            <tr><td>READ_RECEIPT</td><td>6</td><td>Message was read by user</td><td>At-most-once</td></tr>
+            <tr><td>GROUP_CREATE</td><td>7</td><td>Create new group with members</td><td>At-least-once</td></tr>
+            <tr><td>GROUP_ADD</td><td>8</td><td>Add member to existing group</td><td>At-least-once</td></tr>
+            <tr><td>GROUP_REMOVE</td><td>9</td><td>Remove member from group (admin only)</td><td>At-least-once</td></tr>
+        </table>
+
+        <h3>6.3 Delivery Semantics</h3>
+        <table>
+            <tr><th>Semantic</th><th>Use Case</th><th>Mechanism</th></tr>
+            <tr><td><strong>At-least-once</strong></td><td>Text, images, file metadata, group actions</td><td>Receiver sends DELIVERY_RECEIPT. Sender stores msg_id + pending_ack. Retransmits every 5s until ACK received or TTL expires. Duplicates deduplicated by msg_id.</td></tr>
+            <tr><td><strong>At-most-once</strong></td><td>Typing indicators, delivery/read receipts</td><td>Fire-and-forget. No ACK. No retransmission. Loss is acceptable.</td></tr>
+            <tr><td><strong>Best-effort</strong></td><td>File chunks</td><td>Sent over mesh without ACK per chunk. Receiver requests missing chunks via dedicated REQUEST message. Sender retransmits on request.</td></tr>
+        </table>
+
+        <h3>6.4 Group Chat Model</h3>
+        <ul>
+            <li>Groups are <strong>broadcast groups</strong>: each message is encrypted with a symmetric group key and broadcast to all mesh peers.</li>
+            <li>Only group members can decrypt. Non-members store the encrypted blob and forward it, but cannot read it.</li>
+            <li>Group membership is tracked via an <strong>append-only log</strong> of GROUP_CREATE, GROUP_ADD, GROUP_REMOVE messages.</li>
+            <li>Group key rotates on member removal (new key distributed to remaining members via pairwise channels).</li>
+            <li>Maximum group size: 32 members (v1.0).</li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 7 ========== -->
+    <h2 id="s7">7. File Sharing</h2>
+    <div class="card">
+        <p>File sharing uses <strong>erasure coding</strong> to survive message loss in the mesh. Instead of reliability at the transport layer, reliability is built into the file encoding.</p>
+
+        <h3>7.1 Erasure Coding: Reed-Solomon</h3>
+        <table>
+            <tr><th>Parameter</th><th>Value</th><th>Rationale</th></tr>
+            <tr><td>Algorithm</td><td>Reed-Solomon (GF(2^16))</td><td>Proven, well-optimized, constant-time implementations available</td></tr>
+            <tr><td>Data chunks (k)</td><td>8</td><td>Good balance of overhead vs. recovery</td></tr>
+            <tr><td>Parity chunks (m)</td><td>4</td><td>25% overhead; survives loss of up to 33% of chunks</td></tr>
+            <tr><td>Total chunks (n)</td><td>12</td><td>k + m</td></tr>
+            <tr><td>Chunk size</td><td>64 KB</td><td>Fits within typical MTU for mesh; avoids fragmentation</td></tr>
+        </table>
+
+        <p><strong>Encoding process:</strong></p>
+        <ol>
+            <li>Input file is split into 64 KB blocks. If the last block is smaller, it is zero-padded.</li>
+            <li>Each block is grouped into sets of 8 (k). The 8 data chunks + 4 parity chunks are computed via Reed-Solomon matrix multiplication.</li>
+            <li>Each chunk is assigned a unique (block_index, chunk_index) coordinate.</li>
+            <li>Chunks are broadcast as FILE_CHUNK messages over the mesh.</li>
+            <li>Receiver collects any 8 of 12 chunks per block to reconstruct. Lost chunks are recoverable from parity.</li>
+        </ol>
+
+        <h3>7.2 File Metadata Schema</h3>
+        <div class="code-block">
+message FileMetadata {
+    string file_id = 1;          // Unique ID for this transfer
+    string file_name = 2;        // Original filename (UTF-8)
+    uint64 file_size = 3;        // Size in bytes
+    string mime_type = 4;        // MIME type (e.g., "image/jpeg")
+    string sha256_hash = 5;       // SHA-256 of original file
+    uint32 total_blocks = 6;     // Total number of blocks
+    uint32 chunk_size = 7;       // Chunk size in bytes (65536)
+    uint32 k = 8;                // Data chunks per block (8)
+    uint32 m = 9;                // Parity chunks per block (4)
+    repeated string recipient_ids = 10; // Intended recipients (NodeIDs)
+}
+        </div>
+
+        <h3>7.3 Chunk Reassembly</h3>
+        <ol>
+            <li>Receiver accumulates FILE_CHUNK messages, indexed by (block_index, chunk_index).</li>
+            <li>Once any 8-of-12 chunks per block arrive, decode the block via Reed-Solomon and write to disk.</li>
+            <li>After all blocks are decoded, concatenate in order and verify SHA-256 hash.</li>
+            <li>If hash matches, emit a delivery receipt with file_id. If not, request missing chunks from sender.</li>
+            <li>Missing chunk request: unicast a REQUEST_CHUNK message to the sender node containing (file_id, block_index, chunk_index). Sender retransmits on request.</li>
+        </ol>
+
+        <h3>7.4 Thumbnail Previews</h3>
+        <ul>
+            <li>Images: sender generates a 256x256 JPEG thumbnail (max 10 KB) and sends it inline as the IMAGE message. Full-resolution file is erasure-coded separately.</li>
+            <li>Files: no thumbnail. Display icon based on MIME type.</li>
+        </ul>
+
+        <h3>7.5 File Size Limits</h3>
+        <table>
+            <tr><th>File Type</th><th>Max Size (v1.0)</th><th>Rationale</th></tr>
+            <tr><td>Image</td><td>10 MB</td><td>Mesh bandwidth limitation</td></tr>
+            <tr><td>Document</td><td>50 MB</td><td>PDFs, spreadsheets, text</td></tr>
+            <tr><td>Archive</td><td>100 MB</td><td>ZIP/RAR, practical maximum for mobile mesh</td></tr>
+        </table>
+    </div>
+
+    <!-- ========== SECTION 8 ========== -->
+    <h2 id="s8">8. Security Model</h2>
+    <div class="card">
+        <p><span class="badge">DESIGN GOAL</span> Provide end-to-end encryption with forward secrecy, authenticated by ultrasonic proximity. No server can be compromised because no server exists.</p>
+
+        <h3>8.1 Device Identity</h3>
+        <ul>
+            <li><strong>Long-term keypair:</strong> Ed25519 (signing) generated on first launch. Stored encrypted in device keychain (Android keystore / iOS Secure Enclave).</li>
+            <li><strong>NodeID:</strong> base58(truncate(SHA-256(public_key), 8)). Displayed as a human-readable checksum.</li>
+            <li><strong>Display name:</strong> User-settable alias. Not trusted for authentication. Verified by NodeID.</li>
+            <li><strong>Identity fingerprint:</strong> 12-word BIP39 mnemonic derived from public key for out-of-band verification.</li>
+        </ul>
+
+        <h3>8.2 Key Exchange: X3DH (Extended Triple Diffie-Hellman)</h3>
+        <p>ChirpChat uses the <strong>X3DH</strong> key agreement protocol (as used in Signal) to establish a session key between two devices:</p>
+        <ol>
+            <li>Each device maintains an identity key (IK), a signed pre-key (SPK), and a one-time pre-key (OPK) bundle.</li>
+            <li>During ultrasonic pairing, devices exchange IK + ephemeral key via CHALLENGE/RESPONSE frames.</li>
+            <li>The shared secret is derived as: <code>DH(IK_A, SPK_B) || DH(EK_A, IK_B) || DH(EK_A, SPK_B) || DH(EK_A, OPK_B)</code></li>
+            <li>The session key is derived from the shared secret via HKDF. It seeds a double ratchet for forward secrecy.</li>
+        </ol>
+
+        <h3>8.3 Forward Secrecy: Double Ratchet</h3>
+        <ul>
+            <li>After initial key exchange, messages use the <strong>Signal Double Ratchet</strong> algorithm for continuous forward secrecy.</li>
+            <li>Each message advances a ratchet step. Compromising the current session key does not reveal past messages.</li>
+            <li>Each message includes a new ephemeral public key (DH ratchet step) so that compromise of one device's keys does not reveal future messages.</li>
+        </ul>
+
+        <h3>8.4 Message Encryption</h3>
+        <ul>
+            <li>Algorithm: <strong>AES-256-GCM</strong> (or XChaCha20-Poly1305 on platforms with hardware acceleration)</li>
+            <li>Each message uses a unique nonce (12 bytes), derived from message sequence number + ratchet step</li>
+            <li>Encrypted payload: <code>nonce || ciphertext || auth_tag</code></li>
+            <li>Messages are signed by sender's Ed25519 key (for non-repudiation within the mesh)</li>
+        </ul>
+
+        <h3>8.5 Trust-On-First-Use (TOFU)</h3>
+        <ul>
+            <li>The first time two devices pair via ultrasonic, they exchange identity keys <strong>in person</strong> via audio. This establishes trust by physical proximity.</li>
+            <li>The device stores the peer's identity key permanently. Subsequent reconnections (via mDNS or Wi-Fi Direct) re-use the stored key.</li>
+            <li>If a peer's key changes, the device shows a warning: "Alice's identity has changed. This could mean Alice got a new device OR someone is intercepting your connection. Verify by chirping in person."</li>
+            <li>Users can verify keys out-of-band via the 12-word mnemonic fingerprint or by re-chirping.</li>
+        </ul>
+
+        <h3>8.6 Local Data Encryption</h3>
+        <ul>
+            <li>All messages are stored encrypted at rest using <strong>AES-256-GCM</strong> with a key derived from the device's master secret.</li>
+            <li>Master secret is derived from: <code>PKDF2(user_passphrase || device_keychain_secret, salt, 100000 iterations)</code></li>
+            <li>If no passphrase is set, the master secret is derived from device keychain only (weaker but more convenient).</li>
+            <li>Database file is SQLite with encrypted WAL. Page-level encryption via SQLCipher or similar.</li>
+        </ul>
+
+        <h3>8.7 Security Threat Model</h3>
+        <table>
+            <tr><th>Threat</th><th>Mitigation</th></tr>
+            <tr><td>Eavesdropping on ultrasonic pairing</td><td>Pairing requires physical proximity (~10m). Key exchange material is ephemeral and signed. Attacker would need to be in the same room.</td></tr>
+            <tr><td>Man-in-the-middle during pairing</td><td>TOFU with physical presence verification. Fingerprint verification via 12-word mnemonic.</td></tr>
+            <tr><td>Compromised mesh node</td><td>End-to-end encryption limits impact. Compromised node can only see messages it has keys for. It cannot read group messages it's not a member of.</td></tr>
+            <tr><td>Message replay</td><td>Lamport timestamps + message ID deduplication. Replayed messages are dropped.</td></tr>
+            <tr><td>Denial of service (message flood)</td><td>Rate limiting per peer (100 msg/s max). TTL bounds prevent infinite floods.</td></tr>
+            <tr><td>Physical device theft</td><td>Local data encrypted at rest with passphrase. Keystore/SE protects keys.</td></tr>
+        </table>
+    </div>
+
+    <!-- ========== SECTION 9 ========== -->
+    <h2 id="s9">9. Data Storage</h2>
+    <div class="card">
+        <h3>9.1 Local Database Schema</h3>
+        <p>SQLite with encrypted WAL via SQLCipher.</p>
+        <div class="code-block">
+-- Core tables
+CREATE TABLE conversations (
+    id TEXT PRIMARY KEY,            -- base58(conversation_id)
+    type INTEGER NOT NULL,          -- 0=direct, 1=group
+    name TEXT,                      -- Group name (null for direct)
+    created_at INTEGER NOT NULL,    -- Unix timestamp (ms)
+    last_message_at INTEGER,        -- Unix timestamp (ms)
+    unread_count INTEGER DEFAULT 0
+);
+
+CREATE TABLE messages (
+    id TEXT PRIMARY KEY,            -- msg_id
+    conversation_id TEXT NOT NULL,  -- FK to conversations
+    sender_id TEXT NOT NULL,        -- NodeID of sender
+    type INTEGER NOT NULL,          -- MessageType enum
+    body BLOB,                      -- Encrypted payload (decrypted on read)
+    timestamp INTEGER NOT NULL,     -- Lamport timestamp (ms)
+    status INTEGER DEFAULT 0,       -- 0=sending, 1=sent, 2=delivered, 3=read, 4=failed
+    reply_to TEXT,                  -- msg_id being replied to (nullable)
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+);
+
+CREATE TABLE file_transfers (
+    file_id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    mime_type TEXT,
+    sha256_hash TEXT NOT NULL,
+    total_blocks INTEGER NOT NULL,
+    received_blocks INTEGER DEFAULT 0,
+    status INTEGER DEFAULT 0,       -- 0=receiving, 1=complete, 2=failed
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+);
+
+CREATE TABLE group_members (
+    group_id TEXT NOT NULL,
+    node_id TEXT NOT NULL,
+    role INTEGER DEFAULT 0,         -- 0=member, 1=admin
+    added_at INTEGER NOT NULL,
+    PRIMARY KEY (group_id, node_id)
+);
+
+CREATE TABLE peer_devices (
+    node_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    identity_key BLOB NOT NULL,     -- Ed25519 public key
+    signed_pre_key BLOB,            -- X3DH signed pre-key
+    first_seen INTEGER NOT NULL,
+    last_seen INTEGER NOT NULL,
+    trust_level INTEGER DEFAULT 1   -- 0=blocked, 1=trusted, 2=verified
+);
+        </div>
+
+        <h3>9.2 Offline Queue</h3>
+        <ul>
+            <li>Messages sent while no peers are reachable are queued in the <code>messages</code> table with <code>status = 0 (sending)</code>.</li>
+            <li>When a connection is established, the mesh layer scans for pending messages with matching conversation_id and sends them.</li>
+            <li>Queued messages are retained for 30 days, then purged.</li>
+        </ul>
+
+        <h3>9.3 Export / Backup</h3>
+        <ul>
+            <li>Full database export: encrypted SQLite dump, protected by user passphrase. Exported via local file sharing (USB, Bluetooth, or ChirpChat file transfer).</li>
+            <li>Individual conversation export: decrypted JSON format (plaintext). For user's own records.</li>
+            <li>Cloud backup: explicitly <strong>not supported</strong> (ISO_019). Backup is device-to-device.</li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 10 ========== -->
+    <h2 id="s10">10. UI/UX</h2>
+    <div class="card">
+        <h3>10.1 Core Screens</h3>
+        <table>
+            <tr><th>Screen</th><th>Description</th></tr>
+            <tr><td><strong>Conversation List</strong></td><td>Chronological list of conversations. Shows last message preview, timestamp, unread badge. Swipe-to-delete. Pull-to-refresh (forces mesh sync).</td></tr>
+            <tr><td><strong>Chat View</strong></td><td>Standard messaging UI: message bubbles (sent right, received left), typing indicator, delivery status icons. File attachments shown as cards. Image preview inline (thumbnail).</td></tr>
+            <tr><td><strong>Pairing Screen</strong></td><td>QR code scanner at top. "Chirp to Pair" button activates ultrasonic mode (speaker icon animating). List of nearby discovered devices. Progress indicator for handshake. Fallback manual code entry.</td></tr>
+            <tr><td><strong>Settings</strong></td><td>Display name, profile picture (optional), passphrase lock, exported data, trusted devices list, about / version.</td></tr>
+            <tr><td><strong>Mesh Map</strong></td><td>Optional: visual graph of connected nodes, hop distances, last seen. Power users / debugging.</td></tr>
+        </table>
+
+        <h3>10.2 Message Delivery States</h3>
+        <table>
+            <tr><th>State</th><th>Icon</th><th>Meaning</th></tr>
+            <tr><td><strong>Sending</strong></td><td>Clock / spinner</td><td>Message queued locally, not yet transmitted</td></tr>
+            <tr><td><strong>Sent</strong></td><td>Single check</td><td>Message transmitted to at least one mesh peer</td></tr>
+            <tr><td><strong>Delivered</strong></td><td>Double check</td><td>Recipient device received and stored the message</td></tr>
+            <tr><td><strong>Read</strong></td><td>Filled double check</td><td>Recipient opened the conversation and viewed the message</td></tr>
+            <tr><td><strong>Failed</strong></td><td>Exclamation / red</td><td>TTL expired without delivery; tap to retry</td></tr>
+        </table>
+
+        <h3>10.3 Pairing Flow (User Perspective)</h3>
+        <ol>
+            <li>User A taps "Pair with Device" on ChirpChat home screen.</li>
+            <li>Phone emits a short ultrasonic chirp (inaudible). Screen shows "Listening for nearby devices..."</li>
+            <li>User B taps "Pair with Device" on their phone. Phones are within ~5m.</li>
+            <li>Both phones vibrate briefly to confirm pairing success. A new conversation appears in both users' conversation lists.</li>
+            <li>If ultrasonic fails after 3 attempts, app auto-suggests QR code. User A shows QR, User B scans.</li>
+            <li>Users can optionally verify keys by comparing a 6-digit code or a 12-word phrase shown on both devices.</li>
+        </ol>
+
+        <h3>10.4 Design Principles</h3>
+        <ul>
+            <li><strong>Mobile-first:</strong> Primary UI targets phone screens (360-428dp width). Desktop is a secondary concern.</li>
+            <li><strong>Offline-indicating:</strong> Connection state is always visible. Users should know when they're connected to the mesh and when they're isolated.</li>
+            <li><strong>Battery-conscious:</strong> Ultrasonic chirping and mesh relay are power-intensive. UI should indicate battery impact and suggest disabling relay when not needed.</li>
+            <li><strong>Privacy-respecting:</strong> No permission requests without explanation. Camera only for QR scanning. Microphone only during pairing. Location never required.</li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 11 ========== -->
+    <h2 id="s11">11. Tech Stack</h2>
+    <div class="card">
+        <table>
+            <tr><th>Layer</th><th>Recommended</th><th>Alternative</th><th>Rationale</th></tr>
+            <tr><td>Mobile UI</td><td><strong>Flutter</strong> (Dart)</td><td>React Native</td><td>Flutter has better audio latency characteristics and a mature Bluetooth/Wi-Fi Direct plugin ecosystem.</td></tr>
+            <tr><td>Desktop UI</td><td><strong>Tauri</strong> (Rust + HTML/JS)</td><td>Electron</td><td>Smaller binary, lower memory, better for background mesh routing.</td></tr>
+            <tr><td>Mesh Transport</td><td><strong>Rust</strong> (core routing library)</td><td>Go, C++</td><td>Rust's memory safety is critical for network-facing code. FFI bindings for Flutter via <code>flutter_rust_bridge</code>.</td></tr>
+            <tr><td>Audio Processing</td><td><strong>Rust</strong> (DSP via <code>rustfft</code> + <code>ringbuf</code>)</td><td>C (libsndfile)</td><td>Real-time audio DSP requires deterministic performance. Rust delivers.</td></tr>
+            <tr><td>Database</td><td><strong>SQLite + SQLCipher</strong></td><td>lmdb-rs</td><td>Ubiquitous, well-audited, encrypted WAL support, excellent Flutter support via <code>sqflite</code>.</td></tr>
+            <tr><td>Encryption</td><td><strong>libsodium</strong> (via <code>sodiumoxide</code>)</td><td>RustCrypto</td><td>Audited, constant-time, X25519 + AEAD + Ed25519 all in one library.</td></tr>
+            <tr><td>Erasure Coding</td><td><strong>reed-solomon-erasure</strong> (Rust crate)</td><td>lemonade (Go)</td><td>SIMD-accelerated, well-maintained Rust implementation.</td></tr>
+            <tr><td>Wi-Fi Direct</td><td><strong>Platform native</strong> (Android WifiP2pManager, iOS MultipeerConnectivity)</td><td>--</td><td>Wi-Fi Direct APIs are platform-specific. No cross-platform abstraction is mature enough.</td></tr>
+            <tr><td>mDNS</td><td><strong>libmdns</strong> (Rust)</td><td>Avahi (C)</td><td>Pure Rust, no system dependency, easy to embed.</td></tr>
+        </table>
+
+        <p><span class="badge">CORE REPOSITORY</span> A single monorepo (<code>ChirpChat/</code>) containing:</p>
+        <ul>
+            <li><code>core/</code> — Rust library (mesh, audio, crypto)</li>
+            <li><code>app/</code> — Flutter mobile application</li>
+            <li><code>desktop/</code> — Tauri desktop application</li>
+            <li><code>specs/</code> — This specification</li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 12 ========== -->
+    <h2 id="s12">12. Implementation Roadmap</h2>
+    <div class="card">
+        <h3>Phase 1: Core Messaging (v1.0-alpha)</h3>
+        <p><strong>Goal:</strong> Two devices can pair via ultrasonic and exchange text messages over Wi-Fi Direct.</p>
+        <table>
+            <tr><th>Milestone</th><th>Criteria</th></tr>
+            <tr><td>Ultrasonic chirp encoder/decoder</td><td>Python prototype that encodes a short payload into 19-24kHz FSK chirp and decodes it from recorded audio</td></tr>
+            <tr><td>Audio handshake state machine</td><td>DISCOVER → CHALLENGE → RESPONSE → CONFIRM cycle works between two devices</td></tr>
+            <tr><td>Wi-Fi Direct connection</td><td>Android devices connect via WifiP2P after audio handshake</td></tr>
+            <tr><td>Protobuf message encoding</td><td>TEXT messages serialized and deserialized correctly</td></tr>
+            <tr><td>AEAD message encryption</td><td>Messages encrypted with X3DH-derived session key</td></tr>
+            <tr><td>Conversation list UI</td><td>Flutter app shows basic conversation list and chat view</td></tr>
+        </ul>
+
+        <h3>Phase 2: Mesh &amp; Groups (v1.0-beta)</h3>
+        <p><strong>Goal:</strong> Multiple devices form a mesh; group chat works; messages survive temporary disconnections.</p>
+        <table>
+            <tr><th>Milestone</th><th>Criteria</th></tr>
+            <tr><td>Message flooding + TTL</td><td>Message propagates through 3+ hops</td></tr>
+            <tr><td>Duplicate suppression</td><td>seen_cache prevents message loops</td></tr>
+            <tr><td>Group chat creation + messaging</td><td>Group key established and messages encrypted for group</td></tr>
+            <tr><td>Delivery/read receipts</td><td>Sender sees when message is delivered and read</td></tr>
+            <tr><td>Offline queue + sync</td><td>Messages queued when offline, synced when peer reconnects</td></tr>
+            <tr><td>mDNS reconnection</td><td>Previously paired devices reconnect without re-chirping</td></tr>
+        </ul>
+
+        <h3>Phase 3: File Sharing &amp; Security (v1.0-rc)</h3>
+        <p><strong>Goal:</strong> Erasure-coded file sharing; full double ratchet forward secrecy; QR/NFC fallback pairing.</p>
+        <table>
+            <tr><th>Milestone</th><th>Criteria</th></tr>
+            <tr><td>Reed-Solomon encode/decode pipeline</td><td>File encoded into 8+4 chunks, any 8 chunks reconstruct original</td></tr>
+            <tr><td>File chunk transfer over mesh</td><td>FILE_CHUNK messages transmitted with missing-chunk retry</td></tr>
+            <tr><td>Thumbnail preview for images</td><td>256x256 JPEG thumbnail shown inline before full file arrives</td></tr>
+            <tr><td>Double ratchet forward secrecy</td><td>Compromising current key does not reveal past messages</td></tr>
+            <tr><td>QR code pairing fallback</td><td>Tapping "Chirp failed" switches to QR scanner workflow</td></tr>
+            <tr><td>TOFU key change warning</td><td>Warning UI shown when peer's identity key changes</td></tr>
+        </ul>
+
+        <h3>Phase 4: Polish &amp; Desktop (v1.0)</h3>
+        <p><strong>Goal:</strong> Desktop companion app; UI polish; performance tuning; security audit.</p>
+        <table>
+            <tr><th>Milestone</th><th>Criteria</th></tr>
+            <tr><td>Desktop companion app (Tauri)</td><td>Desktop app pairs with phone, syncs messages, sends/receives</td></tr>
+            <tr><td>Battery optimization</td><td>Mesh relay pauses when app is backgrounded; ultrasonic only during pairing</td></tr>
+            <tr><td>Encrypted database at rest</td><td>SQLCipher encrypts local database with passphrase</td></tr>
+            <tr><td>Full export/backup</td><td>User can export encrypted database and import on another device</td></tr>
+            <tr><td>Security audit</td><td>Third-party review of crypto implementation and protocol</td></tr>
+        </ul>
+
+        <h3>Phase 5: Advanced Features (Post-v1.0)</h3>
+        <ul>
+            <li>Voice messages (short audio clips, encoded as OPUS, erasure-coded)</li>
+            <li>Mesh bridge over LoRa radio (long-range, ultra-low-bandwidth text-only)</li>
+            <li>Mesh bridge over Bluetooth (for smartwatches / IoT devices)</li>
+            <li>Local AI assistant integration (offline LLM for message summarization)</li>
+            <li>Ephemeral / disappearing messages</li>
+        </ul>
+    </div>
+
+    <!-- ========== SECTION 13 ========== -->
+    <h2 id="s13">13. Open Questions</h2>
+    <div class="card">
+        <p>The following questions require experimentation and user testing to resolve:</p>
+        <ol>
+            <li><strong>Ultrasonic reliability:</strong> How well do consumer phone speakers and microphones reproduce the 19-24kHz band? Measurement campaign needed across 50+ device models.</li>
+            <li><strong>Chirp range vs. noise:</strong> What is the effective range of ultrasonic pairing in quiet rooms vs. noisy environments (cafes, streets, wind)?</li>
+            <li><strong>WebRTC vs. raw TCP:</strong> Is WebRTC's DTLS+SCTP overhead acceptable for mesh routing, or should we use raw TCP with our own encryption?</li>
+            <li><strong>Mesh scaling:</strong> At what node count does flooding mesh break down? Simulation needed (100, 500, 1000 nodes).</li>
+            <li><strong>Erasure coding latency:</strong> What is the perceived delay for sending a 10MB photo through Reed-Solomon encode + mesh transmit + decode?</li>
+            <li><strong>iOS limitations:</strong> iOS does not expose Wi-Fi Direct APIs. What is the best alternative (Multipeer Connectivity, Bluetooth LE + mDNS over local Wi-Fi)?</li>
+            <li><strong>Battery drain:</strong> How much battery does mesh relay consume when the app is in the background? Does aggressive Doze mode on Android kill the relay service?</li>
+            <li><strong>Group key distribution:</strong> When removing a member, how quickly can the new group key be distributed to all remaining members over the mesh?</li>
+        </ol>
+    </div>
+
+    <hr>
+
+    <div class="footer">
+        ChirpChat Specification v1.0 — Zero-Internet Mesh Messaging<br>
+        Part of the VAN_Engine ecosystem. Separate project per ISO_004.<br>
+        ISO_019: No external bridges. ISO_020: Anti-hallucination enforced.
+    </div>
+
+</div>
+</body>
+</html>

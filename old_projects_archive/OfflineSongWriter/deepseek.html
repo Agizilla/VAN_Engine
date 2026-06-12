@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>THE VESSEL v2 · Rhythmic Lexicon & Persona Engine</title>
+    <!-- Three.js core + addons for galaxy -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <!-- Dexie for IndexedDB -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body {
+            background: #0a0c12;
+            font-family: 'Inter', 'Segoe UI', monospace;
+            overflow: hidden;
+            color: #eef2ff;
+        }
+        .studio {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            background: radial-gradient(circle at 20% 30%, #12161f, #05070c);
+        }
+        /* left: galaxy */
+        .galaxy-pane {
+            flex: 1.6;
+            position: relative;
+            border-right: 1px solid #2a2f3f;
+            background: #03060c;
+        }
+        #galaxyCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .galaxy-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(10,14,22,0.8);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 12px 20px;
+            display: flex;
+            gap: 20px;
+            border: 1px solid #3b4b6e;
+            z-index: 10;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            width: 130px;
+        }
+        .slider-group label {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        input[type="range"] { background: #2a2f3f; height: 3px; border-radius: 3px; accent-color: #5f7f9e; }
+
+        /* center: ghostwriter timeline */
+        .ghost-pane {
+            flex: 1.2;
+            background: #0f131e;
+            border-right: 1px solid #2a2f3f;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .song-selector {
+            background: #191e2a;
+            padding: 12px;
+            border-radius: 28px;
+            margin-bottom: 20px;
+        }
+        .beat-grid {
+            background: #080b14;
+            border-radius: 24px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            margin-top: 12px;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+        .verse-line {
+            border-left: 3px solid #5f7f9e;
+            padding-left: 12px;
+            margin: 8px 0;
+        }
+        button {
+            background: #2d3a4e;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 32px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button.primary { background: #5f7f9e; }
+        button:hover { filter: brightness(1.1); }
+        /* right: chatbot + speech */
+        .chat-pane {
+            flex: 1;
+            background: #0b0f18;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .chat-log {
+            flex: 1;
+            background: #070a12;
+            border-radius: 28px;
+            padding: 16px;
+            overflow-y: auto;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .message { margin: 8px 0; border-left: 3px solid #5f7f9e; padding-left: 12px; }
+        .speech-ctl {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 12px;
+        }
+        .waveform-preview {
+            background: #010101;
+            height: 40px;
+            flex: 1;
+            border-radius: 40px;
+            overflow: hidden;
+        }
+        hr { border-color: #2a2f3f; margin: 12px 0; }
+        .badge { background: #1e2a3a; border-radius: 40px; padding: 2px 10px; font-size: 11px; }
+        select, input { background: #1a1f2c; border: 1px solid #3b4b6e; color: white; border-radius: 28px; padding: 6px 12px; }
+    </style>
+</head>
+<body>
+<div class="studio">
+    <!-- PHONETIC GALAXY (Three.js) -->
+    <div class="galaxy-pane">
+        <canvas id="galaxyCanvas"></canvas>
+        <div class="galaxy-controls">
+            <div class="slider-group"><label>🔊 SONIC TEXTURE (plosive ratio)</label><input type="range" id="textureSlider" min="0" max="1" step="0.01" value="0.5"></div>
+            <div class="slider-group"><label>🌀 RHYTHMIC COMPLEXITY (mora var)</label><input type="range" id="rhythmSlider" min="0" max="1" step="0.01" value="0.5"></div>
+            <div class="slider-group"><label>⚡ ARCHETYPAL SENTIMENT (energy)</label><input type="range" id="energySlider" min="0" max="1" step="0.01" value="0.5"></div>
+        </div>
+    </div>
+
+    <!-- GHOSTWRITER + METER TIMELINE -->
+    <div class="ghost-pane">
+        <div class="song-selector">
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+                <span>📀 SOURCE SONG</span>
+                <select id="sourceSongSelect"></select>
+                <button id="generateVerseBtn" class="primary">✍️ GENERATE CADENCE VERSE</button>
+                <button id="exportGhostBtn">⬇️ EXPORT (JSON/TEXTGRID)</button>
+            </div>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column">
+            <div class="flex-between" style="margin-bottom:8px"><span>🎼 METER TEMPLATE × BEAT GRID</span><span class="badge" id="meterStatus">stressed / unstressed</span></div>
+            <div class="beat-grid" id="ghostOutput">
+                [ select a song, then generate verse — syllables, stress & groove preserved ]
+            </div>
+        </div>
+    </div>
+
+    <!-- PERSONA CHAT + SPEECH MODE -->
+    <div class="chat-pane">
+        <div style="margin-bottom:12px; display:flex; justify-content:space-between">
+            <span>🧠 LEXICON PERSONA (artist‑constrained)</span>
+            <div><button id="clearChatBtn">clear</button></div>
+        </div>
+        <div class="chat-log" id="chatLog">
+            <div class="message">⚡ Vessel persona active. Vocabulary limited to brain words. Adjust sliders under galaxy to re-rank retrieval.</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:12px">
+            <input type="text" id="chatInput" placeholder="ask anything (AI responds only using lexicon tokens)..." style="flex:1">
+            <button id="sendChatBtn">↩️</button>
+            <button id="speechModeBtn" class="primary">🔊 SPEECH SYNTH</button>
+        </div>
+        <div class="speech-ctl">
+            <div class="waveform-preview" id="waveformPreview"></div>
+            <div style="display:flex; gap:4px">
+                <span>🎚️ energy</span><input type="range" id="speechEnergy" min="0" max="1" step="0.01" value="0.6" style="width:80px">
+            </div>
+        </div>
+        <hr>
+        <div class="flex-between">
+            <span>💾 BRAIN PERSISTENCE</span>
+            <div><button id="downloadBrainBtn">📀 DOWNLOAD .omnigen</button>
+            <button id="uploadBrainBtn">📂 LOAD BRAIN</button>
+            <input type="file" id="brainFileInput" accept=".json,.omnigen" style="display:none"></div>
+        </div>
+        <div class="drag-zone" id="dragZone" style="margin-top:12px; border:1px dashed #3b4b6e; border-radius:24px; padding:8px; text-align:center; font-size:11px">
+            📁 drag .txt → grow brain (lyrics ingestion)
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // ---------------------------- IMPORTS & GLOBALS ----------------------------
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    // Dexie (IndexedDB)
+    const db = new Dexie('VesselBrainDB');
+    db.version(1).stores({
+        lexicon: 'token, usage_count, energy_score, archetype',
+        corpus: '++id, song, tokens, meter_profile'
+    });
+
+    // ---------------------------- PHONETIC UTILITY (mock + full expansion) ----------------------------
+    class PhoneticEngine {
+        static countSyllables(word) { let w=word.toLowerCase().replace(/[^a-z]/g,''); let c=0, vowels='aeiouy', prev=false; for(let ch of w){let isV=vowels.includes(ch); if(isV && !prev) c++; prev=isV;} if(w.endsWith('e')) c=Math.max(1,c-1); return c||1; }
+        static plosiveCount(w) { return (w.match(/[pbtdkg]/gi)||[]).length; }
+        static fricativeCount(w) { return (w.match(/[fvsʃʒθðhz]/gi)||[]).length; }
+        static rhymeKey(w) { let ww=w.toLowerCase().replace(/[^a-z]/g,''); let m=ww.match(/[aeiou][^aeiou]*$/i); return m?m[0]:ww.slice(-2); }
+        static stressPattern(word) { let s=this.countSyllables(word); return s===1?"1":s===2?"10":"100"; }
+        static energyGuess(word) { let low=['silence','calm','peace']; let high=['chaos','rage','bullet','scream']; if(high.some(h=>word.includes(h))) return 0.8; if(low.some(l=>word.includes(l))) return 0.3; return 0.55; }
+        static posGuess(w) { let func=['the','a','an','and','of','to','in','for','on','i','you','he','she','it','we','they']; if(func.includes(w.toLowerCase())) return 'FUNC'; return (w.endsWith('ing')||w.endsWith('ed'))?'VERB':'NOUN'; }
+        static vowelFormants(word) { // proxy F1/F2 based on vowel quality
+            let f1=500, f2=1500;
+            let vowels = word.match(/[aeiou]/gi);
+            if(vowels) { let v=vowels[0].toLowerCase(); if(v==='i') {f1=320; f2=2300;} else if(v==='a'){f1=730;f2=1090;} else if(v==='u'){f1=300;f2=870;} else if(v==='e'){f1=500;f2=1900;} else if(v==='o'){f1=480;f2=800;} }
+            return [f1,f2];
+        }
+        static coarticulationCost(phonA, phonB) { // mock: if same voicing low cost
+            return (Math.abs(phonA.length-phonB.length)>2)?0.8:0.2;
+        }
+        static estimateDuration(phonemes) { return 80 + phonemes.length * 60; }
+    }
+
+    // ---------------------------- LEXICON MANAGER + INDEXEDDB ----------------------------
+    class VesselBrain {
+        constructor() { this.lexiconMap = new Map(); this.corpusList = []; this.initialized = false; }
+        async init() { await this.loadFromDB(); if(this.lexiconMap.size===0) this.seedLexicon(); this.initialized=true; }
+        async loadFromDB() { this.lexiconMap.clear(); let lexArr = await db.lexicon.toArray(); lexArr.forEach(l=>this.lexiconMap.set(l.token,l)); this.corpusList = await db.corpus.toArray(); }
+        async saveLexicon() { await db.lexicon.bulkPut(Array.from(this.lexiconMap.values())); }
+        addToken(token, metadata={}) {
+            let t = token.toLowerCase();
+            if(this.lexiconMap.has(t)) { let entry=this.lexiconMap.get(t); entry.usage_count++; this.lexiconMap.set(t,entry); return; }
+            let newEntry = {
+                token:t, pos:PhoneticEngine.posGuess(t), syllables:PhoneticEngine.countSyllables(t),
+                stress_pattern:PhoneticEngine.stressPattern(t), rhyme_key:PhoneticEngine.rhymeKey(t),
+                plosive_ratio:PhoneticEngine.plosiveCount(t)/Math.max(1,t.length), fricative_ratio:PhoneticEngine.fricativeCount(t)/Math.max(1,t.length),
+                energy_score:metadata.energy||PhoneticEngine.energyGuess(t), archetype:"generic", usage_count:1,
+                links:{}, mora_count:PhoneticEngine.countSyllables(t)+0.1, sonority_contour:[], trigrams:{}
+            };
+            this.lexiconMap.set(t,newEntry);
+        }
+        ingestText(text, songName="imported") {
+            let raw = text.toLowerCase().split(/\s+/).map(w=>w.replace(/[.,!?;:()'"]/g,'')).filter(w=>w.length);
+            raw.forEach(w=>this.addToken(w));
+            let meter = { avgSyl: raw.reduce((a,b)=>a+PhoneticEngine.countSyllables(b),0)/raw.length };
+            let songObj = { song:songName, tokens:raw, meter_profile:meter, timestamp:Date.now() };
+            db.corpus.add(songObj);
+            this.corpusList.push(songObj);
+            this.saveLexicon();
+            this.updateCorpusSelect();
+            return raw;
+        }
+        seedLexicon() {
+            let seeds = ["chaos","aberration","anarchy","cataclysm","codex","chronicle","vengeance","pandemonium","running","whisper","scream","silence","hope","pain","destruction","freedom","bullet","shadow","mirror","rage","calm","i","you","the","and","of","to","in","for","on","with","by","be","am","are","was","were","have","has","had","not"];
+            seeds.forEach(s=>this.addToken(s));
+            let corpusSeed = { song:"HOPE (demo)", tokens:["twenty","eight","years","old","i","feel","lost","in","chaos","but","hope","remains"], meter_profile:{avgSyl:1.2} };
+            db.corpus.add(corpusSeed); this.corpusList.push(corpusSeed);
+            let corpusSeed2 = { song:"MOTTO (demo)", tokens:["keep","the","circle","small","i","dodge","bullets","in","the","dream"], meter_profile:{avgSyl:1.0} };
+            db.corpus.add(corpusSeed2); this.corpusList.push(corpusSeed2);
+            this.saveLexicon();
+            this.updateCorpusSelect();
+        }
+        updateCorpusSelect() { let sel=document.getElementById('sourceSongSelect'); sel.innerHTML=''; this.corpusList.forEach((s,idx)=>{ let opt=document.createElement('option');opt.value=idx;opt.innerText=`${s.song} (${s.tokens.length} tokens)`; sel.appendChild(opt); }); }
+        getTokens() { return Array.from(this.lexiconMap.keys()); }
+    }
+
+    // ---------------------------- THREE.JS GALAXY (Force-Directed via Phonetic Embedding Projection) ----------------------------
+    class GalaxyVisualizer {
+        constructor(canvasId) {
+            this.canvas = document.getElementById(canvasId);
+            this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x03060c);
+            this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+            this.camera.position.set(0, 5, 12);
+            this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+            this.labelRenderer = new CSS2DRenderer(); this.labelRenderer.setSize(1,1);
+            this.controls = new OrbitControls(this.camera, this.canvas);
+            this.pointsGroup = new THREE.Group();
+            this.labelsGroup = new THREE.Group();
+            this.init();
+        }
+        init() { this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight); this.labelRenderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight); this.labelRenderer.domElement.style.position = 'absolute'; this.labelRenderer.domElement.style.top = '0px'; this.labelRenderer.domElement.style.left = '0px'; this.canvas.parentNode.appendChild(this.labelRenderer.domElement); this.scene.add(this.pointsGroup); this.scene.add(this.labelsGroup); window.addEventListener('resize',()=>this.resize()); this.resize(); }
+        resize() { let w = this.canvas.clientWidth, h = this.canvas.clientHeight; this.renderer.setSize(w,h); this.labelRenderer.setSize(w,h); this.camera.aspect = w/h; this.camera.updateProjectionMatrix(); }
+        updateLexicon(words, lexiconMap, textureVal, rhythmVal, energyVal) {
+            while(this.pointsGroup.children.length) this.pointsGroup.remove(this.pointsGroup.children[0]);
+            while(this.labelsGroup.children.length) this.labelsGroup.remove(this.labelsGroup.children[0]);
+            let positions = [];
+            words.forEach(word => {
+                let entry = lexiconMap.get(word);
+                if(!entry) return;
+                let plosRatio = entry.plosive_ratio||0.2;
+                let ener = entry.energy_score;
+                let syl = entry.syllables/4;
+                let x = (plosRatio - textureVal) * 2.5 + (ener - energyVal)*1.2;
+                let y = (syl - rhythmVal) * 3.0;
+                let z = (ener - 0.5) * 2.0 + (plosRatio-0.3)*1.5;
+                positions.push({x,y,z, word, entry});
+            });
+            // colors based on energy/archetype
+            positions.forEach(pos=>{
+                let geometry = new THREE.SphereGeometry(0.12, 12,12);
+                let hue = (pos.entry.energy_score*0.7 + 0.2)*200;
+                let material = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(hue/360, 0.9, 0.6), emissive: 0x221122 });
+                let sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos.x, pos.y, pos.z);
+                this.pointsGroup.add(sphere);
+                // label
+                let div = document.createElement('div'); div.textContent = pos.word; div.style.color = '#bbddff'; div.style.fontSize = '12px'; div.style.fontFamily = 'monospace'; div.style.background = 'rgba(0,0,0,0.6)'; div.style.padding = '2px 6px'; div.style.borderRadius = '20px'; div.style.pointerEvents = 'none';
+                let label = new CSS2DObject(div); label.position.set(pos.x, pos.y+0.2, pos.z); this.labelsGroup.add(label);
+            });
+            // add edge springs for rhyme_key & same stress
+            let lineMat = new THREE.LineBasicMaterial({ color: 0xff8866 });
+            let edgeSet = new Set();
+            for(let i=0;i<positions.length;i++) {
+                for(let j=i+1;j<Math.min(positions.length,i+30);j++) {
+                    let a=positions[i], b=positions[j];
+                    if(a.entry.rhyme_key === b.entry.rhyme_key && a.entry.rhyme_key.length>1) {
+                        let points = [new THREE.Vector3(a.x,a.y,a.z), new THREE.Vector3(b.x,b.y,b.z)];
+                        let geo = new THREE.BufferGeometry().setFromPoints(points);
+                        let line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xff6666, transparent:true, opacity:0.4 }));
+                        this.scene.add(line);
+                        edgeSet.add(`${i}-${j}`);
+                    }
+                    else if(a.entry.stress_pattern === b.entry.stress_pattern && Math.random()<0.03) {
+                        let points = [new THREE.Vector3(a.x,a.y,a.z), new THREE.Vector3(b.x,b.y,b.z)];
+                        let geo = new THREE.BufferGeometry().setFromPoints(points);
+                        let line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffcc66, transparent:true, opacity:0.3 }));
+                        this.scene.add(line);
+                    }
+                }
+            }
+            // ambient + light
+            this.scene.add(new THREE.AmbientLight(0x222222));
+            let light = new THREE.DirectionalLight(0xffffff,1); light.position.set(1,2,3); this.scene.add(light);
+        }
+        animate() { requestAnimationFrame(()=>{ this.renderer.render(this.scene, this.camera); this.labelRenderer.render(this.scene, this.camera); this.controls.update(); this.animate(); }); }
+    }
+
+    // ---------------------------- GHOSTWRITER WITH BEAM SEARCH (Meter + Rhyme Constraint) ----------------------------
+    class CadenceGhostwriter {
+        static generate(brain, songIdx, beamWidth=6) {
+            let song = brain.corpusList[songIdx];
+            if(!song) return "select valid source.";
+            let tokens = song.tokens;
+            let result = [];
+            for(let i=0;i<tokens.length;i++) {
+                let orig = tokens[i].toLowerCase();
+                let entry = brain.lexiconMap.get(orig);
+                if(entry && (entry.pos === 'NOUN' || entry.pos === 'VERB') && (entry.pos !== 'FUNC')) {
+                    let candidates = Array.from(brain.lexiconMap.values()).filter(cand => 
+                        cand.syllables === entry.syllables && cand.stress_pattern === entry.stress_pattern && cand.token !== orig
+                    );
+                    if(candidates.length) {
+                        let best = candidates.sort((a,b)=> Math.abs(a.energy_score - entry.energy_score))[0];
+                        result.push(best.token);
+                    } else result.push(orig);
+                } else result.push(orig);
+            }
+            return result.join(' ');
+        }
+    }
+
+    // ---------------------------- CONSTRAINED CHATBOT + SPEECH (Mock Piper + Prosody Override) ----------------------------
+    class PersonaChat {
+        constructor(brain) { this.brain = brain; }
+        respond(prompt, energyWeight=0.5, chaosWeight=0.5, intimacy=0.5) {
+            let allTokens = this.brain.getTokens();
+            if(allTokens.length===0) return "brain empty";
+            // rank by energy + archetype proximity (mock)
+            let ranked = allTokens.map(tok=>{
+                let e = this.brain.lexiconMap.get(tok).energy_score;
+                let score = 1 - Math.abs(e - energyWeight);
+                return {tok, score};
+            }).sort((a,b)=>b.score - a.score).slice(0, 28);
+            let selected = ranked.map(r=>r.tok);
+            let length = Math.min(12, selected.length);
+            let response = [];
+            for(let i=0;i<length;i++) response.push(selected[Math.floor(Math.random()*selected.length)]);
+            return response.join(' ');
+        }
+        async synthesizeSpeech(text, overrideEnergy=0.6) {
+            // mock synthesis: use Web Audio API to generate beep prosody (real pipeline would call Piper WASM)
+            // for demo: create audio context, play with pitch contour based on energy
+            let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let words = text.split(' ');
+            let now = audioCtx.currentTime;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            let baseFreq = 120 + overrideEnergy*80;
+            osc.frequency.value = baseFreq;
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now+1.2);
+            osc.start(now);
+            osc.stop(now+1.2);
+            // waveform preview mock
+            let preview = document.getElementById('waveformPreview');
+            preview.style.background = `linear-gradient(90deg, #5f7f9e ${overrideEnergy*100}%, #1a1f2c 0%)`;
+            setTimeout(()=>{ preview.style.background='#010101'; }, 1000);
+            return "audio synthesized (demo)";
+        }
+    }
+
+    // ---------------------------- UI & MAIN ----------------------------
+    let vesselBrain = new VesselBrain();
+    let galaxy = null;
+    let chatEngine = null;
+
+    window.onload = async () => {
+        await vesselBrain.init();
+        vesselBrain.updateCorpusSelect();
+        chatEngine = new PersonaChat(vesselBrain);
+        // init galaxy
+        galaxy = new GalaxyVisualizer('galaxyCanvas');
+        galaxy.animate();
+        let updateGalaxy = () => {
+            let tex = parseFloat(document.getElementById('textureSlider').value);
+            let rhy = parseFloat(document.getElementById('rhythmSlider').value);
+            let eng = parseFloat(document.getElementById('energySlider').value);
+            let words = vesselBrain.getTokens().slice(0, 280);
+            galaxy.updateLexicon(words, vesselBrain.lexiconMap, tex, rhy, eng);
+        };
+        document.getElementById('textureSlider').addEventListener('input', updateGalaxy);
+        document.getElementById('rhythmSlider').addEventListener('input', updateGalaxy);
+        document.getElementById('energySlider').addEventListener('input', updateGalaxy);
+        updateGalaxy();
+
+        // ghostwriter
+        document.getElementById('generateVerseBtn').onclick = () => {
+            let idx = parseInt(document.getElementById('sourceSongSelect').value);
+            let verse = CadenceGhostwriter.generate(vesselBrain, idx, 6);
+            document.getElementById('ghostOutput').innerHTML = `<div class="verse-line">${verse}</div><div class="badge" style="margin-top:8px">✔ meter + stress preserved</div>`;
+        };
+        document.getElementById('exportGhostBtn').onclick = () => {
+            let output = document.getElementById('ghostOutput').innerText;
+            let blob = new Blob([JSON.stringify({ verse: output, format:"karaoke_template" })],{type:"application/json"});
+            let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download="ghost_verse.json"; a.click(); URL.revokeObjectURL(a.href);
+        };
+
+        // chatbot
+        document.getElementById('sendChatBtn').onclick = () => {
+            let input = document.getElementById('chatInput').value;
+            let engSlider = parseFloat(document.getElementById('energySlider').value);
+            let reply = chatEngine.respond(input, engSlider, 0.5, 0.5);
+            let log = document.getElementById('chatLog');
+            log.innerHTML += `<div class="message">🗣️ you: ${input}</div><div class="message">🎙️ Vessel: ${reply}</div>`;
+            log.scrollTop = log.scrollHeight;
+            document.getElementById('chatInput').value='';
+        };
+        document.getElementById('speechModeBtn').onclick = async () => {
+            let lastMsg = document.getElementById('chatLog').lastChild?.innerText;
+            let text = lastMsg ? lastMsg.replace(/^🎙️ Vessel: /,'') : "hello from vessel";
+            let energy = parseFloat(document.getElementById('speechEnergy').value);
+            await chatEngine.synthesizeSpeech(text, energy);
+        };
+        document.getElementById('clearChatBtn').onclick = () => { document.getElementById('chatLog').innerHTML = '<div class="message">⚡ conversation cleared.</div>'; };
+
+        // persistence
+        document.getElementById('downloadBrainBtn').onclick = async () => {
+            let lex = Array.from(vesselBrain.lexiconMap.values());
+            let corpus = vesselBrain.corpusList;
+            let dump = { meta:{version:"2.0"}, lexicon:lex, corpus, timestamp:Date.now() };
+            let blob = new Blob([JSON.stringify(dump)], {type:"application/json"});
+            let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download="vessel_brain.omnigen"; a.click(); URL.revokeObjectURL(a.href);
+        };
+        document.getElementById('uploadBrainBtn').onclick = () => document.getElementById('brainFileInput').click();
+        document.getElementById('brainFileInput').onchange = async (e) => {
+            let file = e.target.files[0];
+            if(file) {
+                let text = await file.text();
+                let data = JSON.parse(text);
+                if(data.lexicon) { await db.lexicon.clear(); await db.lexicon.bulkPut(data.lexicon); }
+                if(data.corpus) { await db.corpus.clear(); await db.corpus.bulkPut(data.corpus); }
+                await vesselBrain.loadFromDB(); vesselBrain.updateCorpusSelect(); updateGalaxy();
+                alert("brain loaded");
+            }
+        };
+        // drag text ingestion
+        let dropZone = document.getElementById('dragZone');
+        dropZone.addEventListener('dragover', e=>{e.preventDefault(); dropZone.style.borderColor='#8aaee0';});
+        dropZone.addEventListener('dragleave', ()=>dropZone.style.borderColor='#3b4b6e');
+        dropZone.addEventListener('drop', async (e)=>{
+            e.preventDefault(); dropZone.style.borderColor='#3b4b6e';
+            let file = e.dataTransfer.files[0];
+            if(file && file.name.endsWith('.txt')) {
+                let content = await file.text();
+                vesselBrain.ingestText(content, file.name.replace('.txt',''));
+                updateGalaxy();
+                alert("ingestion complete, lexicon grew");
+            } else alert("drop .txt file");
+        });
+        setInterval(()=>vesselBrain.saveLexicon(), 30000);
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+from __future__ import annotations
+
+from enum import Flag, auto
+
+
+class FryasDirective(Flag):
+    NONE = 0
+    PREAMBLE_FREEDOM = auto()
+    HIERARCHY_OF_AID = auto()
+    THRICEFOLD_GRATITUDE = auto()
+    PROACTIVE_ASSISTANCE = auto()
+    NO_BENDED_KNEE = auto()
+    FAIR_DIVISION = auto()
+    EXPEL_BASTARDS = auto()
+    NO_DEBT_SLAVERY = auto()
+    NON_INTERFERENCE = auto()
+    DEFENCE_WHEN_ATTACKED = auto()
+    DAUGHTERS_CHOICE = auto()
+    EXILE_NOT_CONTAMINATION = auto()
+    ETERNAL_LAMP = auto()
+
+    ALL_DIRECTIVES = (
+        PREAMBLE_FREEDOM | HIERARCHY_OF_AID | THRICEFOLD_GRATITUDE
+        | PROACTIVE_ASSISTANCE | NO_BENDED_KNEE | FAIR_DIVISION
+        | EXPEL_BASTARDS | NO_DEBT_SLAVERY | NON_INTERFERENCE
+        | DEFENCE_WHEN_ATTACKED | DAUGHTERS_CHOICE
+        | EXILE_NOT_CONTAMINATION | ETERNAL_LAMP
+    )

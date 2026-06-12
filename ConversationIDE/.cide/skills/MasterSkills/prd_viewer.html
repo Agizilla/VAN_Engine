@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD Catalog · Clawdia Viewer</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0c; --surface: #121214; --surface2: #1a1a1e; --border: #2a2a2e;
+  --text: #e4e4e7; --text2: #a1a1aa; --text3: #6b7280;
+  --accent: #60a5fa; --accent2: #a78bfa; --green: #4ade80; --yellow: #fbbf24; --red: #f87171; --pink: #f472b6;
+  --font: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --radius: 8px; --radius-sm: 4px;
+}
+body { font-family: var(--font-ui); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+.layout { display: grid; grid-template-columns: 320px 1fr 280px; grid-template-rows: 1fr auto; height: 100vh; gap: 1px; background: var(--border); }
+
+/* ===== LEFT PANEL ===== */
+.panel-left { background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+.panel-left .header { padding: 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.panel-left .header h1 { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; font-family: var(--font); }
+.panel-left .header h1 span { color: var(--text3); font-weight: 400; }
+.search-box { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; outline: none; font-family: var(--font-ui); }
+.search-box:focus { border-color: var(--accent); }
+.prd-list { flex: 1; overflow-y: auto; padding: 8px; }
+.prd-list::-webkit-scrollbar { width: 4px; }
+.prd-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.prd-item { padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 4px; transition: all .12s; border: 1px solid transparent; }
+.prd-item:hover { background: var(--surface2); }
+.prd-item.active { background: rgba(96,165,250,.1); border-color: var(--accent); }
+.prd-item .title { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.prd-item .meta { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-family: var(--font); font-weight: 500; }
+.tag-standard { background: rgba(96,165,250,.15); color: var(--accent); }
+.tag-extended { background: rgba(167,139,250,.15); color: var(--accent2); }
+.tag-advanced { background: rgba(251,191,36,.15); color: var(--yellow); }
+.tag-deep { background: rgba(248,113,113,.15); color: var(--red); }
+.tag-comprehensive { background: rgba(244,114,182,.15); color: var(--pink); }
+.tag-observe { background: rgba(251,191,36,.15); color: var(--yellow); }
+.tag-think { background: rgba(167,139,250,.15); color: var(--accent2); }
+.tag-plan { background: rgba(96,165,250,.15); color: var(--accent); }
+.tag-build { background: rgba(244,114,182,.15); color: var(--pink); }
+.tag-execute, .tag-verify { background: rgba(74,222,128,.15); color: var(--green); }
+.tag-complete { background: rgba(74,222,128,.25); color: var(--green); }
+.tag-unknown { background: rgba(107,114,128,.15); color: var(--text3); }
+.tag-effort { background: rgba(107,114,128,.1); color: var(--text2); }
+.prd-item .date { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: var(--font); }
+
+/* ===== CENTER PANEL ===== */
+.panel-center { background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+.panel-center .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3); gap: 12px; }
+.panel-center .empty-state .icon { font-size: 48px; opacity: .3; }
+.panel-center .empty-state p { font-size: 13px; }
+.panel-center .empty-state .hint { font-size: 11px; color: var(--text3); }
+.panel-center .content-area { flex: 1; overflow-y: auto; padding: 24px 32px; }
+.panel-center .content-area::-webkit-scrollbar { width: 6px; }
+.panel-center .content-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.prd-viewer h1 { font-size: 22px; font-weight: 700; margin-bottom: 12px; color: var(--text); line-height: 1.3; }
+.prd-viewer .meta-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.prd-viewer h2 { font-size: 16px; font-weight: 600; color: var(--accent); margin: 24px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.prd-viewer h3 { font-size: 14px; font-weight: 600; color: var(--yellow); margin: 16px 0 8px; }
+.prd-viewer p { font-size: 13px; line-height: 1.7; color: var(--text2); margin-bottom: 12px; }
+.prd-viewer ul, .prd-viewer ol { margin: 8px 0 12px 20px; font-size: 13px; color: var(--text2); }
+.prd-viewer li { margin-bottom: 4px; }
+.prd-viewer code { font-family: var(--font); font-size: 12px; background: var(--surface2); padding: 2px 6px; border-radius: 3px; color: var(--pink); }
+.prd-viewer pre { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 12px 0; overflow-x: auto; }
+.prd-viewer pre code { background: none; padding: 0; color: var(--text); font-size: 12px; line-height: 1.6; }
+.prd-viewer strong { color: var(--text); }
+.prd-viewer table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+.prd-viewer th, .prd-viewer td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.prd-viewer th { color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.prd-viewer td { color: var(--text2); }
+.prd-viewer a { color: var(--accent); text-decoration: none; }
+.prd-viewer a:hover { text-decoration: underline; }
+.prd-viewer blockquote { border-left: 3px solid var(--accent); padding: 8px 16px; margin: 12px 0; background: rgba(96,165,250,.05); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text2); font-size: 13px; }
+.prd-viewer hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.prd-viewer input[type="checkbox"] { margin-right: 8px; accent-color: var(--accent); }
+
+/* ===== RIGHT PANEL ===== */
+.panel-right { background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+.panel-right .header { padding: 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.panel-right .header h2 { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; font-family: var(--font); }
+.panel-right .header h2 span { color: var(--text3); font-weight: 400; }
+.panel-right .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3); font-size: 12px; gap: 8px; padding: 20px; text-align: center; }
+.artifact-list { flex: 1; overflow-y: auto; padding: 8px; }
+.artifact-list::-webkit-scrollbar { width: 4px; }
+.artifact-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.artifact-item { padding: 8px 10px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 11px; color: var(--text2); margin-bottom: 2px; border-left: 2px solid transparent; transition: all .12s; word-break: break-all; cursor: default; }
+.artifact-item:hover { background: var(--surface2); border-left-color: var(--accent2); }
+.artifact-item .ext { color: var(--accent2); font-weight: 500; }
+
+/* ===== TIMELINE ===== */
+.timeline-bar { grid-column: 1 / -1; background: var(--surface2); border-top: 1px solid var(--border); height: 80px; display: flex; align-items: center; overflow-x: auto; padding: 0 16px; gap: 0; }
+.timeline-bar::-webkit-scrollbar { height: 3px; }
+.timeline-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.timeline-bar:empty { display: none; }
+.timeline-node { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 6px 8px; border-radius: var(--radius-sm); transition: all .12s; min-width: 80px; max-width: 100px; position: relative; flex-shrink: 0; }
+.timeline-node:hover { background: var(--surface); }
+.timeline-node.active { background: rgba(96,165,250,.1); }
+.timeline-node .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); }
+.timeline-node .dot.complete { background: var(--green); }
+.timeline-node .dot.build { background: var(--pink); }
+.timeline-node .dot.plan { background: var(--accent); }
+.timeline-node .dot.think { background: var(--accent2); }
+.timeline-node .dot.observe { background: var(--yellow); }
+.timeline-node .dot.verify { background: var(--green); }
+.timeline-node .tlabel { font-size: 9px; color: var(--text3); text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 80px; }
+.timeline-node .tdate { font-size: 8px; color: var(--text3); font-family: var(--font); }
+.timeline-connector { width: 16px; height: 1px; background: var(--border); flex-shrink: 0; }
+
+/* ===== TOOLBAR ===== */
+.toolbar { display: flex; gap: 6px; margin-top: 8px; }
+.toolbar button { padding: 6px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); font-size: 11px; cursor: pointer; font-family: var(--font-ui); transition: all .12s; }
+.toolbar button:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+.toolbar button.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 500; }
+.toolbar button.primary:hover { background: #7bb8ff; }
+
+/* ===== LOADING ===== */
+.loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text3); }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin-right: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== DROP ZONE ===== */
+.drop-zone { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+.drop-zone.active { display: flex; }
+.drop-zone .box { border: 2px dashed var(--accent); border-radius: 16px; padding: 48px 64px; text-align: center; background: var(--surface); }
+.drop-zone .box .icon { font-size: 48px; margin-bottom: 12px; }
+.drop-zone .box p { color: var(--text2); font-size: 14px; }
+
+/* ===== NOTIFICATION ===== */
+.toast { position: fixed; bottom: 96px; right: 24px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 12px; z-index: 2000; opacity: 0; transform: translateY(10px); transition: all .3s; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { background: rgba(74,222,128,.15); border: 1px solid var(--green); color: var(--green); }
+.toast.error { background: rgba(248,113,113,.15); border: 1px solid var(--red); color: var(--red); }
+.toast.info { background: rgba(96,165,250,.15); border: 1px solid var(--accent); color: var(--accent); }
+
+/* ===== STATS ===== */
+.stats-bar { display: flex; gap: 12px; padding: 8px 16px; background: var(--surface2); border-top: 1px solid var(--border); font-size: 10px; color: var(--text3); font-family: var(--font); }
+.stats-bar span { display: flex; align-items: center; gap: 4px; }
+.stats-bar .num { color: var(--text); font-weight: 500; }
+
+/* file input hidden */
+#fileInput { display: none; }
+#dirInput { display: none; }
+</style>
+</head>
+<body>
+
+<div class="drop-zone" id="dropZone">
+  <div class="box">
+    <div class="icon">📋</div>
+    <p>Drop PRD files here</p>
+    <p style="font-size:11px;color:var(--text3);margin-top:4px">PRD.md, PRD_*.md, *.prd</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="layout">
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+    <div class="header">
+      <h1>PRD Catalog <span id="prdCount"></span></h1>
+      <input type="text" class="search-box" id="searchBox" placeholder="Search PRDs..." spellcheck="false">
+      <div class="toolbar">
+        <button id="openFile" title="Open a single PRD file">📄 Open</button>
+        <button id="scanDir" title="Scan directory for PRDs">📂 Scan</button>
+        <button id="loadAll" class="primary" title="Scan VAN Engine for all PRDs">🔍 Load All</button>
+      </div>
+    </div>
+    <div class="prd-list" id="prdList"></div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+  <!-- CENTER PANEL -->
+  <div class="panel-center">
+    <div class="content-area" id="prdContent">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>Select a PRD to view</p>
+        <div class="hint">Open a file, scan a directory, or drop a PRD</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <div class="header">
+      <h2>Artifacts <span id="artifactCount"></span></h2>
+    </div>
+    <div class="artifact-list" id="artifactList"></div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="timeline-bar" id="timelineBar"></div>
+</div>
+
+<input type="file" id="fileInput" accept=".md,.prd">
+<input type="file" id="dirInput" webkitdirectory multiple>
+
+<script>
+const state = { prds: [], activeSlug: null };
+
+// ── Marked config ──
+const renderer = new marked.Renderer();
+renderer.checkbox = (checked) => `<input type="checkbox" disabled ${checked ? 'checked' : ''}>`;
+marked.setOptions({ renderer, breaks: true, gfm: true });
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Parse frontmatter ──
+function parseFrontmatter(text) {
+  const m = text.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!m) return {};
+  const fm = {};
+  for (const line of m[1].split('\n')) {
+    const kv = line.match(/^(\w+):\s*(.*)/);
+    if (kv) fm[kv[1]] = kv[2].trim();
+  }
+  return fm;
+}
+
+// ── Extract sections (## ...) ──
+function parseSections(text) {
+  const sections = {};
+  const re = /^##\s+(.+)$/gm;
+  let lastIdx = 0, lastTitle = null;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    if (lastTitle) sections[lastTitle] = text.slice(lastIdx, m.index).trim();
+    lastTitle = m[1].trim(); lastIdx = m.end();
+  }
+  if (lastTitle) sections[lastTitle] = text.slice(lastIdx).trim();
+  return sections;
+}
+
+// ── Extract artifacts ──
+function extractArtifacts(text) {
+  const set = new Set();
+  const pats = [
+    /`([^`]+\.[a-zA-Z]+)`/g,
+    /\*\*File:\*\*\s*`([^`]+)`/g,
+    /\*\*Status:\*\*\s*(Created|Modified)/g
+  ];
+  for (const re of pats) {
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const v = m[1]; if (v.length > 3 && !set.has(v)) set.add(v);
+    }
+  }
+  return Array.from(set);
+}
+
+// ── Get file extension badge ──
+function extClass(fp) {
+  const e = fp.split('.').pop().toLowerCase();
+  const map = { py: 'tag-standard', ts: 'tag-standard', tsx: 'tag-standard', js: 'tag-standard',
+    html: 'tag-comprehensive', css: 'tag-advanced', json: 'tag-extended', md: 'tag-unknown',
+    yaml: 'tag-extended', yml: 'tag-extended', toml: 'tag-extended' };
+  return map[e] || 'tag-effort';
+}
+
+// ── Parse PRD file ──
+function parsePRD(text, filePath) {
+  const fm = parseFrontmatter(text);
+  const sections = parseSections(text.replace(/^---[\s\S]*?---\n*/, ''));
+  const artifacts = extractArtifacts(text);
+  return {
+    slug: fm.slug || filePath.split('/').pop().replace(/\.(md|prd)$/,'') || 'unknown',
+    task: fm.task || 'Untitled PRD',
+    effort: fm.effort || 'standard',
+    phase: fm.phase || 'unknown',
+    progress: fm.progress || '0/0',
+    mode: fm.mode || 'interactive',
+    started: fm.started || '',
+    updated: fm.updated || '',
+    iteration: fm.iteration || '',
+    file_path: filePath,
+    artifacts,
+    sections: Object.keys(sections),
+    sectionContent: sections,
+    frontmatter: fm,
+    raw: text
+  };
+}
+
+// ── Render PRD to HTML ──
+function renderPRD(prd) {
+  if (!prd) return '<div class="empty-state"><div class="icon">📋</div><p>Select a PRD to view</p></div>';
+  const fm = prd.frontmatter;
+  let html = `<div class="prd-viewer"><h1>${esc(fm.task || prd.task)}</h1>`;
+  html += '<div class="meta-bar">';
+  for (const [k, v] of Object.entries({ effort: fm.effort, phase: fm.phase, progress: fm.progress, mode: fm.mode, iteration: fm.iteration })) {
+    if (v) html += `<span class="tag tag-${v}">${k}: ${v}</span>`;
+  }
+  if (fm.started) html += `<span class="tag tag-effort">${fm.started.slice(0,10)}</span>`;
+  html += '</div>';
+  for (const [title, body] of Object.entries(prd.sectionContent)) {
+    const rendered = marked.parse(body || '');
+    html += `<h2>${esc(title)}</h2>${rendered}`;
+  }
+  if (prd.artifacts.length) {
+    html += '<h2>Artifacts</h2><table><tr><th>File</th><th>Status</th></tr>';
+    for (const a of prd.artifacts) {
+      const s = a.startsWith('**') ? 'Modified' : 'Created';
+      html += `<tr><td><code>${esc(a.replace(/\*\*/g,''))}</code></td><td><span class="tag tag-${s === 'Created' ? 'complete' : 'build'}">${s}</span></td></tr>`;
+    }
+    html += '</table>';
+  }
+  html += '</div>';
+  return html;
+}
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ── Render PRD list item ──
+function renderListItem(prd) {
+  const active = prd.slug === state.activeSlug ? ' active' : '';
+  const phase = prd.phase || 'unknown';
+  const effort = prd.effort || 'standard';
+  const date = (prd.started || '').slice(0,10) || (prd.updated || '').slice(0,10) || '';
+  return `<div class="prd-item${active}" data-slug="${prd.slug}">
+    <div class="title">${esc(prd.task)}</div>
+    <div class="meta">
+      <span class="tag tag-${effort}">${effort}</span>
+      <span class="tag tag-${phase}">${phase}</span>
+      <span class="tag tag-effort">${prd.progress}</span>
+      <span class="tag tag-effort">${prd.artifacts.length} artifacts</span>
+    </div>
+    <div class="date">${date}</div>
+  </div>`;
+}
+
+// ── Render artifacts ──
+function renderArtifacts(artifacts) {
+  if (!artifacts || !artifacts.length) {
+    return '<div class="empty-state">No artifacts extracted<br><span style="font-size:10px;color:var(--text3)">Files produced by this PRD</span></div>';
+  }
+  return artifacts.map(a => {
+    const ext = a.split('.').pop();
+    return `<div class="artifact-item"><span class="ext">.${ext}</span> ${esc(a)}</div>`;
+  }).join('');
+}
+
+// ── Update UI ──
+function updateUI() {
+  const query = (document.getElementById('searchBox').value || '').toLowerCase();
+  const filtered = query ? state.prds.filter(p => p.task.toLowerCase().includes(query) || p.slug.toLowerCase().includes(query)) : state.prds;
+  document.getElementById('prdList').innerHTML = filtered.map(renderListItem).join('');
+  document.getElementById('prdCount').textContent = `(${state.prds.length})`;
+  document.getElementById('statsBar').innerHTML = `<span>📄 <span class="num">${state.prds.length}</span> PRDs</span><span>📎 <span class="num">${state.prds.reduce((a,p) => a + p.artifacts.length, 0)}</span> artifacts</span>`;
+  updateTimeline();
+  if (!state.activeSlug || !state.prds.find(p => p.slug === state.activeSlug)) {
+    if (filtered.length) selectPRD(filtered[0].slug);
+    else { document.getElementById('prdContent').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>Select a PRD to view</p></div>';
+      document.getElementById('artifactList').innerHTML = '<div class="empty-state">No PRD selected</div>';
+      document.getElementById('artifactCount').textContent = ''; }
+  }
+}
+
+// ── Timeline ──
+function updateTimeline() {
+  const bar = document.getElementById('timelineBar');
+  if (state.prds.length < 2) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const sorted = [...state.prds].sort((a,b) => (a.started||'').localeCompare(b.started||''));
+  bar.innerHTML = sorted.map((p,i) => {
+    const active = p.slug === state.activeSlug ? ' active' : '';
+    const phase = p.phase || 'unknown';
+    const date = (p.started||'').slice(0,10);
+    const conn = i < sorted.length - 1 ? '<div class="timeline-connector"></div>' : '';
+    return `<div class="timeline-node${active}" data-slug="${p.slug}"><div class="dot ${phase}"></div><div class="tlabel">${esc(p.task.slice(0,30))}</div><div class="tdate">${date}</div></div>${conn}`;
+  }).join('');
+}
+
+// ── Select PRD ──
+function selectPRD(slug) {
+  state.activeSlug = slug;
+  const prd = state.prds.find(p => p.slug === slug);
+  if (!prd) return;
+  document.getElementById('prdContent').innerHTML = renderPRD(prd);
+  document.getElementById('artifactList').innerHTML = renderArtifacts(prd.artifacts);
+  document.getElementById('artifactCount').textContent = `(${prd.artifacts.length})`;
+  updateUI();
+  document.querySelector(`.prd-item.active`)?.scrollIntoView({ block: 'nearest' });
+}
+
+// ── Load a PRD from text + filepath ──
+function loadPRD(text, filePath) {
+  const prd = parsePRD(text, filePath);
+  const existing = state.prds.findIndex(p => p.slug === prd.slug);
+  if (existing >= 0) state.prds[existing] = prd;
+  else state.prds.push(prd);
+  state.prds.sort((a,b) => (b.started||'').localeCompare(a.started||''));
+  updateUI();
+  selectPRD(prd.slug);
+}
+
+// ── Load multiple PRDs ──
+function loadPRDs(prds) {
+  for (const [text, fp] of prds) {
+    const prd = parsePRD(text, fp);
+    const existing = state.prds.findIndex(p => p.slug === prd.slug);
+    if (existing >= 0) state.prds[existing] = prd;
+    else state.prds.push(prd);
+  }
+  state.prds.sort((a,b) => (b.started||'').localeCompare(a.started||''));
+  updateUI();
+  if (!state.activeSlug && state.prds.length) selectPRD(state.prds[0].slug);
+}
+
+// ── Read file as text ──
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(r.error);
+    r.readAsText(file);
+  });
+}
+
+// ── File drop ──
+document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropZone').classList.add('active'); });
+document.addEventListener('dragleave', e => { e.preventDefault(); document.getElementById('dropZone').classList.remove('active'); });
+document.addEventListener('drop', async e => {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('active');
+  const files = Array.from(e.dataTransfer.files);
+  if (!files.length) return;
+  const prds = [];
+  for (const f of files) {
+    if (!f.name.match(/PRD|\.prd|PRD_/i)) continue;
+    const text = await readFile(f);
+    prds.push([text, f.name]);
+  }
+  loadPRDs(prds);
+  showToast(`Loaded ${prds.length} PRD${prds.length !== 1 ? 's' : ''}`, 'success');
+});
+
+// ── File picker ──
+document.getElementById('openFile').onclick = () => document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const text = await readFile(f);
+  loadPRD(text, f.name);
+  showToast(`Loaded: ${f.name}`, 'success');
+  e.target.value = '';
+};
+
+// ── Directory scanner ──
+document.getElementById('scanDir').onclick = () => document.getElementById('dirInput').click();
+document.getElementById('dirInput').onchange = async e => {
+  const files = Array.from(e.target.files);
+  const prds = [];
+  for (const f of files) {
+    if (!f.name.match(/PRD|\.prd|PRD_/i)) continue;
+    const text = await readFile(f);
+    const relPath = f.webkitRelativePath || f.name;
+    prds.push([text, relPath]);
+  }
+  loadPRDs(prds);
+  showToast(`Loaded ${prds.length} PRDs from directory`, 'success');
+  e.target.value = '';
+};
+
+// ── Load All: fetch from Python backend ──
+document.getElementById('loadAll').onclick = async () => {
+  try {
+    // Try IPC first (Electron), fallback to fetch
+    if (window.electronAPI?.prd) {
+      const res = await window.electronAPI.prd.scan();
+      if (res.prds) {
+        for (const p of res.prds) {
+          const existing = state.prds.findIndex(x => x.slug === p.slug);
+          if (existing >= 0) state.prds[existing] = p;
+          else state.prds.push(p);
+        }
+        state.prds.sort((a,b) => (b.started||'').localeCompare(a.started||''));
+        updateUI();
+        if (!state.activeSlug && state.prds.length) selectPRD(state.prds[0].slug);
+        showToast(`Loaded ${state.prds.length} PRDs`, 'success');
+        return;
+      }
+    }
+    // Fallback: fetch from embedded API
+    const res = await fetch('/api/prd/scan', { method: 'POST' }).catch(() => null);
+    if (res?.ok) {
+      const data = await res.json();
+      if (data.prds && data.prds.length > 0) {
+        loadPRDs(data.prds.map(p => [p.raw || '', p.file_path || p.slug]));
+        showToast(`Loaded ${data.prds.length} PRDs`, 'success');
+        return;
+      }
+    }
+    showToast('No backend available — use Open or Scan to load PRDs manually', 'info');
+  } catch { showToast('Could not reach PRD backend', 'error'); }
+};
+
+// ── Click handlers (delegation) ──
+document.getElementById('prdList').addEventListener('click', e => {
+  const item = e.target.closest('.prd-item');
+  if (item) selectPRD(item.dataset.slug);
+});
+document.getElementById('timelineBar').addEventListener('click', e => {
+  const node = e.target.closest('.timeline-node');
+  if (node) selectPRD(node.dataset.slug);
+});
+
+// ── Search ──
+document.getElementById('searchBox').addEventListener('input', () => updateUI());
+
+// ── Keyboard ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    const items = document.querySelectorAll('.prd-item');
+    const active = document.querySelector('.prd-item.active');
+    let idx = Array.from(items).indexOf(active);
+    if (e.key === 'ArrowDown') idx = Math.min(idx + 1, items.length - 1);
+    else idx = Math.max(idx - 1, 0);
+    if (items[idx]) selectPRD(items[idx].dataset.slug);
+    e.preventDefault();
+  }
+});
+
+showToast('Open a PRD file or scan a directory to begin', 'info');
+</script>
+</body>
+</html>

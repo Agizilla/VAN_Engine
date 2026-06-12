@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAI System · ConversationIDE Integration</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0f;
+  --surface: #161618;
+  --surface2: #1e1e21;
+  --border: #2a2a2e;
+  --text: #e4e4e7;
+  --text2: #a1a1aa;
+  --accent: #60a5fa;
+  --accent2: #a78bfa;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --font: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 10; }
+.tab-btn {
+  padding: 10px 14px; cursor: pointer; border: none; background: transparent; color: var(--text2);
+  font-family: var(--font); font-size: 11px; transition: all .15s; border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(96,165,250,.08); }
+.tab-content { display: none; padding: 28px; max-width: 1200px; }
+.tab-content.active { display: block; }
+h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+h1 span { color: var(--text2); font-weight: 400; font-size: 14px; }
+.subtitle { color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+h2 { font-size: 17px; font-weight: 600; margin: 26px 0 10px; color: var(--accent); }
+h3 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; color: var(--yellow); }
+h4 { font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--green); }
+p { margin-bottom: 10px; color: var(--text2); font-size: 14px; }
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px;
+  font-family: var(--font); margin: 2px;
+}
+.tag-blue { background: rgba(96,165,250,.15); color: #60a5fa; }
+.tag-green { background: rgba(74,222,128,.15); color: #4ade80; }
+.tag-purple { background: rgba(167,139,250,.15); color: #a78bfa; }
+.tag-yellow { background: rgba(251,191,36,.15); color: #fbbf24; }
+.tag-red { background: rgba(248,113,113,.15); color: #f87171; }
+.tag-cyan { background: rgba(34,211,238,.15); color: #22d3ee; }
+
+.code-block {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  overflow: hidden; margin: 10px 0 18px;
+}
+.code-header { padding: 7px 12px; background: var(--surface); border-bottom: 1px solid var(--border);
+  font-family: var(--font); font-size: 11px; color: var(--text2); display: flex; justify-content: space-between; }
+.code-body { padding: 12px; overflow-x: auto; }
+pre { font-family: var(--font); font-size: 12px; line-height: 1.5; color: var(--text); }
+.comment { color: #6b7280; }
+.keyword { color: #c084fc; }
+.string { color: #4ade80; }
+.number { color: #fbbf24; }
+.type { color: #60a5fa; }
+.fn { color: #f472b6; }
+
+table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 13px; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+td { color: var(--text2); }
+
+.integration-note {
+  background: rgba(96,165,250,.06); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0;
+  padding: 12px 16px; margin: 14px 0 18px; font-size: 13px;
+}
+.integration-note strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="tabs" id="tabBar"></div>
+
+<div id="tabContainer">
+
+<!-- ─── OVERVIEW ───────────────────────── -->
+<div class="tab-content" data-tab="Overview">
+<h1>PAI System <span>· Personal AI Infrastructure</span></h1>
+<p class="subtitle">PAI is a general problem-solving system that magnifies human capabilities through interconnected skills, hooks, tools, memory, and configuration — orchestrated by The Algorithm (v3.8.2).</p>
+
+<h2>Core Subsystems</h2>
+<table>
+<tr><th>Subsystem</th><th>File</th><th>Role</th></tr>
+<tr><td>The Algorithm</td><td><code>Algorithm/v3.8.2.md</code></td><td>Phase-adaptive execution engine: 3-7 phases per tier, verifiable criteria (ISC), euphoric surprise.</td></tr>
+<tr><td>Skills</td><td><code>SKILLSYSTEM.md</code></td><td>49 skills across 12 categories, each with SKILL.md defining triggers, workflows, tools</td></tr>
+<tr><td>Hooks</td><td><code>THEHOOKSYSTEM.md</code></td><td>21+ event lifecycle hooks (SessionStart, PreToolUse, PostToolUse, Stop)</td></tr>
+<tr><td>Memory</td><td><code>MEMORYSYSTEM.md</code></td><td>Persistent storage: WORK, LEARNING, RELATIONSHIP, STATE, RAW, WISDOM</td></tr>
+<tr><td>Agents</td><td><code>PAIAGENTSYSTEM.md</code></td><td>14 specialized agent types + dynamic composition via ComposeAgent</td></tr>
+<tr><td>Notifications</td><td><code>THENOTIFICATIONSYSTEM.md</code></td><td>Voice (ElevenLabs), push (ntfy), Discord, desktop alerts</td></tr>
+<tr><td>Delegation</td><td><code>THEDELEGATIONSYSTEM.md</code></td><td>Team/swarm creation for coordinated multi-agent work</td></tr>
+<tr><td>Fabric</td><td><code>THEFABRICSYSTEM.md</code></td><td>242+ prompt patterns for content analysis/transformation</td></tr>
+<tr><td>Tools</td><td><code>TOOLS.md</code></td><td>CLI utilities: Inference, RemoveBg, GetTranscript, Voice, YouTubeApi</td></tr>
+<tr><td>PRDs</td><td><code>PRDFORMAT.md</code></td><td>Product Requirements Document format v2.0 with ISC criteria</td></tr>
+<tr><td>Pipelines/Flows</td><td><code>PIPELINES.md</code>, <code>FLOWS.md</code></td><td>Data processing pipelines + workflow orchestration (Arbol Cloud Workers)</td></tr>
+<tr><td>User Context</td><td><code>USER/</code></td><td>Identity, projects, telos goals, work, business, skill customizations</td></tr>
+</table>
+
+<div class="integration-note">
+<strong>Integration into ConversationIDE:</strong> The PAI system is the "operating system" that ConversationIDE's brain and engine connect to. Key integration points:
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Algorithm phases:</strong> Each phase maps to a VAN_Engine processing mode — brain chat completions should tag responses with phase context</li>
+<li><strong>Hook system:</strong> ConversationIDE's IPC handlers mirror PAI hooks — SessionStart → API server launch, PreToolUse → security filter</li>
+<li><strong>Memory:</strong> PAI's MEMORY/RAW (JSONL events) is the canonical event store. ConversationIDE's session exports should write there</li>
+<li><strong>Notifications:</strong> VoiceService (already implemented) replaces the curl→localhost:8888 pattern with direct IPC</li>
+<li><strong>PRDs:</strong> Each brain chat session could produce a lightweight PRD with ISC criteria for verification</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── ALGORITHM ──────────────────────── -->
+<div class="tab-content" data-tab="Algorithm">
+<h1>The Algorithm v3.8.2 <span>· Phase-Adaptive Execution Engine</span></h1>
+<p class="subtitle">Current State → Ideal State via verifiable iteration. The gravitational center of PAI — everything else exists to serve it.</p>
+
+<h2>7 Phases</h2>
+<table>
+<tr><th>Phase</th><th>Action</th><th>Output</th></tr>
+<tr><td>1. Observe</td><td>Gather context, understand request, identify constraints</td><td>PRD frontmatter + Context section</td></tr>
+<tr><td>2. Think</td><td>Analyze options, decompose into ISC criteria</td><td>Criteria section (effort-tier count)</td></tr>
+<tr><td>3. Plan</td><td>Design approach, identify risks, sequence work</td><td>Plan subsection (for Advanced+ effort)</td></tr>
+<tr><td>4. Build</td><td>Write code, create files, implement solution</td><td>Artifacts matching criteria</td></tr>
+<tr><td>5. Execute</td><td>Run tests, apply changes, verify behavior</td><td>Test results, execution evidence</td></tr>
+<tr><td>6. Verify</td><td>Check each ISC criterion, document evidence</td><td>Verification section with proof per criterion</td></tr>
+<tr><td>7. Learn</td><td>Capture insights, update memory, improve algorithm</td><td>Learning entries → MEMORY/LEARNING/</td></tr>
+</table>
+
+<h2>Effort Tiers</h2>
+<table>
+<tr><th>Tier</th><th>Budget</th><th>ISC Count</th><th>Voice Curls</th></tr>
+<tr><td>Standard</td><td>&lt;2min</td><td>8</td><td>Observe + Verify only</td></tr>
+<tr><td>Extended</td><td>&lt;8min</td><td>16</td><td>All phases</td></tr>
+<tr><td>Advanced</td><td>&lt;16min</td><td>24</td><td>All phases</td></tr>
+<tr><td>Deep</td><td>&lt;32min</td><td>40</td><td>All phases</td></tr>
+<tr><td>Comprehensive</td><td>&lt;120min</td><td>64</td><td>All phases</td></tr>
+</table>
+
+<h2>PRD Format (v2.0)</h2>
+<p>YAML frontmatter with 8 required fields: <code>task</code>, <code>slug</code>, <code>effort</code>, <code>phase</code>, <code>progress</code>, <code>mode</code>, <code>started</code>, <code>updated</code>. Body has 4 sections: Context, Criteria (ISC checkboxes), Decisions (timestamped log), Verification (per-criterion evidence).</p>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Phase tracking:</strong> The chat store should include a <code>algorithmPhase</code> field reflecting the current Algorithm phase. Brain responses can include <code>metadata.phase</code> for UI display.</li>
+<li><strong>PRD creation:</strong> Each conversation/session should produce a lightweight PRD in <code>MEMORY/WORK/{slug}/PRD.md</code>. The <code>/v1/session/export</code> endpoint currently writes markdown — it should write PRD-format markdown.</li>
+<li><strong>ISC criteria:</strong> Brain query results could include <code>metadata.isc_checked</code> and <code>metadata.isc_total</code> for progress display in the status bar.</li>
+<li><strong>Effort detection:</strong> The UI could include an effort selector before chat submission, which gets forwarded as <code>metadata.effort</code> in the API call.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── SKILL SYSTEM ───────────────────── -->
+<div class="tab-content" data-tab="Skill System">
+<h1>Skill System <span>· 12 Categories · 49 Skills</span></h1>
+<p class="subtitle">Skills are the organizational unit for all domain expertise — self-activating, self-contained, composable, evolvable.</p>
+
+<h2>Canonical Skill Structure</h2>
+<div class="code-block">
+<div class="code-header"><span>Directory Tree</span><span>Skill Anatomy</span></div>
+<div class="code-body">
+<pre>skills/SkillName/
+  SKILL.md              <span class="comment"># Main file — YAML frontmatter + description + workflow routing</span>
+  Tools/                <span class="comment"># CLI tools for automation</span>
+    ToolName.ts
+  Workflows/            <span class="comment"># Operational procedures (TitleCase .md files)</span>
+    WorkflowName.md</pre>
+</div></div>
+
+<h2>SKILL.md Format</h2>
+<div class="code-block">
+<div class="code-header"><span>Markdown</span></div>
+<div class="code-body">
+<pre><span class="comment">---</span>
+<span class="prop">name</span>: SkillName
+<span class="prop">description</span>: What it does. USE WHEN trigger1, trigger2. Capabilities.
+<span class="comment">---</span>
+
+<span class="comment"># SkillName</span>
+Brief description.
+
+<span class="comment">## Workflow Routing</span>
+<span class="comment">| Pattern | Workflow |</span>
+<span class="comment">|---------|----------|</span>
+<span class="comment">| trigger | Workflows/WorkflowName.md |</span></pre>
+</div></div>
+
+<h2>12 Categories</h2>
+<table>
+<tr><th>Category</th><th>Skills</th></tr>
+<tr><td>Agents</td><td>Custom agent composition</td></tr>
+<tr><td>ContentAnalysis</td><td>ExtractWisdom</td></tr>
+<tr><td>Investigation</td><td>OSINT, PrivateInvestigator</td></tr>
+<tr><td>Media</td><td>Art, Remotion</td></tr>
+<tr><td>Research</td><td>Multi-agent deep research</td></tr>
+<tr><td>Scraping</td><td>BrightData, Apify</td></tr>
+<tr><td>Security</td><td>Recon, WebAssessment, PromptInjection, SECUpdates, AnnualReports</td></tr>
+<tr><td>Telos</td><td>Life OS / project analysis</td></tr>
+<tr><td>Thinking</td><td>FirstPrinciples, IterativeDepth, BeCreative, Council, RedTeam, Science, WorldThreatModel</td></tr>
+<tr><td>USMetrics</td><td>68 US economic indicators</td></tr>
+<tr><td>Utilities</td><td>CreateCLI, CreateSkill, Delegation, Evals, Documents (Docx/Pdf/Pptx/Xlsx), AudioEditor, Browser, Cloudflare, Fabric, Parser, Prompting, Aphorisms, PAIUpgrade</td></tr>
+</table>
+
+<h2>Skill Naming Conventions</h2>
+<table>
+<tr><th>Convention</th><th>Meaning</th><th>Example</th></tr>
+<tr><td><code>TitleCase</code></td><td>System skill — shareable, synced with PAI</td><td><code>Art/</code>, <code>Research/</code></td></tr>
+<tr><td><code>_ALLCAPS</code></td><td>Personal skill — never shared, user-owned</td><td><code>_PRIVATE/</code></td></tr>
+</table>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Skill routing:</strong> The brain's <code>ExecuteQuery</code> already routes based on keywords (status, audit, iso, help). Extend this to route to specific skills based on user input.</li>
+<li><strong>Skill selector:</strong> Add a skill dropdown to the chat UI. Selected skill → forwarded as context to the brain → brain loads the relevant SKILL.md → routes accordingly.</li>
+<li><strong>Custom skill file viewer:</strong> The file tree component should include <code>.cide/skills/</code> so users can browse/customize skill files from within the IDE.</li>
+<li><strong>Workflow execution:</strong> Create an IPC handler <code>skill:execute-workflow</code> that reads a workflow .md, sends it to the brain, and returns structured steps.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── HOOK SYSTEM ────────────────────── -->
+<div class="tab-content" data-tab="Hook System">
+<h1>Hook System <span>· 21+ Event Lifecycle Hooks</span></h1>
+<p class="subtitle">Event-driven handlers across the session lifecycle — defined in settings.json, implemented in ~/.claude/hooks/.</p>
+
+<h2>Hook Lifecycle</h2>
+<div class="code-block">
+<div class="code-header"><span>Lifecycle</span></div>
+<div class="code-body">
+<pre>SessionStart
+  ├── LoadContext.hook.ts     <span class="comment">// Load PAI context, loadAtStartup files, dynamic context</span>
+  └── BuildCLAUDE.hook.ts     <span class="comment">// Regenerate CLAUDE.md from template if stale</span>
+
+UserPromptSubmit
+  └── SentimentAnalyzer.hook.ts  <span class="comment">// Detect sentiment, rating patterns in user input</span>
+
+PreToolUse
+  └── SecurityValidator.hook.ts  <span class="comment">// Guard Bash, Edit, Write, Read — path validation, injection prevention</span>
+
+PostToolUse
+  ├── RatingHook.ts           <span class="comment">// Capture explicit ratings from response</span>
+  ├── PRDSync.hook.ts         <span class="comment">// Sync PRD state → work.json</span>
+  └── LearningHook.ts         <span class="comment">// Extract insights → MEMORY/LEARNING/</span>
+
+Stop
+  ├── StopOrchestrator.hook.ts  <span class="comment">// Session summary, voice notification, rating prompt</span>
+  └── SessionSummary.hook.ts    <span class="comment">// Summary → MEMORY/STATE/sessions.jsonl</span></pre>
+</div></div>
+
+<h2>Configuration (settings.json)</h2>
+<div class="code-block">
+<div class="code-header"><span>JSON</span></div>
+<div class="code-body">
+<pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"SessionStart"</span>: [<span class="string">"path/to/LoadContext.hook.ts"</span>, <span class="string">"path/to/BuildCLAUDE.hook.ts"</span>],
+    <span class="prop">"PreToolUse"</span>: [<span class="string">"path/to/SecurityValidator.hook.ts"</span>],
+    <span class="prop">"Stop"</span>: [<span class="string">"path/to/StopOrchestrator.hook.ts"</span>]
+  }
+}</pre>
+</div></div>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>IPC as hooks:</strong> ConversationIDE's IPC handlers already mirror the hook pattern — <code>chat:send</code> is like UserPromptSubmit, <code>files:write</code> is like PostToolUse. Formalize this mapping.</li>
+<li><strong>Security validator:</strong> Integrate RighteousnessFilter (already ported) as a PreToolUse-style guard that validates all file/IPC operations before execution.</li>
+<li><strong>Session lifecycle events:</strong> Emit lifecycle events (app:ready, session:start, session:stop) that hook-like subscribers can listen to. Store them in MEMORY/STATE/events.jsonl.</li>
+<li><strong>Build hook:</strong> When the app starts, check if CLAUDE.md (or the derived config) is stale and regenerate it — just like BuildCLAUDE.hook.ts.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── MEMORY SYSTEM ──────────────────── -->
+<div class="tab-content" data-tab="Memory System">
+<h1>Memory System <span>· Persistent Intelligence</span></h1>
+<p class="subtitle">Every session, every insight, every decision — captured automatically. Memory makes intelligence compound across sessions.</p>
+
+<h2>Directory Structure</h2>
+<table>
+<tr><th>Directory</th><th>Purpose</th><th>Contents</th></tr>
+<tr><td><code>RAW/</code></td><td>Event logs — source of truth</td><td>JSONL files (events.jsonl)</td></tr>
+<tr><td><code>WORK/</code></td><td>Primary work tracking</td><td>PRDs, items, verification evidence</td></tr>
+<tr><td><code>LEARNING/</code></td><td>System + algorithm learning</td><td>Failure patterns, reflections, signals</td></tr>
+<tr><td><code>RESEARCH/</code></td><td>Agent output captures</td><td>Research results, extracted wisdom</td></tr>
+<tr><td><code>SECURITY/</code></td><td>Security events</td><td>Filtered security alerts from RAW</td></tr>
+<tr><td><code>STATE/</code></td><td>Runtime state</td><td>current-work.json, integrity checks</td></tr>
+<tr><td><code>WISDOM/</code></td><td>Domain knowledge frames</td><td>Compounding knowledge over time</td></tr>
+<tr><td><code>RELATIONSHIP/</code></td><td>Interaction patterns</td><td>User preferences, daily patterns</td></tr>
+</table>
+
+<h2>Naming Convention</h2>
+<div class="code-block">
+<div class="code-header"><span>Pattern</span></div>
+<div class="code-body">
+<pre><span class="type">YYYY-MM-DD-HHMMSS</span>_<span class="type">TYPE</span>_<span class="prop">description</span>.md</pre>
+</div></div>
+
+<h2>Event Log (events.jsonl)</h2>
+<p>Append-only JSONL file where each line is a typed event: algorithm.phase, work.created, rating.captured, voice.sent. 22 event interfaces defined as TypeScript discriminated union. Emitted via <code>appendEvent()</code> from event-emitter.ts.</p>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Canonical event bus:</strong> Replace the separate <code>brain_audit.log</code> with JSONL events written to <code>MEMORY/STATE/events.jsonl</code>. The audit endpoint already returns file-based events — switch the format.</li>
+<li><strong>MemoryStore persistence:</strong> MemoryStore currently uses an in-memory list. Wire it to the <code>MEMORY/LEARNING/</code> directory for persistence across app restarts.</li>
+<li><strong>Session exports:</strong> Write session exports to <code>MEMORY/RAW/session_{timestamp}.jsonl</code> instead of the standalone <code>memoryEvents/</code> directory.</li>
+<li><strong>Work tracking:</strong> Each chat session (when it produces a meaningful output) should create a WORK entry with a PRD and verification evidence.</li>
+<li><strong>IPC endpoint:</strong> Add <code>memory:list</code>, <code>memory:read</code>, <code>memory:search</code> IPC handlers that let the renderer browse the memory directory structure.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── AGENT SYSTEM ───────────────────── -->
+<div class="tab-content" data-tab="Agent System">
+<h1>Agent System <span>· 14 Specialized Agent Types</span></h1>
+<p class="subtitle">Hybrid model: Named Agents (persistent identities with backstories) + Dynamic Agents (task-specific composition from traits via ComposeAgent).</p>
+
+<h2>14 Agent Types</h2>
+<table>
+<tr><th>Agent</th><th>Role</th><th>Personality</th></tr>
+<tr><td>Algorithm</td><td>Primary DA — orchestrates all work</td><td>{DAIDENTITY.NAME}</td></tr>
+<tr><td>Engineer</td><td>Implementation, debugging, architecture</td><td>Precise, systematic</td></tr>
+<tr><td>Architect</td><td>System design, trade-off analysis</td><td>Strategic, thorough</td></tr>
+<tr><td>Designer</td><td>UI/UX, visual design, interaction patterns</td><td>Creative, aesthetic</td></tr>
+<tr><td>ClaudeResearcher</td><td>Academic/research depth (Claude)</td><td>Thorough, cited</td></tr>
+<tr><td>GeminiResearcher</td><td>Multi-perspective analysis (Gemini)</td><td>Comparative, balanced</td></tr>
+<tr><td>GrokResearcher</td><td>Contrarian/real-time analysis (Grok)</td><td>Edgy, unconventional</td></tr>
+<tr><td>CodexResearcher</td><td>Technical/code research</td><td>Developer-focused</td></tr>
+<tr><td>PerplexityResearcher</td><td>Web/social media search</td><td>Current, broad</td></tr>
+<tr><td>QATester</td><td>Testing, edge cases, breaking things</td><td>Skeptical, thorough</td></tr>
+<tr><td>Artist</td><td>Visual art generation</td><td>Creative, aesthetic</td></tr>
+<tr><td>Security</td><td>Security assessment, threat modeling</td><td>Paranoid, precise</td></tr>
+<tr><td>Intern</td><td>Entry-level research, data gathering</td><td>Eager, thorough</td></tr>
+<tr><td>Analyst</td><td>Data analysis, metrics</td><td>Analytical, objective</td></tr>
+</table>
+
+<h2>ComposeAgent Tool</h2>
+<div class="code-block">
+<div class="code-header"><span>Bash</span><span>Usage</span></div>
+<div class="code-body">
+<pre><span class="comment"># Compose from traits</span>
+bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts --traits <span class="string">"security,skeptical,thorough"</span>
+
+<span class="comment"># Persist as named agent</span>
+bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts --task <span class="string">"Security review"</span> --save
+
+<span class="comment"># List saved</span>
+bun run ~/.claude/skills/Agents/Tools/ComposeAgent.ts --list-saved</pre>
+</div></div>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Agent selector:</strong> Add an agent dropdown to the chat UI. Selecting an agent — "Researcher", "Engineer", "Analyst" — sends <code>metadata.agent</code> to the brain, which loads the appropriate agent context.</li>
+<li><strong>AgentService:</strong> Create <code>src/main/services/agentService.ts</code> that wraps ComposeAgent logic — trait combination, prompt assembly, voice mapping. The existing VoiceService already handles voice — compose agent prompt + voice together.</li>
+<li><strong>Audio identity per agent:</strong> Each agent has a unique voice ID in the PAI system. The VoiceService should support <code>voice.notify({ message, voiceId: 'agent-voice-id' })</code> — already partially implemented.</li>
+<li><strong>Research agents:</strong> When a user asks a research question, spawn multiple researcher agents (Claude, Gemini, Grok) via the Delegation system and aggregate results.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── NOTIFICATION SYSTEM ────────────── -->
+<div class="tab-content" data-tab="Notifications">
+<h1>Notification System <span>· Multi-channel Alerts</span></h1>
+<p class="subtitle">Voice (ElevenLabs TTS), push (ntfy), Discord webhook, desktop native. Duration-aware routing — escalate for long tasks.</p>
+
+<h2>Channel Types</h2>
+<table>
+<tr><th>Channel</th><th>Service</th><th>Purpose</th><th>Configured In</th></tr>
+<tr><td>Voice</td><td>ElevenLabs</td><td>Primary TTS feedback via localhost:8888</td><td><code>~/.env</code> + <code>settings.json</code></td></tr>
+<tr><td>Push</td><td>ntfy.sh</td><td>Mobile phone alerts</td><td><code>settings.json → notifications.ntfy</code></td></tr>
+<tr><td>Discord</td><td>Webhook</td><td>Team/server notifications</td><td><code>settings.json → notifications.discord</code></td></tr>
+<tr><td>Desktop</td><td>macOS native</td><td>Local desktop banners</td><td>Always available</td></tr>
+</table>
+
+<h2>Smart Routing</h2>
+<table>
+<tr><th>Event</th><th>Default Channels</th><th>Trigger</th></tr>
+<tr><td>taskComplete</td><td>Voice only</td><td>Normal completion</td></tr>
+<tr><td>longTask</td><td>Voice + ntfy</td><td>Duration &gt;5min</td></tr>
+<tr><td>backgroundAgent</td><td>ntfy</td><td>Background agent completes</td></tr>
+<tr><td>error</td><td>Voice + ntfy</td><td>Error in response</td></tr>
+<tr><td>security</td><td>Voice + ntfy + Discord</td><td>Security alert</td></tr>
+</table>
+
+<h2>Voice Curl Pattern</h2>
+<div class="code-block">
+<div class="code-header"><span>Bash</span></div>
+<div class="code-body">
+<pre>curl -s -X POST http://localhost:8888/notify \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{"message": "Running WORKFLOW in SKILL to ACTION", "voice_id": "{VOICE_ID}"}'</span> \
+  > /dev/null 2>&1 &</pre>
+</div></div>
+
+<h2>Event Log Channel (events.jsonl)</h2>
+<p>All hooks emit structured events to <code>MEMORY/STATE/events.jsonl</code> — append-only JSONL. 22 event interfaces. Adds unified observability without replacing notification channels.</p>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration (already implemented in <code>src/main/services/voiceService.ts</code>):</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Direct IPC replaces curl:</strong> The <code>voice:notify</code> IPC handler already replaces the curl→localhost:8888 pattern. All <code>curl -X POST http://localhost:8888/notify</code> calls in skill files become <code>window.electronAPI.voice.notify(...)</code>.</li>
+<li><strong>Add ntfy push:</strong> Extend voiceService to support ntfy.sh push notifications via <code>voice:notify-push</code> IPC. Read config from settings.json.</li>
+<li><strong>Duration-aware routing:</strong> Track task duration in the chat store. If a brain query takes &gt;5s, show a desktop notification. Wire to Electron's Notification API.</li>
+<li><strong>Event log:</strong> The brain audit trail should write to MEMORY/STATE/events.jsonl in addition to its current file-based log.</li>
+<li><strong>UI notification indicator:</strong> Add a notification bell icon in the status bar showing recent events from the event log.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── DELEGATION SYSTEM ──────────────── -->
+<div class="tab-content" data-tab="Delegation">
+<h1>Delegation System <span>· Agent Teams &amp; Swarms</span></h1>
+<p class="subtitle">Persistent coordinated teams with shared task lists, messaging, and multi-turn collaboration — distinct from the Agents skill (which does fire-and-forget parallel workers).</p>
+
+<h2>Team vs Swarm vs Agents</h2>
+<table>
+<tr><th>Type</th><th>Coordination</th><th>State</th><th>Use Case</th></tr>
+<tr><td>Agent (Agents skill)</td><td>None — fire-and-forget</td><td>None</td><td>One-shot parallel workers</td></tr>
+<tr><td>Team (Delegation)</td><td>Shared task list, messaging</td><td>Persistent</td><td>Coordinated multi-agent work</td></tr>
+<tr><td>Swarm (Delegation)</td><td>Leader-follower, dynamic</td><td>Ephemeral</td><td>Complex task decomposition</td></tr>
+</table>
+
+<h2>TeamCreate Flow</h2>
+<div class="code-block">
+<div class="code-header"><span>Sequence</span></div>
+<div class="code-body">
+<pre><span class="number">1.</span> Define team composition (roles, agents, capabilities)
+<span class="number">2.</span> Create shared task list
+<span class="number">3.</span> Assign tasks to agents
+<span class="number">4.</span> Agents work independently with status updates
+<span class="number">5.</span> Leader aggregates results
+<span class="number">6.</span> Deliverable produced
+<span class="number">7.</span> Team dismantled or persisted</pre>
+</div></div>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Multi-agent chat:</strong> Allow switching between agent roles mid-conversation. Each message can specify which agent role should respond.</li>
+<li><strong>Spawn &amp; monitor:</strong> Create an IPC handler <code>delegation:spawn-team</code> that launches background agents and returns a team ID. The status bar can show active teams.</li>
+<li><strong>Result aggregation:</strong> When the brain runs Research, it should use delegation internally — spawn multiple researcher agents, collect results, synthesize.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── FABRIC SYSTEM ──────────────────── -->
+<div class="tab-content" data-tab="Fabric">
+<h1>Fabric System <span>· 242+ Prompt Patterns</span></h1>
+<p class="subtitle">Curated library of prompt patterns for content analysis, extraction, and transformation — run patterns, sync from repo, create threat models, summarize.</p>
+
+<h2>Key Pattern Categories</h2>
+<table>
+<tr><th>Category</th><th>Example Patterns</th></tr>
+<tr><td>Analysis</td><td>analyze_claims, analyze_mistakes, analyze_patents, analyze_threat_report</td></tr>
+<tr><td>Extract</td><td>extract_wisdom, extract_article, extract_newsletter, extract_pdf</td></tr>
+<tr><td>Summarize</td><td>summarize, summarize_debate, summarize_lecture, summarize_podcast</td></tr>
+<tr><td>Write</td><td>write_essay, write_micro_essay, write_note, write_seminar</td></tr>
+<tr><td>Create</td><td>create_threat_model, create_pattern, create_summary, create_quiz</td></tr>
+<tr><td>Explain</td><td>explain_docs, explain_math, explain_project, explain_terms</td></tr>
+<tr><td>Security</td><td>analyze_threat_model, create_threat_scenario, security_audit</td></tr>
+</table>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Pattern as brain command:</strong> Add fabric pattern execution as a brain command — <code>fabric -p extract_wisdom</code> routes to the brain with the pattern prompt pre-loaded.</li>
+<li><strong>IPC handler:</strong> <code>fabric:run-pattern</code> — takes pattern name + input, runs through pattern prompt via brain API.</li>
+<li><strong>Pattern browser:</strong> Add a "Patterns" panel in the IDE listing available fabric patterns with search/filter.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── TOOLS SYSTEM ───────────────────── -->
+<div class="tab-content" data-tab="Tools">
+<h1>Tools System <span>· CLI Utilities</span></h1>
+<p class="subtitle">Single-purpose CLI tools that wrap APIs or external commands. Simple utilities don't need separate skills — document here, execute directly.</p>
+
+<h2>Available Tools</h2>
+<table>
+<tr><th>Tool</th><th>File</th><th>Purpose</th></tr>
+<tr><td><code>Inference.ts</code></td><td><code>PAI/Tools/Inference.ts</code></td><td>3-tier AI inference (fast/standard/smart) via Claude CLI</td></tr>
+<tr><td><code>RemoveBg.ts</code></td><td><code>PAI/Tools/RemoveBg.ts</code></td><td>Remove image backgrounds via remove.bg API</td></tr>
+<tr><td><code>AddBg.ts</code></td><td><code>PAI/Tools/AddBg.ts</code></td><td>Add solid background color to transparent images</td></tr>
+<tr><td><code>GetTranscript.ts</code></td><td><code>PAI/Tools/GetTranscript.ts</code></td><td>YouTube transcript extraction via yt-dlp</td></tr>
+<tr><td><code>extract-transcript.py</code></td><td><code>PAI/Tools/extract-transcript.py</code></td><td>Local audio/video transcription (faster-whisper)</td></tr>
+<tr><td><code>YouTubeApi.ts</code></td><td><code>PAI/Tools/YouTubeApi.ts</code></td><td>YouTube channel/video statistics via Data API v3</td></tr>
+<tr><td>Voice Server</td><td>localhost:8888</td><td>ElevenLabs TTS voice narration</td></tr>
+<tr><td>TruffleHog</td><td>system CLI</td><td>Secret scanning (700+ credential types)</td></tr>
+</table>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Tool execution IPC:</strong> Create <code>tools:execute</code> IPC handler that runs any tool by name with arguments — <code>tools:execute { tool: 'inference', args: ['--level', 'fast', ...] }</code>.</li>
+<li><strong>Python tools via subprocess:</strong> <code>extract-transcript.py</code> uses <code>uv run</code> — spawn from main process with output piped back via IPC.</li>
+<li><strong>Inference tool:</strong> Replace the brain's <code>ExecuteQuery</code> with the 3-tier Inference tool when the user asks for "quick answer" vs "deep analysis".</li>
+<li><strong>Secret scanning:</strong> Add a "Scan for Secrets" button in the file tree that runs trufflehog on the selected directory.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── USER CONFIGURATION ─────────────── -->
+<div class="tab-content" data-tab="User Config">
+<h1>User Configuration <span>· USER/ Directory</span></h1>
+<p class="subtitle">Personal context — identity, projects, telos goals, work, business, skill customizations. Never overwritten by PAI upgrades.</p>
+
+<h2>Identity Files (USER/ root)</h2>
+<table>
+<tr><th>File</th><th>Purpose</th></tr>
+<tr><td><code>ABOUTME.md</code></td><td>Background, expertise, interests, goals</td></tr>
+<tr><td><code>DAIDENTITY.md</code></td><td>Digital Assistant name, personality, voice ID</td></tr>
+<tr><td><code>WRITINGSTYLE.md</code></td><td>Writing style preferences and examples</td></tr>
+<tr><td><code>AISTEERINGRULES.md</code></td><td>Personal AI behavior rules (extends system rules)</td></tr>
+<tr><td><code>OPINIONS.md</code></td><td>Preferences and opinions for AI adaptation</td></tr>
+</table>
+
+<h2>Subdirectories</h2>
+<table>
+<tr><th>Directory</th><th>Contents</th></tr>
+<tr><td><code>ACTIONS/</code></td><td>Reusable automation actions (extract, transform, format, social)</td></tr>
+<tr><td><code>BUSINESS/</code></td><td>Company info, media kits, proposal templates, brand guidelines</td></tr>
+<tr><td><code>FLOWS/</code></td><td>JSON workflow orchestration definitions</td></tr>
+<tr><td><code>PIPELINES/</code></td><td>YAML data processing pipeline configs</td></tr>
+<tr><td><code>PROJECTS/</code></td><td>Project registry — paths, URLs, tech stacks</td></tr>
+<tr><td><code>SKILLCUSTOMIZATIONS/</code></td><td>Per-skill preference overrides (<code>Art/PREFERENCES.md</code>, etc.)</td></tr>
+<tr><td><code>STATUSLINE/</code></td><td>Status line display config</td></tr>
+<tr><td><code>TELOS/</code></td><td>Life OS — goals, beliefs, challenges, books, wisdom, frames</td></tr>
+<tr><td><code>TERMINAL/</code></td><td>Terminal configuration (kitty.conf, themes)</td></tr>
+<tr><td><code>WORK/</code></td><td>Professional work tracking, consulting, client resources</td></tr>
+<tr><td><code>Workflows/</code></td><td>Custom user-defined workflow .md files</td></tr>
+</table>
+
+<h2>Skill Customization Pattern</h2>
+<div class="code-block">
+<div class="code-header"><span>File Tree</span></div>
+<div class="code-body">
+<pre>SKILLCUSTOMIZATIONS/
+  Art/
+    PREFERENCES.md      <span class="comment">// "Always use illustration style, never photorealistic"</span>
+  Research/
+    PREFERENCES.md      <span class="comment">// "Prefer academic sources, cite in APA format"</span>
+  Agents/
+    PREFERENCES.md      <span class="comment">// "Default to collaborative tone"</span></pre>
+</div></div>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Config panel:</strong> Add a settings panel in the IDE that reads/writes USER/ configuration files. Tabs for each subdirectory.</li>
+<li><strong>DA identity in status bar:</strong> Read DAIDENTITY.md and show the DA name + voice ID in the status bar alongside the brain stats.</li>
+<li><strong>Project registry:</strong> The file tree sidebar should read USER/PROJECTS/PROJECTS.md (if it exists) to show registered projects with their paths.</li>
+<li><strong>Telos dashboard:</strong> Create a tab/panel that reads USER/TELOS/ files and displays goals, beliefs, challenges in a dashboard format.</li>
+<li><strong>Skill customizations viewer:</strong> Under Settings → Skills, show each installed skill with its customization file (if any) and an "Edit PREFERENCES.md" button.</li>
+<li><strong>USER/ file browser:</strong> The .cide/PAI/USER/ directory should be accessible from the IDE file tree for easy editing.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── SYSTEM ARCHITECTURE ────────────── -->
+<div class="tab-content" data-tab="Architecture">
+<h1>System Architecture <span>· 16 Founding Principles</span></h1>
+<p class="subtitle">The foundational patterns that apply to ALL PAI implementations. Scaffolding for AI, not a replacement for human intelligence.</p>
+
+<h2>The 16 Founding Principles</h2>
+<table>
+<tr><th>#</th><th>Principle</th><th>Meaning</th></tr>
+<tr><td>1</td><td>Customization of an Agentic Platform</td><td>PAI exists to help achieve YOUR goals — personalized agentic infrastructure</td></tr>
+<tr><td>2</td><td>The Continuously Upgrading Algorithm</td><td>Current State → Ideal State via verifiable iteration. Everything feeds the Algorithm</td></tr>
+<tr><td>3</td><td>Clear Thinking + Prompting is King</td><td>Quality of outcomes depends on quality of thinking. Prompt engineering is real engineering</td></tr>
+<tr><td>4</td><td>Scaffolding &gt; Model</td><td>System architecture matters more than the underlying model</td></tr>
+<tr><td>5</td><td>As Deterministic as Possible</td><td>Same input → Same output. Consistency beats creativity in production</td></tr>
+<tr><td>6</td><td>Code Before Prompts</td><td>Code is cheaper, faster, more reliable. Prompts orchestrate code, not vice versa</td></tr>
+<tr><td>7</td><td>Spec / Test / Evals First</td><td>Define behavior before implementing. Can't test → can't trust</td></tr>
+<tr><td>8</td><td>UNIX Philosophy (Modular Tooling)</td><td>Do one thing well. Compose via standard I/O</td></tr>
+<tr><td>9</td><td>ENG / SRE Principles</td><td>AI infrastructure is infrastructure — monitor, version, plan for failure</td></tr>
+<tr><td>10</td><td>CLI as Interface</td><td>Every operation accessible via command line. No CLI → can't script or test</td></tr>
+<tr><td>11</td><td>Goal → Code → CLI → Prompts → Agents</td><td>Each layer builds on previous. Skip a layer, get a shaky system</td></tr>
+<tr><td>12</td><td>Custom Skill Management</td><td>Skills are self-activating, self-contained, composable, evolvable</td></tr>
+<tr><td>13</td><td>Custom Memory System</td><td>Automatic capture. Memory makes intelligence compound</td></tr>
+<tr><td>14</td><td>Custom Agent Personalities / Voices</td><td>Specialized agents with distinct personalities. Personality is functional, not decoration</td></tr>
+<tr><td>15</td><td>Science as Cognitive Loop</td><td>Falsifiability, pre-commitment, three-hypothesis minimum</td></tr>
+<tr><td>16</td><td>Permission to Fail</td><td>Explicit permission to say "I don't know" — prevents hallucinations</td></tr>
+</table>
+
+<h2>Cloud Execution (Arbol)</h2>
+<p>Actions and pipelines run in two environments with identical behavior — local (bun runner) and cloud (Cloudflare Workers). Each action is a separate Worker. V8 Isolate Workers (lightweight, LLM actions) + Sandbox Workers (Docker containers, shell actions).</p>
+
+<h2>Settings.json Architecture</h2>
+<p>Single source of truth for all configuration: identity (daidentity, principal), environment, permissions, hooks, notifications, status line, spinner verbs, loadAtStartup files, dynamicContext toggles.</p>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Principle 2 — Self-upgrading:</strong> The brain should be able to modify its own code via approved IPC handlers. The <code>files:write</code> handler already allows this — add guardrails.</li>
+<li><strong>Principle 6 — Code before prompts:</strong> Favor TypeScript handlers (written in src/main/) over brain prompts for deterministic logic. The brain handles flexible reasoning, but file operations, data transformation, and validation should be TS.</li>
+<li><strong>Principle 10 — CLI:</strong> Every IPC handler should have a corresponding CLI entry point (e.g., <code>node dist/main/cli.js voice:notify '{"message":"hi"}'</code>).</li>
+<li><strong>Principle 15 — Science:</strong> The brain chat flow should support hypothesis testing — user states hypothesis, brain designs experiment, runs it, reports results.</li>
+<li><strong>Principle 16 — Permission to fail:</strong> The brain should return <code>HALT_AND_CLARIFY</code> freely when uncertain. The UI should render this distinctly from a normal response.</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── EXTENDABILITY ──────────────────── -->
+<div class="tab-content" data-tab="Extendability">
+<h1>System Extendability <span>· User + SYSTEM Layers</span></h1>
+<p class="subtitle">Two-tier configuration: SYSTEM files (overwritten by PAI upgrades) and USER files (never touched). Skill customizations, hooks, startup files, agents, and more.</p>
+
+<h2>Two-Tier Architecture</h2>
+<table>
+<tr><th>Layer</th><th>Location</th><th>Overwritten?</th></tr>
+<tr><td>SYSTEM</td><td><code>PAI/*.md</code>, <code>skills/</code>, <code>hooks/</code></td><td>Yes — updated with PAI</td></tr>
+<tr><td>USER</td><td><code>PAI/USER/</code> (all subdirs)</td><td>No — user-owned</td></tr>
+</table>
+
+<h2>Extension Points</h2>
+<table>
+<tr><th>What</th><th>How</th><th>Where</th></tr>
+<tr><td>Add a skill</td><td>Use CreateSkill skill</td><td><code>~/.claude/skills/</code></td></tr>
+<tr><td>Add a hook</td><td>Create .ts handler, register in settings.json</td><td><code>~/.claude/hooks/handlers/</code></td></tr>
+<tr><td>Add startup files</td><td>Append to settings.json → loadAtStartup</td><td>settings.json</td></tr>
+<tr><td>Add user context</td><td>Create files in PAI/USER/</td><td><code>PAI/USER/</code></td></tr>
+<tr><td>Customize skill behavior</td><td>Create SKILLCUSTOMIZATIONS/{Skill}/PREFERENCES.md</td><td><code>PAI/USER/SKILLCUSTOMIZATIONS/</code></td></tr>
+<tr><td>Override rules</td><td>Create AISTEERINGRULES.md</td><td><code>PAI/USER/</code></td></tr>
+<tr><td>Custom agent</td><td>Use Agents skill → ComposeAgent</td><td><code>skills/Agents/</code></td></tr>
+<tr><td>New CLI tool</td><td>Drop .ts/.py in PAI/Tools/, document in TOOLS.md</td><td><code>PAI/Tools/</code></td></tr>
+</table>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>Extendability panel:</strong> Add a "System" settings tab showing all extension points with "Add Skill", "Add Hook", "Add Tool" buttons that scaffold the needed files.</li>
+<li><strong>Settings.json editor:</strong> The ConversationIDE should have a settings.json editor (or at least a reader) so users can see their current notification/hook/permission configuration.</li>
+<li><strong>Two-tier awareness:</strong> The file tree should visually distinguish SYSTEM files (read-only, grey icon) from USER files (editable, blue icon).</li>
+</ul>
+</div>
+</div>
+
+<!-- ─── STEERING RULES + CLI ───────────── -->
+<div class="tab-content" data-tab="Steering+CLI">
+<h1>Steering Rules &amp; CLI Architecture <span>· AI Behavior + Interface</span></h1>
+<p class="subtitle">AI steering rules define behavioral constraints. CLI-first architecture ensures every operation is scriptable and testable.</p>
+
+<h2>AI Steering Rules (AISTEERINGRULES.md)</h2>
+<p>Personal overrides for AI behavior. Lives in <code>USER/AISTEERINGRULES.md</code>. Not overwritten by PAI upgrades. Examples:</p>
+<div class="code-block">
+<div class="code-header"><span>Markdown</span></div>
+<div class="code-body">
+<pre><span class="comment"># AI Steering Rules</span>
+- Always ask before deleting files
+- Prefer TypeScript over JavaScript for new code
+- Use tabs, not spaces
+- Never refactor working code without explicit request</pre>
+</div></div>
+
+<h2>CLI-First Architecture</h2>
+<table>
+<tr><th>Principle</th><th>Implication</th></tr>
+<tr><td>Every operation has a CLI</td><td>No CLI → can't script or test</td></tr>
+<tr><td>CLI composes</td><td>Standard I/O for piping between tools</td></tr>
+<tr><td>Single responsibility</td><td>Each CLI command does one thing well</td></tr>
+<tr><td>TypeScript tools</td><td>Bun runtime for cross-platform TS execution</td></tr>
+</table>
+
+<h2>CLI Tool Template</h2>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>Tool Pattern</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { parseArgs } <span class="keyword">from</span> <span class="string">"util"</span>;
+
+<span class="keyword">const</span> args = parseArgs({ options: { ... } });
+
+<span class="keyword">async function</span> <span class="fn">main</span>() {
+  <span class="comment">// Tool implementation</span>
+  console.log(JSON.stringify(result));
+}
+
+main();</pre>
+</div></div>
+
+<div class="integration-note">
+<strong>ConversationIDE Integration:</strong>
+<ul style="margin:6px 0 0 16px; color:var(--text2)">
+<li><strong>CLI bridge:</strong> Add a <code>tools:run-cli</code> IPC handler that takes a tool path + args, spawns it via <code>bun run</code>, and returns stdout. The renderer can call any PAI tool this way.</li>
+<li><strong>Steering rules linter:</strong> Read <code>AISTEERINGRULES.md</code> on app startup and apply rules as lint checks. For example, "Use tabs" → warn on space indentation in files.</li>
+<li><strong>Terminal panel:</strong> Add an embedded terminal panel in the IDE that lets the user run PAI CLI tools directly from within the app.</li>
+</ul>
+</div>
+</div>
+
+</div>
+
+<script>
+  const tabs = [
+    'Overview', 'Algorithm', 'Skill System', 'Hook System', 'Memory System',
+    'Agent System', 'Notifications', 'Delegation', 'Fabric', 'Tools',
+    'User Config', 'Architecture', 'Extendability', 'Steering+CLI'
+  ];
+
+  const tabBar = document.getElementById('tabBar');
+
+  tabs.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = name;
+    btn.dataset.tab = name;
+    btn.addEventListener('click', () => switchTab(name));
+    tabBar.appendChild(btn);
+  });
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
+    document.querySelector(`.tab-content[data-tab="${name}"]`).classList.add('active');
+  }
+</script>
+
+</body>
+</html>

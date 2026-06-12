@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>VAN ENGINE · ARA FRACTAL V2 · Sovereign Character Matrix</title>
+<style>
+  /* ---------- GLOBAL RESET ---------- */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a; color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh; overflow: hidden;
+  }
+  #app {
+    display: flex; flex-direction: column;
+    height: 100vh; width: 100vw;
+  }
+  /* ---------- TOP NAVBAR ---------- */
+  #top-nav {
+    background: #0f0f12; border-bottom: 1px solid #1f1f2a;
+    padding: 8px 16px;
+    display: flex; flex-wrap: wrap;
+    align-items: center; gap: 8px;
+    z-index: 100; flex-shrink: 0;
+  }
+  .nav-btn {
+    background: transparent; border: 1px solid #2a2a36;
+    color: #aaa; padding: 6px 14px;
+    border-radius: 20px; cursor: pointer;
+    font-size: 12px; font-weight: 500;
+    transition: 0.2s; font-family: inherit;
+  }
+  .nav-btn:hover { background: #1e1e28; color: #ddd; border-color: #4a4a5a; }
+  .nav-btn.active { background: #3c964a; border-color: #3c964a; color: #fff; }
+  #export-btn {
+    background: #9b2a2a; border-color: #b53a3a; color: #fff;
+    margin-left: auto;
+  }
+  #export-btn:hover { background: #b53a3a; }
+  #status-area {
+    font-size: 10px; color: #555; font-family: monospace;
+    background: #0a0a0a; padding: 4px 12px; border-radius: 16px;
+  }
+  /* ---------- TOOL CONTAINER ---------- */
+  #tool-container {
+    flex: 1; position: relative;
+    overflow: auto; background: #0a0a0a;
+  }
+  /* shared toast */
+  #toast {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a; border: 1px solid #2a2a2a;
+    border-radius: 8px; padding: 8px 18px;
+    color: #ccc; font-size: 12px; z-index: 1000;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none; white-space: nowrap;
+  }
+  #toast.visible { opacity: 1; }
+  /* ---------- AGE GATE OVERLAY ---------- */
+  #age-gate {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #0a0a0a; z-index: 10000;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 20px;
+    backdrop-filter: blur(4px);
+  }
+  #age-gate.hidden { display: none; }
+  .gate-card {
+    background: #141418; border: 1px solid #2a2a30;
+    border-radius: 16px; padding: 32px;
+    max-width: 420px; width: 90%;
+    text-align: center;
+  }
+  .gate-card h1 { color: #3c964a; font-size: 20px; letter-spacing: 2px; margin-bottom: 4px; }
+  .gate-card .sub { font-size: 12px; color: #666; margin-bottom: 24px; }
+  .dob-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .dob-row select {
+    background: #1a1a22; border: 1px solid #2a2a32;
+    color: #ccc; padding: 8px 12px; border-radius: 6px;
+    font-size: 13px; cursor: pointer;
+  }
+  .terms { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 20px; font-size: 12px; }
+  .terms input { accent-color: #3c964a; }
+  .btn-enter { background: #3c964a; border: none; color: #fff; padding: 10px 28px; border-radius: 30px; cursor: pointer; font-weight: 600; margin-top: 8px; }
+  .btn-enter:disabled { opacity: 0.4; cursor: not-allowed; }
+  .bypass-link { margin-top: 12px; font-size: 11px; color: #666; cursor: pointer; text-decoration: underline; }
+  .error { color: #e74c3c; font-size: 12px; margin-top: 8px; }
+  /* ---------- TOOL STYLES (minimal, each tool will inject its own) ---------- */
+  .tool-container-inner { width: 100%; height: 100%; position: relative; }
+  .placeholder-3d { display: flex; align-items: center; justify-content: center; height: 100%; color: #555; flex-direction: column; gap: 12px; }
+  /* manifest editor styles (scoped) */
+  .manifest-tree-node { margin-left: 16px; list-style: none; cursor: pointer; }
+  .manifest-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; }
+  .manifest-row.selected { background: #2a3f6e; }
+  .collapsible-card { background: #0b1124; border-radius: 12px; margin-bottom: 8px; border: 1px solid #293a60; }
+  .collapsible-header { display: flex; align-items: center; gap: 12px; padding: 8px 12px; cursor: pointer; background: #111b2e; border-radius: 12px; }
+  .collapsible-content { padding: 12px; display: none; border-top: 1px solid #25375a; }
+  .collapsible-card.open .collapsible-content { display: block; }
+  /* behaviour tree styles */
+  .bt-tree-node { padding: 6px 8px; margin: 2px 0; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .bt-tree-node:hover { background: #1a1a1a; }
+  .bt-status-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .bt-status-IDLE { background: #333; }
+  .bt-status-RUNNING { background: #3498db; }
+  .bt-status-SUCCESS { background: #2ecc71; }
+  .bt-status-FAILURE { background: #e74c3c; }
+  .bt-children { margin-left: 20px; border-left: 1px solid #1a1a1a; padding-left: 6px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top-nav">
+    <button class="nav-btn" data-tool="fractal">🌀 Fractal</button>
+    <button class="nav-btn" data-tool="marketplace">🛒 Marketplace</button>
+    <button class="nav-btn" data-tool="wordmesh">🌐 WordMesh</button>
+    <button class="nav-btn" data-tool="manifest">📋 Manifest Editor</button>
+    <button class="nav-btn" data-tool="btree">🌳 Behaviour Tree</button>
+    <button class="nav-btn" data-tool="harvester">🎨 Harvester (stub)</button>
+    <button id="export-btn" class="nav-btn">💾 Export $1</button>
+    <div id="status-area">⚡ V2 | 4MB</div>
+  </div>
+  <div id="tool-container"></div>
+</div>
+<div id="toast"></div>
+
+<!-- AGE GATE -->
+<div id="age-gate">
+  <div class="gate-card">
+    <h1>ARA FRACTAL</h1>
+    <div class="sub">Adults only — verify your age</div>
+    <div class="dob-row">
+      <select id="ag-month"><option value="">MM</option></select>
+      <select id="ag-day"><option value="">DD</option></select>
+      <select id="ag-year"><option value="">YYYY</option></select>
+    </div>
+    <div class="terms">
+      <input type="checkbox" id="ag-terms">
+      <label>I am at least 18 years old and consent to adult content</label>
+    </div>
+    <button class="btn-enter" id="ag-enter" disabled>ENTER</button>
+    <div class="error" id="ag-error"></div>
+    <div class="bypass-link" id="bypass-age">🔓 Bypass (testing only)</div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+// ============================================================
+// AGE GATE (Sprint 0) + one-click bypass
+// ============================================================
+(function setupAgeGate() {
+  const gate = document.getElementById('age-gate');
+  const monthSel = document.getElementById('ag-month');
+  const daySel = document.getElementById('ag-day');
+  const yearSel = document.getElementById('ag-year');
+  const termsChk = document.getElementById('ag-terms');
+  const enterBtn = document.getElementById('ag-enter');
+  const errorDiv = document.getElementById('ag-error');
+  const bypass = document.getElementById('bypass-age');
+
+  // populate selects
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (let i=1;i<=12;i++) { let opt = document.createElement('option'); opt.value=i; opt.textContent=months[i-1]; monthSel.appendChild(opt); }
+  for (let i=1;i<=31;i++) { let opt = document.createElement('option'); opt.value=i; opt.textContent=i; daySel.appendChild(opt); }
+  const now = new Date();
+  for (let y=now.getFullYear(); y>=now.getFullYear()-100; y--) {
+    let opt = document.createElement('option'); opt.value=y; opt.textContent=y; yearSel.appendChild(opt);
+  }
+
+  function validate() {
+    const m = parseInt(monthSel.value);
+    const d = parseInt(daySel.value);
+    const y = parseInt(yearSel.value);
+    if (!m || !d || !y) return 'Select full date of birth';
+    const dob = new Date(y, m-1, d);
+    if (isNaN(dob.getTime())) return 'Invalid date';
+    const adult = new Date(now.getFullYear()-18, now.getMonth(), now.getDate());
+    if (dob > adult) return 'Must be 18+';
+    if (!termsChk.checked) return 'Must accept terms';
+    return null;
+  }
+  function updateButton() { enterBtn.disabled = !!validate(); errorDiv.textContent = validate() || ''; }
+  monthSel.addEventListener('change', updateButton);
+  daySel.addEventListener('change', updateButton);
+  yearSel.addEventListener('change', updateButton);
+  termsChk.addEventListener('change', updateButton);
+  enterBtn.addEventListener('click', () => {
+    if (!validate()) { sessionStorage.setItem('ara_age_verified', 'true'); gate.classList.add('hidden'); }
+  });
+  bypass.addEventListener('click', () => {
+    sessionStorage.setItem('ara_age_verified', 'true');
+    gate.classList.add('hidden');
+  });
+  if (sessionStorage.getItem('ara_age_verified') === 'true') gate.classList.add('hidden');
+})();
+
+// ============================================================
+// SHARED UTILITIES
+// ============================================================
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+// MemoryPool (minimal version, used by future 3D tools)
+window.ARA_MEMORY = {
+  alloc: (label, count, type) => new (window[type+'Array'] || Float32Array)(count),
+  free: () => {}
+};
+
+// ExportGuard (mock payment token)
+const ExportGuard = (() => {
+  let activeToken = null;
+  function issue(token) { activeToken = token; }
+  function consume(token) { if (activeToken !== token) return false; activeToken = null; return true; }
+  async function trigger(statePayload, token) {
+    if (!consume(token)) throw new Error('Invalid export token');
+    const json = JSON.stringify(statePayload, null, 0);
+    const bytes = new TextEncoder().encode(json).length;
+    if (bytes > 4*1024*1024) throw new Error(`Export exceeds 4MB (${(bytes/1048576).toFixed(2)}MB)`);
+    const blob = new Blob([json], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: `ara_export_${Date.now()}.json` });
+    a.click();
+    requestAnimationFrame(() => URL.revokeObjectURL(url));
+    a.remove();
+  }
+  return { issue, trigger };
+})();
+window.ExportGuard = ExportGuard;
+
+// SovereignIntentParser (file drop + confirmation modal)
+class SovereignIntentParser {
+  constructor(activeToolGetter) { this.getActiveTool = activeToolGetter; this.registered = new Map(); }
+  register(intent, handler) { this.registered.set(intent, handler); }
+  async parseAndRoute(data) {
+    let intent = 'unknown', payload = null;
+    if (typeof data === 'string') {
+      if (data.toLowerCase().includes('speak')) intent = 'speak', payload = data;
+      else intent = 'text', payload = data;
+    } else if (data instanceof File) {
+      if (data.type.startsWith('image/')) intent = 'image', payload = data;
+      else if (data.type === 'audio/mpeg') intent = 'audio', payload = data;
+      else if (data.name.endsWith('.json')) intent = 'json', payload = data;
+      else intent = 'file', payload = data;
+    }
+    const tool = this.getActiveTool();
+    const handler = this.registered.get(`${tool}:${intent}`) || this.registered.get(`*:${intent}`);
+    if (handler) {
+      this._confirm(intent, payload, async (confirmed) => { if (confirmed) await handler(payload); });
+    } else { toast(`No handler for ${intent} in ${tool}`); }
+  }
+  _confirm(intent, payload, callback) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `<div style="background:#111;border:1px solid #333;border-radius:12px;padding:24px;max-width:400px;">
+      <div style="color:#d29b83">Intent: ${intent}</div>
+      <div style="margin:12px 0;font-size:12px;color:#aaa;">${payload instanceof File ? payload.name : (String(payload).substring(0,200))}</div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button id="confirm-yes" style="background:#9b2a2a;border:none;color:#fff;padding:6px 16px;border-radius:4px;cursor:pointer;">CONFIRM</button>
+        <button id="confirm-no" style="background:#222;border:none;color:#aaa;padding:6px 16px;border-radius:4px;cursor:pointer;">VETO</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#confirm-yes').onclick = () => { modal.remove(); callback(true); };
+    modal.querySelector('#confirm-no').onclick = () => { modal.remove(); callback(false); };
+  }
+}
+
+// ============================================================
+// TOOL MANAGER
+// ============================================================
+let activeTool = null;
+let activeToolInstance = null;
+
+const tools = {
+  fractal: { name: 'Fractal', init: () => { document.getElementById('tool-container').innerHTML = '<div class="placeholder-3d"><span>🌀 Fractal Viewer (3D) – will load full scene here</span><button id="temp-fractal-msg" style="margin-top:12px;">Simulate load</button></div>'; document.getElementById('temp-fractal-msg')?.addEventListener('click',()=>toast('Fractal placeholder – full integration later')); }, destroy: () => {} },
+  marketplace: { name: 'Marketplace', init: () => { document.getElementById('tool-container').innerHTML = '<div class="placeholder-3d"><span>🛒 Marketplace – 3D asset store (placeholder)</span></div>'; }, destroy: () => {} },
+  wordmesh: { name: 'WordMesh', init: () => { document.getElementById('tool-container').innerHTML = '<div class="placeholder-3d"><span>🌐 WordMesh – 3D word graph (placeholder)</span></div>'; }, destroy: () => {} },
+  manifest: { name: 'Manifest Editor', init: initManifestEditor, destroy: destroyManifestEditor },
+  btree: { name: 'Behaviour Tree', init: initBehaviourTree, destroy: destroyBehaviourTree },
+  harvester: { name: 'Harvester', init: () => { document.getElementById('tool-container').innerHTML = '<div class="placeholder-3d"><span>🎨 Pixel Harvester – will be added later</span></div>'; }, destroy: () => {} }
+};
+
+async function switchTool(toolId) {
+  if (activeToolInstance && tools[activeTool]?.destroy) tools[activeTool].destroy();
+  document.getElementById('tool-container').innerHTML = '';
+  activeTool = toolId;
+  activeToolInstance = null;
+  await tools[toolId].init();
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.nav-btn[data-tool="${toolId}"]`)?.classList.add('active');
+  toast(`Switched to ${tools[toolId].name}`);
+}
+
+// ============================================================
+// MANIFEST EDITOR (full port from manifest_editor.html)
+// ============================================================
+let manifestJson = null;
+let manifestSelectedPath = [];
+let manifestExpanded = new Set();
+
+function initManifestEditor() {
+  const container = document.getElementById('tool-container');
+  container.innerHTML = `
+    <div style="display:flex; height:100%; gap:12px; padding:12px; background:#0a0a0a;">
+      <div style="width:30%; background:#0f172a; border-radius:12px; overflow:auto; padding:12px;">
+        <h4 style="margin-bottom:8px;">📁 MANIFEST TREE</h4>
+        <div id="manifest-tree"></div>
+        <button id="manifest-import" style="margin-top:12px;">📂 Import JSON</button>
+        <input type="file" id="manifest-file-input" accept=".json" style="display:none">
+      </div>
+      <div style="flex:1; background:#0f172a; border-radius:12px; overflow:auto; padding:12px;">
+        <h4>✏️ Direct Edit</h4>
+        <div id="manifest-editor-area"></div>
+      </div>
+      <div style="width:30%; background:#0f172a; border-radius:12px; overflow:auto; padding:12px;">
+        <h4>📎 Artifact Viewer</h4>
+        <div id="manifest-artifact-viewer">Select a property</div>
+      </div>
+    </div>`;
+  // default manifest
+  manifestJson = {
+    "VAN_ENGINE_COMPANION_MANIFEST": {
+      "manifest_version": "2.0.0",
+      "COMPANION_MODES": { "ChatMode": { "description": "Conversational" } }
+    }
+  };
+  function renderTree() {
+    const containerDiv = document.getElementById('manifest-tree');
+    if (!containerDiv) return;
+    function buildTree(obj, path=[]) {
+      let html = '';
+      for (let [k, v] of Object.entries(obj)) {
+        const curPath = [...path, k];
+        const pk = JSON.stringify(curPath);
+        const isExpanded = manifestExpanded.has(pk);
+        const hasChildren = v && typeof v === 'object';
+        html += `<div class="manifest-tree-node">
+          <div class="manifest-row ${manifestSelectedPath.length && JSON.stringify(manifestSelectedPath)===pk ? 'selected' : ''}" data-path='${JSON.stringify(curPath)}'>
+            <span class="tree-toggle" style="cursor:pointer;width:16px;">${hasChildren ? (isExpanded ? '▼' : '▶') : '•'}</span>
+            <span><strong>${k}</strong></span>
+            <span style="color:#888;margin-left:8px;">${hasChildren ? `{${Object.keys(v).length}}` : (typeof v === 'string' ? v.slice(0,20) : JSON.stringify(v).slice(0,20))}</span>
+          </div>`;
+        if (hasChildren && isExpanded) html += `<div style="margin-left:20px;">${buildTree(v, curPath)}</div>`;
+        html += `</div>`;
+      }
+      return html;
+    }
+    containerDiv.innerHTML = buildTree(manifestJson);
+    // attach events
+    containerDiv.querySelectorAll('.manifest-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const path = JSON.parse(row.dataset.path);
+        manifestSelectedPath = path;
+        renderTree();
+        renderEditor();
+      });
+      const toggleSpan = row.querySelector('.tree-toggle');
+      if (toggleSpan) toggleSpan.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const path = JSON.parse(row.parentElement.querySelector('.manifest-row').dataset.path);
+        const pk = JSON.stringify(path);
+        if (manifestExpanded.has(pk)) manifestExpanded.delete(pk);
+        else manifestExpanded.add(pk);
+        renderTree();
+      });
+    });
+  }
+  function renderEditor() {
+    const area = document.getElementById('manifest-editor-area');
+    if (!area) return;
+    let node = manifestJson;
+    for (let seg of manifestSelectedPath) node = node?.[seg];
+    if (!node || typeof node !== 'object') {
+      area.innerHTML = `<div>Primitive value: <input type="text" id="primitiveEdit" value="${String(node??'')}"></div>`;
+      const inp = document.getElementById('primitiveEdit');
+      if (inp) inp.addEventListener('change', () => {
+        let val = inp.value;
+        try { val = JSON.parse(val); } catch(e) {}
+        let cur = manifestJson;
+        for(let i=0;i<manifestSelectedPath.length-1;i++) cur = cur[manifestSelectedPath[i]];
+        cur[manifestSelectedPath[manifestSelectedPath.length-1]] = val;
+        renderTree(); renderEditor();
+      });
+      return;
+    }
+    let html = '';
+    for (let [k, v] of Object.entries(node)) {
+      const isComplex = v && typeof v === 'object';
+      html += `<div class="collapsible-card" data-key="${k}">
+        <div class="collapsible-header"><span>${k}</span>
+        ${!isComplex ? `<input type="text" value='${String(v).replace(/'/g,"&apos;")}' data-key="${k}" class="inline-edit">` : `<span class="value-badge">${Array.isArray(v)?'array':'object'} (${Object.keys(v).length})</span>`}
+        </div>
+        <div class="collapsible-content">${isComplex ? 'Complex value – use artifact viewer' : ''}</div>
+      </div>`;
+    }
+    area.innerHTML = html;
+    area.querySelectorAll('.collapsible-header').forEach(h => h.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      h.parentElement.classList.toggle('open');
+    }));
+    area.querySelectorAll('.inline-edit').forEach(inp => inp.addEventListener('change', (e) => {
+      let parent = manifestJson;
+      for(let i=0;i<manifestSelectedPath.length;i++) parent = parent[manifestSelectedPath[i]];
+      let val = inp.value;
+      try { val = JSON.parse(val); } catch(e) {}
+      parent[inp.dataset.key] = val;
+      renderTree(); renderEditor();
+    }));
+  }
+  renderTree();
+  renderEditor();
+  document.getElementById('manifest-import')?.addEventListener('click', () => document.getElementById('manifest-file-input').click());
+  document.getElementById('manifest-file-input')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try { manifestJson = JSON.parse(ev.target.result); manifestSelectedPath = []; manifestExpanded.clear(); renderTree(); renderEditor(); toast('Manifest imported'); }
+      catch(e){ toast('Invalid JSON'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+}
+function destroyManifestEditor() {}
+
+// ============================================================
+// BEHAVIOUR TREE (full port from sprint7.html)
+// ============================================================
+let btTree = null;
+let btSelectedId = null;
+let btNodes = [];
+let btNextId = 1;
+class BTNode {
+  constructor(name, type) { this.id = btNextId++; this.name=name; this.type=type; this.state='IDLE'; this.children=[]; this.parent=null; }
+  addChild(c) { c.parent=this; this.children.push(c); return c; }
+}
+function btTick(node) {
+  if (node.type === 'Action') { node.state = 'SUCCESS'; return 'SUCCESS'; }
+  if (node.type === 'Sequence') {
+    for(let c of node.children) { let r = btTick(c); if(r==='FAILURE') { node.state='FAILURE'; return 'FAILURE'; } if(r==='RUNNING') { node.state='RUNNING'; return 'RUNNING'; } }
+    node.state='SUCCESS'; return 'SUCCESS';
+  }
+  return 'SUCCESS';
+}
+function btReset(node) { node.state='IDLE'; node.children.forEach(btReset); }
+function renderBT() {
+  const container = document.getElementById('bt-container');
+  if(!container) return;
+  function renderNode(node, depth) {
+    let html = `<div class="bt-tree-node" data-id="${node.id}" style="padding-left:${12+depth*20}px">
+      <span class="bt-status-dot bt-status-${node.state}"></span>
+      <span><strong>${node.name}</strong> (${node.type})</span>
+    </div>`;
+    if(node.children.length){
+      html += `<div class="bt-children">${node.children.map(c=>renderNode(c,depth+1)).join('')}</div>`;
+    }
+    return html;
+  }
+  container.innerHTML = renderNode(btTree,0);
+  container.querySelectorAll('.bt-tree-node').forEach(el=>{
+    el.addEventListener('click',()=>{ btSelectedId = parseInt(el.dataset.id); renderBT(); renderBTDetail(); });
+    if(btSelectedId === parseInt(el.dataset.id)) el.style.background='#2a3f6e';
+  });
+}
+function renderBTDetail() {
+  const div = document.getElementById('bt-detail');
+  if(!div) return;
+  function findNode(id, node=btTree) {
+    if(node.id===id) return node;
+    for(let c of node.children) { let f=findNode(id,c); if(f) return f; }
+    return null;
+  }
+  const node = findNode(btSelectedId);
+  if(!node) { div.innerHTML='<div>Select a node</div>'; return; }
+  div.innerHTML = `
+    <div><strong>${node.name}</strong> (${node.type})</div>
+    <div>Status: ${node.state}</div>
+    <div>Children: ${node.children.length}</div>
+    <button id="bt-set-success">Set Success</button>
+    <button id="bt-set-failure">Set Failure</button>
+    <button id="bt-delete">Delete</button>
+  `;
+  document.getElementById('bt-set-success')?.addEventListener('click',()=>{ node.state='SUCCESS'; renderBT(); renderBTDetail(); });
+  document.getElementById('bt-set-failure')?.addEventListener('click',()=>{ node.state='FAILURE'; renderBT(); renderBTDetail(); });
+  document.getElementById('bt-delete')?.addEventListener('click',()=>{
+    if(node.parent) { node.parent.children = node.parent.children.filter(c=>c!==node); if(btSelectedId===node.id) btSelectedId=btTree.id; renderBT(); renderBTDetail(); }
+  });
+}
+function initBehaviourTree() {
+  const container = document.getElementById('tool-container');
+  container.innerHTML = `
+    <div style="display:flex; height:100%; gap:12px; padding:12px;">
+      <div style="width:60%; background:#0f172a; border-radius:12px; padding:12px; overflow:auto;">
+        <h4>🌳 Behaviour Tree</h4>
+        <div id="bt-container"></div>
+        <div style="margin-top:12px;">
+          <input id="bt-name" placeholder="Task name"><select id="bt-type"><option>Action</option><option>Sequence</option></select>
+          <button id="bt-add">Add under selected</button>
+          <button id="bt-tick">▶ Tick</button>
+          <button id="bt-reset">⟲ Reset</button>
+        </div>
+      </div>
+      <div style="flex:1; background:#0f172a; border-radius:12px; padding:12px;">
+        <h4>Detail</h4>
+        <div id="bt-detail"></div>
+      </div>
+    </div>`;
+  btTree = new BTNode('ROOT', 'Sequence');
+  btSelectedId = btTree.id;
+  renderBT(); renderBTDetail();
+  document.getElementById('bt-add')?.addEventListener('click',()=>{
+    const name = document.getElementById('bt-name').value.trim() || 'task';
+    const type = document.getElementById('bt-type').value;
+    const newNode = new BTNode(name, type);
+    let parent = btTree;
+    if(btSelectedId) {
+      function find(id,n){ if(n.id===id) return n; for(let c of n.children) { let f=find(id,c); if(f) return f; } return null; }
+      let p = find(btSelectedId, btTree);
+      if(p && p.type !== 'Action') parent = p;
+    }
+    parent.addChild(newNode);
+    renderBT();
+  });
+  document.getElementById('bt-tick')?.addEventListener('click',()=>{ btTick(btTree); renderBT(); renderBTDetail(); });
+  document.getElementById('bt-reset')?.addEventListener('click',()=>{ btReset(btTree); renderBT(); renderBTDetail(); });
+}
+function destroyBehaviourTree() {}
+
+// ============================================================
+// NAVIGATION & INIT
+// ============================================================
+document.querySelectorAll('.nav-btn[data-tool]').forEach(btn => {
+  btn.addEventListener('click', () => switchTool(btn.dataset.tool));
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+  const mockToken = 'tok_1ff_test_' + Date.now();
+  ExportGuard.issue(mockToken);
+  const state = { tool: activeTool, timestamp: Date.now(), manifest: manifestJson, bt: btTree ? JSON.parse(JSON.stringify(btTree)) : null };
+  ExportGuard.trigger(state, mockToken).catch(e => toast(e.message));
+});
+// Default tool
+switchTool('manifest');
+// Intent parser for file drops (global)
+const parser = new SovereignIntentParser(() => activeTool);
+parser.register('*:image', (file) => toast(`Image drop to ${activeTool} – would load here`));
+parser.register('*:audio', (file) => toast(`Audio drop to ${activeTool} – would stream`));
+parser.register('*:json', async (file) => { const text = await file.text(); toast(`JSON dropped, would merge`); });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) parser.parseAndRoute(file);
+});
+toast('VAN ENGINE V2 · Ready');
+</script>
+</body>
+</html>

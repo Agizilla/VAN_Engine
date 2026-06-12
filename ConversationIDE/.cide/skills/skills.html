@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAI Skills · ConversationIDE Integration</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0f;
+  --surface: #161618;
+  --surface2: #1e1e21;
+  --border: #2a2a2e;
+  --text: #e4e4e7;
+  --text2: #a1a1aa;
+  --accent: #60a5fa;
+  --accent2: #a78bfa;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --font: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 10; }
+.tab-btn {
+  padding: 10px 16px; cursor: pointer; border: none; background: transparent; color: var(--text2);
+  font-family: var(--font); font-size: 12px; transition: all .15s; border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(96,165,250,.08); }
+.tab-content { display: none; padding: 32px; max-width: 1200px; }
+.tab-content.active { display: block; }
+h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+h1 span { color: var(--text2); font-weight: 400; font-size: 14px; }
+.subtitle { color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+h2 { font-size: 18px; font-weight: 600; margin: 28px 0 12px; color: var(--accent); }
+h3 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--yellow); }
+p { margin-bottom: 12px; color: var(--text2); font-size: 14px; }
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px;
+  font-family: var(--font); margin: 2px;
+}
+.tag-blue { background: rgba(96,165,250,.15); color: #60a5fa; }
+.tag-green { background: rgba(74,222,128,.15); color: #4ade80; }
+.tag-purple { background: rgba(167,139,250,.15); color: #a78bfa; }
+.tag-yellow { background: rgba(251,191,36,.15); color: #fbbf24; }
+.tag-red { background: rgba(248,113,113,.15); color: #f87171; }
+
+.code-block {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  overflow: hidden; margin: 12px 0 20px;
+}
+.code-header { padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+  font-family: var(--font); font-size: 11px; color: var(--text2); display: flex; justify-content: space-between; }
+.code-body { padding: 14px; overflow-x: auto; }
+pre { font-family: var(--font); font-size: 13px; line-height: 1.5; color: var(--text); }
+code { font-family: var(--font); font-size: 13px; }
+.comment { color: #6b7280; }
+.keyword { color: #c084fc; }
+.string { color: #4ade80; }
+.number { color: #fbbf24; }
+.type { color: #60a5fa; }
+.fn { color: #f472b6; }
+.prop { color: #34d399; }
+
+.diagram { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin: 12px 0 20px; font-family: var(--font); font-size: 13px; line-height: 1.8; }
+
+table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+td { color: var(--text2); }
+
+.flow-arrow { color: var(--yellow); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="tabs" id="tabBar"></div>
+
+<div id="tabContainer">
+
+<!-- ─── AGENTS ──────────────────────────────────────────── -->
+<div class="tab-content" data-tab="Agents">
+<h1>Agents <span>· Custom Agent Composition</span></h1>
+<p class="subtitle">Compose custom agents from Base Traits + Voice + Specialization for specialized perspectives. NOT for agent teams/swarms.</p>
+
+<h2>Overview</h2>
+<p>Dynamic agent composition from expertise + personality + approach traits. Supports voice mappings with full prosody control, custom agent creation, and parallel orchestration. Uses a base + user merge pattern where base traits live in <code>Data/Traits.yaml</code> and user overrides in <code>USER/SKILLCUSTOMIZATIONS/Agents/</code>.</p>
+
+<h2>Workflow Routing</h2>
+<table>
+<tr><th>Pattern</th><th>Route</th></tr>
+<tr><td>create custom agents, spin up agents</td><td><span class="tag tag-blue">CREATECUSTOMAGENT</span></td></tr>
+<tr><td>list traits, available personalities</td><td><span class="tag tag-purple">LISTTRAITS</span></td></tr>
+<tr><td>launch parallel agents</td><td><span class="tag tag-green">SPAWNPARALLEL</span></td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler (src/main/ipc/agents.ts)</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>IPC · Main Process</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+<span class="keyword">import</span> { composeAgent, listTraits, spawnParallel } <span class="keyword">from</span> <span class="string">'../services/agentService'</span>;
+
+<span class="keyword">export function</span> <span class="fn">setupAgentHandlers</span>(ipcMain: IpcMain): <span class="type">void</span> {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'agent:compose'</span>, <span class="keyword">async</span> (_event, params: { traits: <span class="type">string</span>[]; save?: <span class="type">boolean</span> }) => {
+    <span class="keyword">return</span> composeAgent(params.traits, params.save);
+  });
+
+  ipcMain.<span class="fn">handle</span>(<span class="string">'agent:list-traits'</span>, <span class="keyword">async</span> () => {
+    <span class="keyword">return</span> listTraits();
+  });
+
+  ipcMain.<span class="fn">handle</span>(<span class="string">'agent:spawn-parallel'</span>, <span class="keyword">async</span> (_event, config: { count: <span class="type">number</span>; task: <span class="type">string</span> }) => {
+    <span class="keyword">return</span> spawnParallel(config.count, config.task);
+  });
+}</pre>
+</div></div>
+
+<h3>Preload Bridge (src/preload/index.ts)</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>Preload</span></div>
+<div class="code-body">
+<pre>agents: {
+  compose: (traits: <span class="type">string</span>[], save?: <span class="type">boolean</span>) =>
+    ipcRenderer.<span class="fn">invoke</span>(<span class="string">'agent:compose'</span>, { traits, save }),
+  listTraits: () =>
+    ipcRenderer.<span class="fn">invoke</span>(<span class="string">'agent:list-traits'</span>),
+  spawnParallel: (count: <span class="type">number</span>, task: <span class="type">string</span>) =>
+    ipcRenderer.<span class="fn">invoke</span>(<span class="string">'agent:spawn-parallel'</span>, { count, task }),
+},</pre>
+</div></div>
+
+<h3>Type Definitions (src/renderer/types/electron.d.ts)</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>Types</span></div>
+<div class="code-body">
+<pre><span class="keyword">interface</span> <span class="type">AgentAPI</span> {
+  compose: (traits: <span class="type">string</span>[], save?: <span class="type">boolean</span>) => <span class="type">Promise</span>&lt;{ name: <span class="type">string</span>; voice_id: <span class="type">string</span>; prompt: <span class="type">string</span> }&gt;;
+  listTraits: () => <span class="type">Promise</span>&lt;{ expertise: <span class="type">string</span>[]; personalities: <span class="type">string</span>[]; approaches: <span class="type">string</span>[] }&gt;;
+  spawnParallel: (count: <span class="type">number</span>, task: <span class="type">string</span>) => <span class="type">Promise</span>&lt;{ agents: <span class="type">any</span>[] }&gt;;
+}</pre>
+</div></div>
+
+<h3>Renderer Component (React)</h3>
+<div class="code-block">
+<div class="code-header"><span>TSX</span><span>React Component</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { useState } <span class="keyword">from</span> <span class="string">'react'</span>;
+
+<span class="keyword">export function</span> <span class="fn">AgentComposer</span>() {
+  <span class="keyword">const</span> [traits, setTraits] = useState&lt;<span class="type">string</span>[]&gt;([]);
+  <span class="keyword">const</span> [result, setResult] = useState&lt;<span class="type">any</span>&gt;(<span class="keyword">null</span>);
+
+  <span class="keyword">const</span> <span class="fn">compose</span> = <span class="keyword">async</span> () => {
+    <span class="keyword">const</span> agent = <span class="keyword">await</span> window.electronAPI.agents.compose(traits);
+    setResult(agent);
+  };
+
+  <span class="keyword">return</span> (
+    &lt;div&gt;
+      &lt;h3&gt;Agent Composer&lt;/h3&gt;
+      &lt;select multiple onChange={e =&gt; setTrait(Array.from(e.target.selectedOptions, o =&gt; o.value))}&gt;
+        &lt;option value="security"&gt;Security&lt;/option&gt;
+        &lt;option value="research"&gt;Research&lt;/option&gt;
+        &lt;option value="technical"&gt;Technical&lt;/option&gt;
+      &lt;/select&gt;
+      &lt;button onClick={compose}&gt;Compose Agent&lt;/button&gt;
+      {result && &lt;pre&gt;{JSON.stringify(result, <span class="keyword">null</span>, 2)}&lt;/pre&gt;}
+    &lt;/div&gt;
+  );
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── CONTENTANALYSIS ─────────────────────────────────── -->
+<div class="tab-content" data-tab="ContentAnalysis">
+<h1>ContentAnalysis <span>· Wisdom Extraction + Analysis</span></h1>
+<p class="subtitle">Content-adaptive wisdom extraction — detects domains in content and builds custom insight sections from videos, podcasts, articles.</p>
+
+<h2>Overview</h2>
+<p>Routes to ExtractWisdom sub-skill. Instead of static sections (IDEAS, QUOTES, HABITS), it reads content first, detects what wisdom domains exist, and builds custom sections. Supports 5 depth levels (Instant → Comprehensive) with conversational tone rules (Level 3 — "tell a friend over coffee").</p>
+
+<h2>Depth Levels</h2>
+<table>
+<tr><th>Level</th><th>Sections</th><th>Bullets/Section</th></tr>
+<tr><td>Instant</td><td>1</td><td>8</td></tr>
+<tr><td>Fast</td><td>3</td><td>3</td></tr>
+<tr><td>Basic</td><td>3</td><td>5</td></tr>
+<tr><td>Full (default)</td><td>5-12</td><td>3-15</td></tr>
+<tr><td>Comprehensive</td><td>10-15</td><td>8-15</td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/content.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">export function</span> <span class="fn">setupContentHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'content:extract'</span>, <span class="keyword">async</span> (_event, params: {
+    url?: <span class="type">string</span>; text?: <span class="type">string</span>; level?: <span class="type">string</span>
+  }) => {
+    <span class="comment">// Send to brain / VAN_Engine for NLP extraction</span>
+    <span class="keyword">const</span> body = JSON.stringify({
+      model: <span class="string">'van_engine-brain'</span>,
+      messages: [{ role: <span class="string">'user'</span>, content: <span class="string">`extract wisdom ${params.level || ''} from: ${params.text || params.url}`</span> }],
+    });
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+      method: <span class="string">'POST'</span>, headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> }, body,
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> { sections: data.choices?.[<span class="number">0</span>]?.message?.content };
+  });
+}</pre>
+</div></div>
+
+<h3>Preload + Types</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>Preload snippet</span></div>
+<div class="code-body">
+<pre><span class="comment">// preload/index.ts</span>
+content: {
+  extract: (params: { url?: <span class="type">string</span>; text?: <span class="type">string</span>; level?: <span class="type">string</span> }) =>
+    ipcRenderer.<span class="fn">invoke</span>(<span class="string">'content:extract'</span>, params),
+},
+
+<span class="comment">// electron.d.ts</span>
+<span class="keyword">interface</span> <span class="type">ContentAPI</span> {
+  extract: (params: { url?: <span class="type">string</span>; text?: <span class="type">string</span>; level?: <span class="type">string</span> }) => <span class="type">Promise</span>&lt;{ sections: <span class="type">string</span> }&gt;;
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── INVESTIGATION ───────────────────────────────────── -->
+<div class="tab-content" data-tab="Investigation">
+<h1>Investigation <span>· OSINT + People Finding</span></h1>
+<p class="subtitle">Structured investigations, company intel, due diligence, and ethical people search. Routes to OSINT (entity/company/domain) or PrivateInvestigator (people finding).</p>
+
+<h2>Overview</h2>
+<p>Two sub-skills: <strong>OSINT</strong> (279 sources across 8 categories, 15+ workflows) and <strong>PrivateInvestigator</strong> (15 parallel research agents = 45 search threads). Uses SOURCES.JSON as master catalog. Ethical framework requires authorization before any investigation.</p>
+
+<h2>Workflow Routing</h2>
+<table>
+<tr><th>Pattern</th><th>Sub-skill</th></tr>
+<tr><td>company lookup, due diligence, domain recon, threat intel</td><td><span class="tag tag-blue">OSINT</span></td></tr>
+<tr><td>find person, locate, reconnect, reverse lookup</td><td><span class="tag tag-green">PrivateInvestigator</span></td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler — Investigation Dispatch</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/investigation.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">interface</span> <span class="type">InvestigationRequest</span> {
+  type: <span class="string">'people'</span> | <span class="string">'company'</span> | <span class="string">'domain'</span> | <span class="string">'entity'</span>;
+  target: <span class="type">string</span>;
+  depth?: <span class="string">'quick'</span> | <span class="string">'standard'</span> | <span class="string">'deep'</span>;
+}
+
+<span class="keyword">export function</span> <span class="fn">setupInvestigationHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'investigation:search'</span>, <span class="keyword">async</span> (_event, req: <span class="type">InvestigationRequest</span>) => {
+    <span class="keyword">const</span> { type, target, depth = 'standard' } = req;
+
+    <span class="comment">// Dispatch to Python brain with investigation context</span>
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+      method: <span class="string">'POST'</span>,
+      headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.stringify({
+        model: <span class="string">'van_engine-brain'</span>,
+        messages: [{ role: <span class="string">'user'</span>, content: <span class="string">`do ${type} osint on ${target} at ${depth} depth`</span> }],
+      }),
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> {
+      target,
+      type,
+      result: data.choices?.[<span class="number">0</span>]?.message?.content,
+      confidence: <span class="string">'MEDIUM'</span>,
+    };
+  });
+}</pre>
+</div></div>
+
+<h3>Preload + Types</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>Bridge</span></div>
+<div class="code-body">
+<pre><span class="comment">// preload</span>
+investigation: {
+  search: (req: <span class="type">InvestigationRequest</span>) => ipcRenderer.<span class="fn">invoke</span>(<span class="string">'investigation:search'</span>, req),
+},
+
+<span class="comment">// electron.d.ts</span>
+<span class="keyword">interface</span> <span class="type">InvestigationAPI</span> {
+  search: (req: {
+    type: <span class="string">'people'</span> | <span class="string">'company'</span> | <span class="string">'domain'</span> | <span class="string">'entity'</span>;
+    target: <span class="type">string</span>; depth?: <span class="type">string</span>;
+  }) => <span class="type">Promise</span>&lt;{ target: <span class="type">string</span>; type: <span class="type">string</span>; result: <span class="type">string</span>; confidence: <span class="type">string</span> }&gt;;
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── MEDIA ───────────────────────────────────────────── -->
+<div class="tab-content" data-tab="Media">
+<h1>Media <span>· Art + Video Creation</span></h1>
+<p class="subtitle">Illustrations, diagrams, mermaid flowcharts, infographics, thumbnails, comics (Art) and programmatic video via React/Remotion.</p>
+
+<h2>Overview</h2>
+<p>Two sub-skills: <strong>Art</strong> (header images, diagrams, charts, icons, thumbnails via multiple rendering backends) and <strong>Remotion</strong> (React-based programmatic video with motion graphics rendered to MP4). The Art skill can generate D3 dashboards, mermaid diagrams, annotated screenshots.</p>
+
+<h2>Workflow Routing</h2>
+<table>
+<tr><th>Pattern</th><th>Sub-skill</th></tr>
+<tr><td>art, images, diagrams, mermaid, infographics</td><td><span class="tag tag-blue">Art</span></td></tr>
+<tr><td>video, animation, motion graphics, MP4</td><td><span class="tag tag-purple">Remotion</span></td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler — Art Generation</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/media.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+<span class="keyword">import</span> { spawn } <span class="keyword">from</span> <span class="string">'child_process'</span>;
+<span class="keyword">import</span> { writeFileSync } <span class="keyword">from</span> <span class="string">'fs'</span>;
+<span class="keyword">import</span> { tmpdir } <span class="keyword">from</span> <span class="string">'os'</span>;
+<span class="keyword">import</span> { join } <span class="keyword">from</span> <span class="string">'path'</span>;
+
+<span class="keyword">export function</span> <span class="fn">setupMediaHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'media:render-mermaid'</span>, <span class="keyword">async</span> (_event, diagram: <span class="type">string</span>) => {
+    <span class="comment">// Use mermaid-cli or mmdc to render</span>
+    <span class="keyword">const</span> tmpFile = join(tmpdir(), `diagram-${Date.now()}.mmd`);
+    writeFileSync(tmpFile, diagram, <span class="string">'utf-8'</span>);
+    <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">Promise</span>(resolve => {
+      <span class="keyword">const</span> proc = spawn(<span class="string">'npx'</span>, [<span class="string">'mmdc'</span>, <span class="string">'-i'</span>, tmpFile, <span class="string">'-o'</span>, `${tmpFile}.png`]);
+      proc.on(<span class="string">'exit'</span>, () => resolve({ path: `${tmpFile}.png`, format: <span class="string">'png'</span> }));
+      proc.on(<span class="string">'error'</span>, () => resolve({ error: <span class="string">'mmdc not found'</span> }));
+    });
+  });
+
+  ipcMain.<span class="fn">handle</span>(<span class="string">'media:generate-image'</span>, <span class="keyword">async</span> (_event, prompt: <span class="type">string</span>) => {
+    <span class="comment">// Route to local SD / Midjourney API / DALL-E</span>
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://localhost:7860/sdapi/v1/txt2img`</span>, {
+      method: <span class="string">'POST'</span>,
+      headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.stringify({ prompt, steps: <span class="number">20</span> }),
+    });
+    <span class="keyword">return</span> res.json();
+  });
+}</pre>
+</div></div>
+
+<h3>Preload + Types</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>Bridge</span></div>
+<div class="code-body">
+<pre><span class="comment">// preload/index.ts</span>
+media: {
+  renderMermaid: (diagram: <span class="type">string</span>) => ipcRenderer.<span class="fn">invoke</span>(<span class="string">'media:render-mermaid'</span>, diagram),
+  generateImage: (prompt: <span class="type">string</span>) => ipcRenderer.<span class="fn">invoke</span>(<span class="string">'media:generate-image'</span>, prompt),
+},
+
+<span class="comment">// electron.d.ts</span>
+<span class="keyword">interface</span> <span class="type">MediaAPI</span> {
+  renderMermaid: (diagram: <span class="type">string</span>) => <span class="type">Promise</span>&lt;{ path?: <span class="type">string</span>; error?: <span class="type">string</span> }&gt;;
+  generateImage: (prompt: <span class="type">string</span>) => <span class="type">Promise</span>&lt;any&gt;;
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── RESEARCH ────────────────────────────────────────── -->
+<div class="tab-content" data-tab="Research">
+<h1>Research <span>· Multi-agent Deep Research</span></h1>
+<p class="subtitle">Comprehensive research via parallel researcher agents, 242+ Fabric patterns, URL/content extraction, AI trends analysis.</p>
+
+<h2>Overview</h2>
+<p>Four depth modes (quick → deep) with multi-agent parallel research. Supports Claude, Gemini, Grok, Perplexity, Codex researchers. Includes 242+ Fabric prompt patterns. URL extraction handles YouTube, Twitter, articles, newsletters. AI trends analysis tracks Claude/AI ecosystem.</p>
+
+<h2>Depth Modes</h2>
+<table>
+<tr><th>Mode</th><th>Agents</th><th>Searches</th><th>When</th></tr>
+<tr><td>Quick</td><td>2-3</td><td>6-9</td><td>30-second answer</td></tr>
+<tr><td>Standard</td><td>4-6</td><td>12-18</td><td>Solid overview</td></tr>
+<tr><td>Extensive</td><td>8-16</td><td>24-48</td><td>Deep dive</td></tr>
+<tr><td>Deep</td><td>16-32</td><td>48-96</td><td>Maximum depth</td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/research.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">interface</span> <span class="type">ResearchRequest</span> {
+  query: <span class="type">string</span>;
+  depth?: <span class="type">string</span>;
+  includeUrls?: <span class="type">string</span>[];
+  includeFabricPatterns?: <span class="type">boolean</span>;
+}
+
+<span class="keyword">export function</span> <span class="fn">setupResearchHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'research:execute'</span>, <span class="keyword">async</span> (_event, req: <span class="type">ResearchRequest</span>) => {
+    <span class="keyword">const</span> urlContext = req.includeUrls?.length
+      ? <span class="string">`\nSources to analyze:\n${req.includeUrls.map(u => `- ${u}`).join('\n')}`</span> : <span class="string">''</span>;
+
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+      method: <span class="string">'POST'</span>,
+      headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.stringify({
+        model: <span class="string">'van_engine-brain'</span>,
+        messages: [{ role: <span class="string">'user'</span>, content: <span class="string">`research ${req.depth || 'standard'}: ${req.query}${urlContext}`</span> }],
+      }),
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> { content: data.choices?.[<span class="number">0</span>]?.message?.content, depth: req.depth || <span class="string">'standard'</span> };
+  });
+}</pre>
+</div></div>
+
+<h3>Preload + Types</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>Bridge</span></div>
+<div class="code-body">
+<pre><span class="comment">// preload/index.ts</span>
+research: {
+  execute: (req: <span class="type">ResearchRequest</span>) => ipcRenderer.<span class="fn">invoke</span>(<span class="string">'research:execute'</span>, req),
+},
+
+<span class="comment">// electron.d.ts</span>
+<span class="keyword">interface</span> <span class="type">ResearchAPI</span> {
+  execute: (req: { query: <span class="type">string</span>; depth?: <span class="type">string</span>; includeUrls?: <span class="type">string</span>[] }) => <span class="type">Promise</span>&lt;{ content: <span class="type">string</span>; depth: <span class="type">string</span> }&gt;;
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── SCRAPING ────────────────────────────────────────── -->
+<div class="tab-content" data-tab="Scraping">
+<h1>Scraping <span>· Web + Social Media Scraping</span></h1>
+<p class="subtitle">4-tier progressive URL scraping (WebFetch → Chrome curl → Playwright → Bright Data proxy) and social media platform actors via Apify.</p>
+
+<h2>Overview</h2>
+<p>Two sub-skills: <strong>BrightData</strong> (4-tier progressive scraping with auto-escalation when lower tiers fail: WebFetch text → Chrome-header curl → Playwright browser → Bright Data proxy) and <strong>Apify</strong> (social media scraping actors for Twitter, Instagram, LinkedIn, TikTok, YouTube, Facebook, Google Maps, Amazon).</p>
+
+<h2>Workflow Routing</h2>
+<table>
+<tr><th>Pattern</th><th>Sub-skill</th></tr>
+<tr><td>scrape URL, site blocking me, bot detection, CAPTCHA</td><td><span class="tag tag-blue">BrightData</span></td></tr>
+<tr><td>social media scraping, Twitter/X, Instagram, LinkedIn</td><td><span class="tag tag-purple">Apify</span></td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler — Progressive Scraping</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/scraping.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">async function</span> <span class="fn">brightDataFetch</span>(url: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">string</span>&gt; {
+  <span class="keyword">const</span> token = process.env.BRIGHT_DATA_TOKEN;
+  <span class="keyword">if</span> (!token) <span class="keyword">throw new</span> <span class="type">Error</span>(<span class="string">'Bright Data token not configured'</span>);
+  <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`https://api.brightdata.com/request?token=${token}&url=${encodeURIComponent(url)}`</span>);
+  <span class="keyword">return</span> res.text();
+}
+
+<span class="keyword">async function</span> <span class="fn">tieredScrape</span>(url: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">string</span>&gt; {
+  <span class="keyword">const</span> tiers = [
+    async () => { <span class="keyword">const</span> r = <span class="keyword">await</span> fetch(url); <span class="keyword">return</span> r.text(); },            <span class="comment">// Tier 1: direct</span>
+    async () => { <span class="keyword">const</span> r = <span class="keyword">await</span> fetch(url, { headers: { 'User-Agent': <span class="string">'Chrome/120'</span> } }); <span class="keyword">return</span> r.text(); }, <span class="comment">// Tier 2</span>
+    async () => brightDataFetch(url),                                                                              <span class="comment">// Tier 3: proxy</span>
+  ];
+  <span class="keyword">for</span> (<span class="keyword">const</span> tier <span class="keyword">of</span> tiers) {
+    <span class="keyword">try</span> { <span class="keyword">return</span> <span class="keyword">await</span> tier(); } <span class="keyword">catch</span> { <span class="keyword">continue</span>; }
+  }
+  <span class="keyword">throw new</span> <span class="type">Error</span>(<span class="string">'All scraping tiers exhausted'</span>);
+}
+
+<span class="keyword">export function</span> <span class="fn">setupScrapingHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'scraping:fetch'</span>, <span class="keyword">async</span> (_event, url: <span class="type">string</span>) => {
+    <span class="keyword">try</span> {
+      <span class="keyword">const</span> content = <span class="keyword">await</span> tieredScrape(url);
+      <span class="keyword">return</span> { ok: <span class="keyword">true</span>, content };
+    } <span class="keyword">catch</span> (e: <span class="type">any</span>) {
+      <span class="keyword">return</span> { ok: <span class="keyword">false</span>, error: e.message };
+    }
+  });
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── SECURITY ────────────────────────────────────────── -->
+<div class="tab-content" data-tab="Security">
+<h1>Security <span>· Recon + Assessment + Threat Intel</span></h1>
+<p class="subtitle">Network reconnaissance, web app security testing, prompt injection testing, security news monitoring, annual report analysis.</p>
+
+<h2>Overview</h2>
+<p>Five sub-skills: <strong>Recon</strong> (subdomain enumeration, port scanning, DNS/WHOIS/ASN), <strong>WebAssessment</strong> (OWASP pentesting, ffuf fuzzing, Playwright automation), <strong>PromptInjection</strong> (LLM security testing, jailbreak, guardrail bypass), <strong>SECUpdates</strong> (tldrsec, Krebs, Schneier monitoring), <strong>AnnualReports</strong> (vendor threat landscape analysis).</p>
+
+<h2>Workflow Routing</h2>
+<table>
+<tr><th>Pattern</th><th>Sub-skill</th></tr>
+<tr><td>recon, subdomains, ports, DNS, WHOIS</td><td><span class="tag tag-blue">Recon</span></td></tr>
+<tr><td>web pentest, OWASP, fuzzing, Playwright</td><td><span class="tag tag-green">WebAssessment</span></td></tr>
+<tr><td>prompt injection, jailbreak, LLM security</td><td><span class="tag tag-red">PromptInjection</span></td></tr>
+<tr><td>security news, tldrsec, Krebs</td><td><span class="tag tag-yellow">SECUpdates</span></td></tr>
+<tr><td>annual reports, threat landscape</td><td><span class="tag tag-purple">AnnualReports</span></td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler — Security Dispatch</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/security.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">interface</span> <span class="type">SecurityRequest</span> {
+  command: <span class="string">'recon'</span> | <span class="string">'web-assessment'</span> | <span class="string">'prompt-inject'</span>;
+  target: <span class="type">string</span>;
+}
+
+<span class="keyword">export function</span> <span class="fn">setupSecurityHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'security:run'</span>, <span class="keyword">async</span> (_event, req: <span class="type">SecurityRequest</span>) => {
+    <span class="keyword">const</span> responses: Record&lt;<span class="type">string</span>, <span class="type">string</span>&gt; = {
+      recon: <span class="string">`run subdomain enumeration on ${req.target}`</span>,
+      <span class="string">'web-assessment'</span>: <span class="string">`run web security assessment on ${req.target}`</span>,
+      <span class="string">'prompt-inject'</span>: <span class="string">`run prompt injection testing on ${req.target}`</span>,
+    };
+
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+      method: <span class="string">'POST'</span>, headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.stringify({
+        model: <span class="string">'van_engine-brain'</span>,
+        messages: [{ role: <span class="string">'user'</span>, content: responses[req.command] }],
+      }),
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> { result: data.choices?.[<span class="number">0</span>]?.message?.content };
+  });
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── TELOS ───────────────────────────────────────────── -->
+<div class="tab-content" data-tab="Telos">
+<h1>Telos <span>· Life OS + Project Analysis</span></h1>
+<p class="subtitle">Life goals, dependencies, beliefs, wisdom, books, movies, narrative points, interview extraction, McKinsey reports, project dashboards.</p>
+
+<h2>Overview</h2>
+<p>Personal Life OS analysis system. Tracks goals, dependencies, beliefs, wisdom across books/movies/narratives. Produces McKinsey-style reports, project dashboards, and interview extractions. Templates for dashboard and report generation.</p>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/telos.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">export function</span> <span class="fn">setupTelosHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'telos:report'</span>, <span class="keyword">async</span> (_event, type: <span class="type">string</span>) => {
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+      method: <span class="string">'POST'</span>, headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.stringify({
+        model: <span class="string">'van_engine-brain'</span>,
+        messages: [{ role: <span class="string">'user'</span>, content: <span class="string">`generate telos ${type} report`</span> }],
+      }),
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> { content: data.choices?.[<span class="number">0</span>]?.message?.content };
+  });
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── THINKING ────────────────────────────────────────── -->
+<div class="tab-content" data-tab="Thinking">
+<h1>Thinking <span>· Multi-mode Analysis + Ideation</span></h1>
+<p class="subtitle">7 thinking modes: First Principles, Iterative Depth, Creative Brainstorming, Multi-agent Council Debates, Adversarial Red Teaming, World Threat Modeling, Scientific Hypothesis Testing.</p>
+
+<h2>Overview</h2>
+<p>Seven sub-skills covering the full thinking spectrum: <strong>FirstPrinciples</strong> (decompose to axioms), <strong>IterativeDepth</strong> (2-8 scientific lens passes), <strong>BeCreative</strong> (divergent ideation via Verbalized Sampling), <strong>Council</strong> (multi-agent collaborative-adversarial debate), <strong>RedTeam</strong> (32 adversarial agents to destroy weak arguments), <strong>WorldThreatModelHarness</strong> (stress-test ideas across 11 time horizons), <strong>Science</strong> (hypothesis-test-analyze cycles).</p>
+
+<h2>Workflow Routing</h2>
+<table>
+<tr><th>Pattern</th><th>Sub-skill</th><th>Mode</th></tr>
+<tr><td>first principles, decompose, challenge assumptions</td><td>FirstPrinciples</td><td>Analytical</td></tr>
+<tr><td>iterative depth, multi-angle, surface hidden reqs</td><td>IterativeDepth</td><td>Analytical</td></tr>
+<tr><td>brainstorm, divergent ideas, maximum creativity</td><td>BeCreative</td><td>Creative</td></tr>
+<tr><td>council, debate, multiple viewpoints</td><td>Council</td><td>Collaborative</td></tr>
+<tr><td>red team, critique, stress test, adversarial</td><td>RedTeam</td><td>Adversarial</td></tr>
+<tr><td>threat model, future analysis, test idea</td><td>WorldThreatModelHarness</td><td>Strategic</td></tr>
+<tr><td>science, hypothesis, experiment, iterate</td><td>Science</td><td>Systematic</td></tr>
+</table>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler — Thinking Dispatch</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/thinking.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">type</span> <span class="type">ThinkingMode</span> =
+  | <span class="string">'first-principles'</span>
+  | <span class="string">'iterative-depth'</span>
+  | <span class="string">'creative'</span>
+  | <span class="string">'council'</span>
+  | <span class="string">'red-team'</span>
+  | <span class="string">'threat-model'</span>
+  | <span class="string">'science'</span>;
+
+<span class="keyword">export function</span> <span class="fn">setupThinkingHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'thinking:apply'</span>, <span class="keyword">async</span> (_event, params: { mode: <span class="type">ThinkingMode</span>; topic: <span class="type">string</span> }) => {
+    <span class="keyword">const</span> modePrompts: Record&lt;<span class="type">ThinkingMode</span>, <span class="type">string</span>&gt; = {
+      <span class="string">'first-principles'</span>: <span class="string">`Deconstruct to axioms: ${params.topic}`</span>,
+      <span class="string">'iterative-depth'</span>: <span class="string">`Analyze through multiple lenses: ${params.topic}`</span>,
+      creative: <span class="string">`Brainstorm divergent ideas for: ${params.topic}`</span>,
+      council: <span class="string">`Multi-perspective debate on: ${params.topic}`</span>,
+      <span class="string">'red-team'</span>: <span class="string">`Red team the idea: ${params.topic}`</span>,
+      <span class="string">'threat-model'</span>: <span class="string">`Threat model across time horizons: ${params.topic}`</span>,
+      science: <span class="string">`Scientific method analysis: ${params.topic}`</span>,
+    };
+
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+      method: <span class="string">'POST'</span>, headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.stringify({
+        model: <span class="string">'van_engine-brain'</span>,
+        messages: [{ role: <span class="string">'user'</span>, content: modePrompts[params.mode] }],
+      }),
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> { mode: params.mode, result: data.choices?.[<span class="number">0</span>]?.message?.content };
+  });
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── USMETRICS ───────────────────────────────────────── -->
+<div class="tab-content" data-tab="USMetrics">
+<h1>USMetrics <span>· Economic Indicator Analysis</span></h1>
+<p class="subtitle">68 US economic indicators from FRED, EIA, Treasury, BLS, Census APIs with trend analysis and cross-metric correlation.</p>
+
+<h2>Overview</h2>
+<p>Fetches and analyzes 68+ economic indicators from 5 federal APIs (FRED, EIA, Treasury, BLS, Census). Produces trend analysis, cross-metric correlation, and economic overviews. Updates a Substrate dataset.</p>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/usmetrics.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+
+<span class="keyword">const</span> FRED_API_KEY = process.env.FRED_API_KEY;
+<span class="keyword">const</span> SERIES = {
+  gdp: <span class="string">'GDP'</span>,
+  unemployment: <span class="string">'UNRATE'</span>,
+  inflation: <span class="string">'CPIAUCSL'</span>,
+  gdp_growth: <span class="string">'A191RL1Q225SBEA'</span>,
+};
+
+<span class="keyword">export function</span> <span class="fn">setupUSMetricsHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'usmetrics:fetch'</span>, <span class="keyword">async</span> (_event, seriesKey: <span class="type">string</span>) => {
+    <span class="keyword">if</span> (!FRED_API_KEY) <span class="keyword">return</span> { error: <span class="string">'FRED API key not configured'</span> };
+    <span class="keyword">const</span> seriesId = (SERIES <span class="keyword">as</span> <span class="type">any</span>)[seriesKey] || seriesKey;
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(
+      <span class="string">`https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=30`</span>
+    );
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> { series: seriesKey, observations: data.observations };
+  });
+
+  ipcMain.<span class="fn">handle</span>(<span class="string">'usmetrics:overview'</span>, <span class="keyword">async</span> () => {
+    <span class="keyword">const</span> keys = Object.keys(SERIES);
+    <span class="keyword">const</span> results = <span class="keyword">await</span> <span class="type">Promise</span>.all(keys.map(k =>
+      fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+        method: <span class="string">'POST'</span>, headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+        body: JSON.stringify({
+          model: <span class="string">'van_engine-brain'</span>,
+          messages: [{ role: <span class="string">'user'</span>, content: <span class="string">`fetch us economic metric ${k}`</span> }],
+        }),
+      }).then(r => r.json())
+    ));
+    <span class="keyword">return</span> { overview: results.map(r => r.choices?.[<span class="number">0</span>]?.message?.content) };
+  });
+}</pre>
+</div></div>
+</div>
+
+<!-- ─── FILE PROCESSING ─────────────────────────────────── -->
+<div class="tab-content" data-tab="FileProcessing">
+<h1>FileProcessing <span>· Archive, Compress, Bundle</span></h1>
+<p class="subtitle">Multi-format file archiving: tar, gzip, zip, rar, and the proprietary <strong>.pyp</strong> skill-container format.</p>
+
+<h2>Formats</h2>
+<table>
+<tr><th>Format</th><th>Extension</th><th>Tool</th><th>Notes</th></tr>
+<tr><td>Tar</td><td><code>.tar</code></td><td><code>tar</code> (built-in)</td><td>No compression, preserves permissions</td></tr>
+<tr><td>Gzip</td><td><code>.tar.gz</code></td><td><code>tar -czf</code></td><td>Best for text-heavy projects</td></tr>
+<tr><td>Zip</td><td><code>.zip</code></td><td><code>python -m zipfile</code></td><td>Universal, supports encryption</td></tr>
+<tr><td>Rar</td><td><code>.rar</code></td><td><code>rar</code> CLI</td><td>Proprietary, requires external tool</td></tr>
+<tr><td>Pyp</td><td><code>.pyp</code></td><td><code>core/pyp_creator.py</code></td><td>Structured skill container with typed sections</td></tr>
+</table>
+
+<h2>Bundle Workflow</h2>
+<p>Invoke via: <code>Workflows/Bundle.md</code> — auto-detects format from request, handles all 5 formats.</p>
+
+<div class="diagram">
+<strong>Pyp format flow:</strong><br>
+<span class="flow-arrow">1.</span> <code>python core/pyp_creator.py &lt;source&gt; --name &lt;name&gt;</code><br>
+<span class="flow-arrow">→</span> Inlines .md/.html/.txt/.py into JSON<br>
+<span class="flow-arrow">→</span> Moves binaries to <code>ARTIFACTS/</code><br>
+<span class="flow-arrow">→</span> Creates <code>INPUTS/</code> + <code>OTHER/</code> dirs<br>
+<span class="flow-arrow">→</span> Writes <code>&lt;name&gt;.pyp</code> + structured sidecars<br>
+<span class="flow-arrow">2.</span> Optional: wrap in encrypted zip for password protection
+</div>
+
+<h2>Tool</h2>
+<p><code>Tools/Bundle.ts</code> — CLI wrapper for all formats. Usage:</p>
+<div class="code-block"><div class="code-body"><pre>npx ts-node Tools/Bundle.ts &lt;source&gt; [--format zip|tar|gzip|rar|pyp] [--output path] [--name name] [--password pw]</pre></div></div>
+
+<h2>Examples</h2>
+<p><strong>Bundle as zip:</strong> <code>→ "zip up the voice-cloner project"</code></p>
+<p><strong>Bundle as pyp:</strong> <code>→ "package my project as a pyp"</code></p>
+<p><strong>Encrypted pyp:</strong> <code>→ "bundle into pyp with password"</code></p>
+
+<h2>Files</h2>
+<table>
+<tr><th>Path</th><th>Description</th></tr>
+<tr><td><code>FileProcessing/SKILL.md</code></td><td>Skill definition with USE WHEN triggers</td></tr>
+<tr><td><code>FileProcessing/Workflows/Bundle.md</code></td><td>Bundle execution workflow</td></tr>
+<tr><td><code>FileProcessing/Tools/Bundle.ts</code></td><td>Multi-format CLI bundler</td></tr>
+<tr><td><code>core/pyp_creator.py</code></td><td>Pyp format engine (external dep)</td></tr>
+<tr><td><code>core/pyp_viewer.html</code></td><td>Browser-based .pyp inspector</td></tr>
+</table>
+</div>
+
+<!-- ─── UTILITIES ───────────────────────────────────────── -->
+<div class="tab-content" data-tab="Utilities">
+<h1>Utilities <span>· Developer Tools + Infrastructure</span></h1>
+<p class="subtitle">15+ utility sub-skills: CLI generation, skill scaffolding, agent delegation, evals, documents, parsing, audio editing, Cloudflare, Fabric patterns, browser automation, meta-prompting.</p>
+
+<h2>Overview</h2>
+<p>The largest category with sub-skills spanning: <strong>CreateCLI</strong> (3-tier TypeScript CLI templates), <strong>CreateSkill</strong> (skill scaffolding with validation), <strong>Delegation</strong> (parallel agent teams/swarms), <strong>Evals</strong> (pass@k scoring with code/model/human graders), <strong>Documents</strong> (PDF/DOCX/XLSX/PPTX creation + editing), <strong>Parser</strong> (structured JSON extraction), <strong>AudioEditor</strong> (filler word removal, transcription, crossfades), <strong>Cloudflare</strong> (Workers/Pages/DNS/KV/R2), <strong>Fabric</strong> (240+ prompt patterns), <strong>Browser</strong> (Playwright automation), <strong>Prompting</strong> (meta-prompting system), <strong>Aphorisms</strong> (quote management), <strong>PAIUpgrade</strong> (system improvement extraction), <strong>Docx/Pdf/Pptx/Xlsx</strong> (Office document sub-skills).</p>
+
+<h2>Key Sub-skill Details</h2>
+
+<div class="diagram">
+<span class="keyword">CreateCLI</span> — 3 tiers: simple argv → yargs → oclif. Type safety, error handling, docs generation.<br>
+<span class="keyword">Evals</span> — pass@k + pass^k scoring. Code/model/human graders. Suite management, trial runner.<br>
+<span class="keyword">Documents</span> — PDF: merge/split/fill forms. DOCX: tracked changes/tables. XLSX: formulas/CSV. PPTX: slides/notes.<br>
+<span class="keyword">Cloudflare</span> — Workers, Pages, KV, R2, D1, Vectorize via wrangler CLI + MCP API queries.<br>
+<span class="keyword">Fabric</span> — 242+ prompt patterns: analyze threats, write essays, extract wisdom, summarize.<br>
+<span class="keyword">AudioEditor</span> — Transcription via Whisper, filler word detection/cut, crossfades, cloud polish.<br>
+<span class="keyword">Browser</span> — Playwright headless Chrome: screenshots, debugging, automated testing.<br>
+<span class="keyword">PAIUpgrade</span> — Extract system improvements from content, monitor Anthropic/YouTube for updates.<br>
+<span class="keyword">Parser</span> — Structured JSON from URLs/files/videos/PDFs with entity extraction.
+</div>
+
+<h2>Implementation</h2>
+
+<h3>IPC Handler — Utility Dispatch</h3>
+<div class="code-block">
+<div class="code-header"><span>TypeScript</span><span>src/main/ipc/utilities.ts</span></div>
+<div class="code-body">
+<pre><span class="keyword">import</span> { IpcMain } <span class="keyword">from</span> <span class="string">'electron'</span>;
+<span class="keyword">import</span> { execFile } <span class="keyword">from</span> <span class="string">'child_process'</span>;
+<span class="keyword">import</span> { promisify } <span class="keyword">from</span> <span class="string">'util'</span>;
+
+<span class="keyword">const</span> exec = promisify(execFile);
+
+<span class="keyword">export function</span> <span class="fn">setupUtilityHandlers</span>(ipcMain: IpcMain) {
+  ipcMain.<span class="fn">handle</span>(<span class="string">'utilities:run-fabric'</span>, <span class="keyword">async</span> (_event, pattern: <span class="type">string</span>, input: <span class="type">string</span>) => {
+    <span class="keyword">const</span> { stdout } = <span class="keyword">await</span> exec(<span class="string">'fabric'</span>, [<span class="string">'-p'</span>, pattern], { input });
+    <span class="keyword">return</span> { result: stdout };
+  });
+
+  ipcMain.<span class="fn">handle</span>(<span class="string">'utilities:create-cli'</span>, <span class="keyword">async</span> (_event, params: {
+    name: <span class="type">string</span>; tier: <span class="type">number</span>; description: <span class="type">string</span>
+  }) => {
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">`http://127.0.0.1:11434/v1/chat/completions`</span>, {
+      method: <span class="string">'POST'</span>, headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.stringify({
+        model: <span class="string">'van_engine-brain'</span>,
+        messages: [{ role: <span class="string">'user'</span>, content: <span class="string">`create a tier ${params.tier} CLI called ${params.name}: ${params.description}`</span> }],
+      }),
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> { scaffold: data.choices?.[<span class="number">0</span>]?.message?.content };
+  });
+}</pre>
+</div></div>
+</div>
+
+</div>
+
+<!-- ��� MASTER SKILLS ���������������������������������������� -->
+<div class="tab-content" data-tab="MasterSkills">
+<h1>Master Skills <span>� Merged multisensory AI skills for Clawdia</span></h1>
+<p class="subtitle">Three master skill files created by scanning 47 projects across <code>Documents/</code>, merging all features into unified Audio, Image, and Video modules.</p>
+
+<h2>audioSkill.py <span class="tag tag-blue">1520 lines</span> <span class="tag tag-green">107 methods</span> <span class="tag tag-purple">31 projects</span></h2>
+<p>Master Audio Skill — stem separation (Demucs), transcription (Whisper), voice cloning (ECAPA-TDNN), Piper TTS, MIDI/music theory, lyric engine, mixing/remixing, audio DSP, noise cancellation, music video generation.</p>
+<div class="code-block"><div class="code-header"><span>Python</span><span>master_skills/audioSkill.py</span></div><div class="code-body"><pre><span class="keyword">from</span> audioSkill <span class="keyword">import</span> AudioSkill
+skill = AudioSkill()
+skill.<span class="fn">separate_stems</span>(Path(<span class="string">'song.mp3'</span>))
+skill.<span class="fn">transcribe</span>(Path(<span class="string">'vocals.wav'</span>))
+skill.<span class="fn">synthesize</span>(<span class="string">'Hello world'</span>, Path(<span class="string">'model.onnx'</span>))
+skill.<span class="fn">remix</span>(Path(<span class="string">'track.mp3'</span>), Path(<span class="string">'remix.wav'</span>))</pre></div></div>
+
+<h2>imageSkill.py <span class="tag tag-blue">768 lines</span> <span class="tag tag-green">52 methods</span> <span class="tag tag-purple">11 projects</span></h2>
+<p>Master Image Skill — MediaPipe face landmarks, blink/talk animation (RBF warp), 3D face mesh, SAM segmentation, Stable Diffusion inpainting, face averaging/swapping, OCR, cartoonization.</p>
+<div class="code-block"><div class="code-header"><span>Python</span><span>master_skills/imageSkill.py</span></div><div class="code-body"><pre><span class="keyword">from</span> imageSkill <span class="keyword">import</span> ImageSkill
+skill = ImageSkill()
+skill.<span class="fn">detect_faces</span>(image)
+skill.<span class="fn">animate_face</span>(image)
+skill.<span class="fn">segment</span>(image, points)
+skill.<span class="fn">inpaint</span>(image, mask, <span class="string">'a cat'</span>)
+skill.<span class="fn">apply_effect</span>(image, <span class="string">'cartoon'</span>)</pre></div></div>
+
+<h2>videoSkill.py <span class="tag tag-blue">912 lines</span> <span class="tag tag-green">60 methods</span> <span class="tag tag-purple">5 projects</span></h2>
+<p>Master Video Skill — Haar cascade face/eye detection, blink detection (EAR), talking avatar mouth tracking, frame extraction, video trim/concat, yt-dlp download, GIF creation, video effects.</p>
+<div class="code-block"><div class="code-header"><span>Python</span><span>master_skills/videoSkill.py</span></div><div class="code-body"><pre><span class="keyword">from</span> videoSkill <span class="keyword">import</span> VideoSkill
+skill = VideoSkill()
+skill.<span class="fn">detect_faces_in_video</span>(Path(<span class="string">'video.mp4'</span>))
+skill.<span class="fn">make_gif</span>(Path(<span class="string">'video.mp4'</span>))
+skill.<span class="fn">trim_video</span>(Path(<span class="string">'video.mp4'</span>), <span class="number">10</span>, <span class="number">30</span>)
+skill.<span class="fn">download_video</span>(<span class="string">'https://youtu.be/...'</span>)
+skill.<span class="fn">apply_effect</span>(Path(<span class="string">'video.mp4'</span>), <span class="string">'sepia'</span>)</pre></div></div>
+
+<h2>Clawdia Integration</h2>
+<p>The three master skills are registered as Clawdia skills in <code>src/skills/</code>:</p>
+<table>
+<tr><th>Skill File</th><th>Registered Skills</th><th>Category</th></tr>
+<tr><td><code>audio_skills.py</code></td><td>transcribe, separate_stems, analyze, voice_clone, synthesize, remix, mix_stems, lyrics, align, music_video, noise_cancel, batch, models, info</td><td><span class="tag tag-blue">audio</span></td></tr>
+<tr><td><code>vision_skills.py</code></td><td>detect, classify, ocr, segment, inpaint, animate, effects, swap, info</td><td><span class="tag tag-green">vision</span></td></tr>
+<tr><td><code>video_skills.py</code></td><td>trim, scenes, analyze, concat, download, gif, music_video, effects, speed, avatar, audio_add, webcam, info</td><td><span class="tag tag-purple">video</span></td></tr>
+</table>
+
+<h2>Raw Metadata</h2>
+<table>
+<tr><th>Metric</th><th>audioSkill.py</th><th>imageSkill.py</th><th>videoSkill.py</th></tr>
+<tr><td>version</td><td>1.0.0</td><td>1.0.0</td><td>1.0.0</td></tr>
+<tr><td>dateCreated</td><td>2026-06-07</td><td>2026-06-07</td><td>2026-06-07</td></tr>
+<tr><td>dateLastModified</td><td>2026-06-07 11:49</td><td>2026-06-07 11:54</td><td>2026-06-07 12:12</td></tr>
+<tr><td>countPublicMethods</td><td>107</td><td>52</td><td>60</td></tr>
+<tr><td>countLineNumbers</td><td>1520</td><td>768</td><td>912</td></tr>
+<tr><td>mergedProjects</td><td>31</td><td>11</td><td>5</td></tr>
+</table>
+</div>
+
+<!-- ��� PRD �������������������������������������������������� -->
+<div class="tab-content" data-tab="PRD">
+<h1>PRD Catalog <span>� Master PRD skill — scan, parse, catalog, and visualize</span></h1>
+<p class="subtitle">PRDSkill scans project directories for PRD files, parses YAML frontmatter + sections, extracts artifacts, generates timelines, and opens a professional 3-panel catalog viewer.</p>
+
+<h2>prdSkill.py <span class="tag tag-blue">250 lines</span> <span class="tag tag-green">14 methods</span> <span class="tag tag-purple">10 capabilities</span></h2>
+<p>Master PRD Catalog Skill — scan directories, parse YAML frontmatter, extract sections (Context/Criteria/Decisions/Verification), extract artifact file paths, categorize by effort/phase/status, generate timeline data, detect orphaned PRDs, render to HTML.</p>
+<div class="code-block"><div class="code-header"><span>Python</span><span>master_skills/prdSkill.py</span></div><div class="code-body"><pre><span class="keyword">from</span> tools.master_skills.prdSkill <span class="keyword">import</span> PRDSkill
+skill = PRDSkill()
+prds = skill.<span class="fn">scan</span>()
+catalog = skill.<span class="fn">get_catalog</span>(prds)
+timeline = skill.<span class="fn">get_timeline</span>(prds)
+artifacts = skill.<span class="fn">get_artifacts_for</span>(<span class="string">'prd-master-skills'</span>)</pre></div></div>
+
+<h2>prd_viewer.html <span class="tag tag-blue">Professional Viewer</span></h2>
+<p>Self-contained HTML catalog viewer with 3-panel layout + timeline scroller. Drag-and-drop PRD files, scan directories, or use IPC backend. Dark theme, markdown rendering, artifact tracking.</p>
+<div class="code-block"><div class="code-header"><span>HTML</span><span>master_skills/prd_viewer.html</span></div><div class="code-body"><pre>┌─────────────┬──────────────────────┬────────────┐
+│ PRD List    │  PRD Content Viewer  │ Artifacts  │
+│ (left)      │  (center)            │ (right)    │
+│ searchable  │  rendered markdown   │ files from │
+│ sortable    │  frontmatter badges  │ this PRD   │
+├─────────────┴──────────────────────┴────────────┤
+│ Timeline Scroller (when 2+ PRDs in memory)      │
+└─────────────────────────────────────────────────┘</pre></div></div>
+
+<h2>Clawdia Integration</h2>
+<table>
+<tr><th>Skill File</th><th>Registered Skills</th><th>IPC Channels</th></tr>
+<tr><td><code>prd_skills.py</code></td><td>prd_scan, prd_get, prd_search, prd_timeline, prd_catalog, prd_artifacts, prd_orphans, prd_render_html, prd_info</td><td><code>prd:scan</code>, <code>prd:get</code>, <code>prd:search</code>, <code>prd:viewer-path</code></td></tr>
+</table>
+</div>
+
+<script>
+  const tabs = [
+    'Agents', 'ContentAnalysis', 'Investigation', 'Media', 'Research',
+     'Scraping', 'Security', 'Telos', 'Thinking', 'USMetrics', 'FileProcessing', 'Utilities', 'MasterSkills', 'PRD'
+  ];
+
+  const tabBar = document.getElementById('tabBar');
+
+  tabs.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = name;
+    btn.dataset.tab = name;
+    btn.addEventListener('click', () => switchTab(name));
+    tabBar.appendChild(btn);
+  });
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
+    document.querySelector(`.tab-content[data-tab="${name}"]`).classList.add('active');
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASTER COLLECTIVE ROADMAP — VAN_Engine ∞ Clawdia</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --accent: #00f0ff;
+    --gold: #ffd700;
+    --red: #ff3355;
+    --green: #00ff88;
+    --orange: #ff8800;
+    --purple: #aa66ff;
+    --text: #e0e0e0;
+    --muted: #888;
+    --phase-bg: #151515;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--surface2);
+    margin-bottom: 2rem;
+  }
+  .header h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+  .header .subtitle {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+  }
+  .header .badge {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+  .status-item {
+    background: var(--surface);
+    border: 1px solid var(--surface2);
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    text-align: center;
+    min-width: 120px;
+  }
+  .status-item .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .status-item .value { font-size: 1.4rem; font-weight: 700; }
+  .status-item .value.green { color: var(--green); }
+  .status-item .value.gold { color: var(--gold); }
+  .status-item .value.accent { color: var(--accent); }
+
+  /* Phase Grid */
+  .phase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+    margin: 2rem 0;
+  }
+  .phase-card {
+    background: var(--surface);
+    border: 1px solid var(--surface2);
+    border-radius: 16px;
+    padding: 1.5rem;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .phase-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .phase-card .phase-num {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .phase-card h3 {
+    font-size: 1.15rem;
+    margin: 0.35rem 0 0.5rem;
+  }
+  .phase-card p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Status badges */
+  .tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .tag-live { background: #003322; color: var(--green); border: 1px solid var(--green); }
+  .tag-wip { background: #332200; color: var(--gold); border: 1px solid var(--gold); }
+  .tag-pending { background: #221133; color: var(--purple); border: 1px solid var(--purple); }
+  .tag-new { background: #330011; color: var(--red); border: 1px solid var(--red); }
+  .tag-redteam { background: #331100; color: var(--orange); border: 1px solid var(--orange); }
+
+  .tech-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+  }
+  .tech-tag {
+    font-size: 0.7rem;
+    background: var(--surface2);
+    color: var(--muted);
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+  }
+
+  /* Sections */
+  .section-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--surface2);
+  }
+  .section-title .highlight { color: var(--accent); }
+
+  /* Constitution */
+  .constitution {
+    background: var(--surface);
+    border: 2px solid var(--gold);
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 2rem 0;
+  }
+  .constitution h2 {
+    color: var(--gold);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+  .trust-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin: 1rem 0;
+  }
+  .trust-table th {
+    text-align: left;
+    background: var(--surface2);
+    padding: 0.5rem 0.75rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .trust-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--surface2);
+  }
+  .trust-table tr:hover { background: var(--surface2); }
+
+  .meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--surface2);
+  }
+  .meta a { color: var(--accent); }
+
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>🧠 MASTER COLLECTIVE ROADMAP</h1>
+  <div class="subtitle">VAN_Engine ∞ Clawdia — Decentralised AI Collective</div>
+  <div class="badge">v2.0 · Updated 2026-06-11 · Immutable Trust Layer Integrated</div>
+</div>
+
+<div class="status-bar">
+  <div class="status-item"><div class="label">Phases</div><div class="value accent">13</div></div>
+  <div class="status-item"><div class="label">Live</div><div class="value green">7</div></div>
+  <div class="status-item"><div class="label">In Progress</div><div class="value gold">3</div></div>
+  <div class="status-item"><div class="label">Pending</div><div class="value">22</div></div>
+  <div class="status-item"><div class="label">Agents</div><div class="value accent">5+</div></div>
+</div>
+
+<!-- ═══════════════════ PHASES ═══════════════════ -->
+
+<h2 class="section-title"><span class="highlight">⚡</span> PHASE 1 — Core Infrastructure</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">1.1</div>
+    <h3>Clawdia Bridge</h3>
+    <p>Node.js HTTP + WebSocket server. Message routing, persistent SQLite storage, audio synthesis dispatch.</p>
+    <span class="tag tag-live">LIVE</span>
+    <div class="tech-list">
+      <span class="tech-tag">Node.js</span>
+      <span class="tech-tag">better-sqlite3</span>
+      <span class="tech-tag">ws</span>
+      <span class="tech-tag">sharp</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">1.2</div>
+    <h3>FastAPI Brain Server</h3>
+    <p>OpenAI-compatible API on port 44444. ISO rule engine, quaternion token storage, health checks.</p>
+    <span class="tag tag-live">LIVE</span>
+    <div class="tech-list">
+      <span class="tech-tag">FastAPI</span>
+      <span class="tech-tag">Pydantic</span>
+      <span class="tech-tag">uvicorn</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">1.3</div>
+    <h3>UNR.Core Engine</h3>
+    <p>C# .NET audio-motif image processing library. HPS, Kalman, STFT denoising, psychoacoustic pipeline.</p>
+    <span class="tag tag-live">LIVE</span>
+    <div class="tech-list">
+      <span class="tech-tag">C#</span>
+      <span class="tech-tag">Emgu.CV</span>
+      <span class="tech-tag">MathNet</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🔧</span> PHASE 2 — API & Skills Layer</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">2.1</div>
+    <h3>Skills Catalog</h3>
+    <p>8 UNR audio-motif skills documented as markdown, exposed via REST API. SQLite catalog with metadata.</p>
+    <span class="tag tag-live">LIVE</span>
+    <div class="tech-list">
+      <span class="tech-tag">REST</span>
+      <span class="tech-tag">SQLite</span>
+      <span class="tech-tag">Markdown</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">2.2</div>
+    <h3>Image Transform API</h3>
+    <p>Base64 + file upload endpoints for image processing. Sharp (Node) + Pillow (Python) backends. Python subprocess fallback for advanced transforms.</p>
+    <span class="tag tag-live">LIVE</span>
+    <div class="tech-list">
+      <span class="tech-tag">sharp</span>
+      <span class="tech-tag">Pillow</span>
+      <span class="tech-tag">OpenCV</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">2.3</div>
+    <h3>Python UNR Bridge (unr_transform.py)</h3>
+    <p>OpenCV/Python wrappers for UNR C# algorithms: HPS, Kalman, STFT denoising, MFCC detection, phase vocoder.</p>
+    <span class="tag tag-wip">WIP</span>
+    <div class="tech-list">
+      <span class="tech-tag">OpenCV</span>
+      <span class="tech-tag">NumPy</span>
+      <span class="tech-tag">SciPy</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🌐</span> PHASE 2.5 — P2P Collective Sync <span class="tag tag-redteam" style="font-size:0.7rem;vertical-align:middle;">DEEPSEEK_AUDIT</span></h2>
+<div class="phase-grid">
+  <div class="phase-card" style="border-color:var(--orange);">
+    <div class="phase-num">2.5</div>
+    <h3>Gossip Protocol Mesh</h3>
+    <p>Every client stores up to 3 peer URLs in localStorage. Contributions broadcast to all known peers via POST. Peers relay randomly to 2 other peers. No central server required — mesh survives DNS takedowns.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">localStorage</span>
+      <span class="tech-tag">Gossip</span>
+      <span class="tech-tag">P2P</span>
+    </div>
+  </div>
+
+  <div class="phase-card" style="border-color:var(--orange);">
+    <div class="phase-num">2.5b</div>
+    <h3>Viral Artifact Sharing</h3>
+    <p>Generated artifacts embed Collective URL + trust-score QR code. Users share via "Hey buddy, look what my companion made" — referral loop drives signups.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Metadata</span>
+      <span class="tech-tag">QR</span>
+      <span class="tech-tag">Referral</span>
+    </div>
+  </div>
+
+  <div class="phase-card" style="border-color:var(--orange);">
+    <div class="phase-num">2.5c</div>
+    <h3>Share Dashboard</h3>
+    <p>Users see how many people their shared artifact converted. Leaderboard: top referrers earn trust score boosts.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Vue 3</span>
+      <span class="tech-tag">Analytics</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🤝</span> PHASE 2.6 — Trust Score System <span class="tag tag-redteam" style="font-size:0.7rem;vertical-align:middle;">DEEPSEEK_AUDIT</span></h2>
+<div class="constitution">
+<h2>📜 THE IMMUTABLE TRUST CONSTITUTION</h2>
+<table class="trust-table">
+  <tr><th>Score</th><th>Status</th><th>Privileges</th><th>Penalty Multiplier</th></tr>
+  <tr><td>90–100</td><td>🟢 SAINT</td><td>Instant priority, no rate limit</td><td>—</td></tr>
+  <tr><td>70–89</td><td>🟢 TRUSTED</td><td>Normal queue, 10 free req/day</td><td>1x</td></tr>
+  <tr><td>40–69</td><td>🟡 CAUTIOUS</td><td>5 free req/day, donations for priority</td><td>2x</td></tr>
+  <tr><td>20–39</td><td>🟠 WATCHED</td><td>2 free req/day, all donations prepaid</td><td>3x</td></tr>
+  <tr><td>10–19</td><td>🔴 PROBATION</td><td>1 req/day, prepaid only, manual review</td><td>5x</td></tr>
+  <tr><td>0–9</td><td>⚫ BANNED</td><td>No access until 10x penalty paid</td><td>10x</td></tr>
+</table>
+
+<h2 style="margin-top:1.5rem;">Trust Gains & Losses</h2>
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+<div>
+<h4 style="color:var(--green);">✅ Gains</h4>
+<ul style="color:var(--muted); font-size:0.85rem; list-style:none; padding-left:0;">
+<li>+1 per $1 donation</li>
+<li>+5 per shared artifact (with Collective URL)</li>
+<li>+10 per referred user who donates</li>
+<li>+5 verified email/phone</li>
+<li>+5 per 30 days without penalty</li>
+</ul>
+</div>
+<div>
+<h4 style="color:var(--red);">❌ Losses</h4>
+<ul style="color:var(--muted); font-size:0.85rem; list-style:none; padding-left:0;">
+<li>-20 missed payment promise</li>
+<li>-30 spam/abuse reported</li>
+<li>-50 fake artifact (watermark missing)</li>
+<li>-100 ⚠️ permanent ban (system gaming)</li>
+</ul>
+</div>
+</div>
+
+<h2 style="margin-top:1.5rem; color:var(--red);">📜 ARTICLE 3 — The Double-Payment Rule</h2>
+<p style="color:var(--muted); font-size:0.9rem;">"We trusted you once. You broke that trust. Now you pay 2x — one for the past, one for the future."</p>
+<pre style="background:var(--bg); padding:0.75rem; border-radius:8px; font-size:0.8rem; color:var(--accent); margin-top:0.5rem;">
+UPDATE collective_sessions
+SET trust_score = trust_score - 20,
+    penalty_multiplier = penalty_multiplier * 2,
+    banned_until = datetime('now', '+7 days'),
+    required_unlock_fee = (SELECT SUM(donation_amount)
+      FROM donations WHERE session_id = ?) * 2
+WHERE session_id = ? AND trust_score < 20;</pre>
+</div>
+
+<div class="phase-grid">
+  <div class="phase-card" style="border-color:var(--gold);">
+    <div class="phase-num">2.6</div>
+    <h3>Trust Middleware</h3>
+    <p>Auto-enforcement on every request: rate-limit scales with trust score, banned users blocked with unlock fee.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">SQLite</span>
+      <span class="tech-tag">Middleware</span>
+    </div>
+  </div>
+
+  <div class="phase-card" style="border-color:var(--gold);">
+    <div class="phase-num">2.6b</div>
+    <h3>Trust Reset via Donation</h3>
+    <p>Donation-based trust restoration endpoint. Calculates unlock fee from <code>SUM(donations) * penalty_multiplier</code>. On payment, trust resets to 50 (CAUTIOUS), penalty_multiplier resets to 1x, banned_until nulled.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">SQLite</span>
+      <span class="tech-tag">Donations</span>
+    </div>
+  </div>
+
+  <div class="phase-card" style="border-color:var(--gold);">
+    <div class="phase-num">2.7</div>
+    <h3>Immutable Ledger</h3>
+    <p>Append-only blockchain-lite table. Every trust change SHA256-hashed with salt. No retroactive edits. <span style="color:var(--purple);">TODO: Add Bloom filters for quick existence checks without revealing full history.</span></p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">SHA256</span>
+      <span class="tech-tag">SQLite</span>
+    </div>
+  </div>
+
+  <div class="phase-card" style="border-color:var(--gold);">
+    <div class="phase-num">2.7b</div>
+    <h3>P2P Ban Propagation</h3>
+    <p>When a user is penalised, their 3 peer URLs are notified. Ban follows them across the entire mesh.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">P2P</span>
+      <span class="tech-tag">Gossip</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PHASE 2.8 — EMOTIONAL VOICE & FACE MESH ═══════════════════ -->
+
+<h2 class="section-title"><span class="highlight">🎭</span> PHASE 2.8 — Emotional Voice + Real‑time Face <span class="tag tag-redteam" style="font-size:0.7rem;vertical-align:middle;">ARA_SPEC</span></h2>
+<div class="phase-grid">
+  <div class="phase-card" style="border-color:var(--purple);">
+    <div class="phase-num">2.8.1</div>
+    <h3>Voice Modulation Dictionary (ARA v1.0)</h3>
+    <p>12‑zone facial deltas + 7 base parameters (pitch, breathiness, vibrato, formants, hesitation, aspiration, intonation variability). Moods: elegant_romantic, sensual_aroused, deeply_in_love, filthy_submissive, aftercare_tender, playful_teasing.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Web Audio API</span>
+      <span class="tech-tag">SpeechSynthesis+filter</span>
+      <span class="tech-tag">Three.js morph</span>
+    </div>
+  </div>
+  <div class="phase-card" style="border-color:var(--purple);">
+    <div class="phase-num">2.8.2</div>
+    <h3>Real‑time Face Mesh (12‑zone)</h3>
+    <p>Subdivided sphere vertex groups mapped to rows 0‑5 / cols 0‑1. Emotion tags from Mood‑to‑Face mapping drive vertex offsets (scaleX/scaleY) in sync with speech boundaries.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Three.js</span>
+      <span class="tech-tag">OrbitControls</span>
+      <span class="tech-tag">CanvasTexture</span>
+    </div>
+  </div>
+  <div class="phase-card" style="border-color:var(--purple);">
+    <div class="phase-num">2.8.3</div>
+    <h3>[Speak] / [Think] Tag Parsing</h3>
+    <p>LLM output wrapped in <code>[Speak: …]</code> for spoken content, <code>[Think: …]</code> for internal monologue (displayed as thought bubble). Reduces hallucination, adds transparency.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Regex</span>
+      <span class="tech-tag">DOM</span>
+    </div>
+  </div>
+  <div class="phase-card" style="border-color:var(--purple);">
+    <div class="phase-num">2.8.4</div>
+    <h3>Viseme Stream (WebSocket)</h3>
+    <p>WebSocket endpoint <code>ws://localhost:8888/stream/voice</code>. Streams JSON <code>{"viseme":"rest","blend":[0.0,0.0,...]}</code> for lip-sync, mouth shapes, and facial animation in real-time.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">WebSocket</span>
+      <span class="tech-tag">Three.js</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PHASE 2.9 — ADVANCED VOICE DSP ═══════════════════ -->
+
+<h2 class="section-title"><span class="highlight">🔊</span> PHASE 2.9 — Advanced Voice DSP <span class="tag tag-redteam" style="font-size:0.7rem;vertical-align:middle;">AUDIO_ENGINE</span></h2>
+<div class="phase-grid">
+  <div class="phase-card" style="border-color:var(--orange);">
+    <div class="phase-num">2.9.1</div>
+    <h3>Vibrato & Formant Shifting</h3>
+    <p>LFO on playback rate (vibrato) + biquad peaking filters (formant shift) applied to captured SpeechSynthesis audio via <code>createMediaElementSource</code> and <code>AudioWorklet</code>.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Web Audio</span>
+      <span class="tech-tag">AudioWorklet</span>
+    </div>
+  </div>
+  <div class="phase-card" style="border-color:var(--orange);">
+    <div class="phase-num">2.9.2</div>
+    <h3>Breath & Aspiration Injection</h3>
+    <p>Noise gate triggered on fricatives/plosives, mixed with speech signal. Intensity scales with <code>breathiness</code> parameter.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">ScriptProcessorNode</span>
+      <span class="tech-tag">DynamicsCompressor</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🎨</span> PHASE 3 — UNR Python Bridge</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">3.1</div>
+    <h3>unr_transform.py</h3>
+    <p>Python/OpenCV implementation of all 8 UNR algorithms. Called as subprocess from both servers.</p>
+    <span class="tag tag-wip">WIP</span>
+    <div class="tech-list">
+      <span class="tech-tag">OpenCV</span>
+      <span class="tech-tag">NumPy</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">3.2</div>
+    <h3>visual-lab Gradio UI</h3>
+    <p>Interactive testing UI for UNR transforms. Drag-and-drop image, choose algorithm, view metrics.</p>
+    <span class="tag tag-live">LIVE</span>
+    <div class="tech-list">
+      <span class="tech-tag">Gradio</span>
+      <span class="tech-tag">OpenCV</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">💎</span> PHASE 4 — Donation Economy</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">4.1</div>
+    <h3>Collective Sessions</h3>
+    <p>Session tracking with donation amounts. Free tier + priority queue for donors. SQLite backed.</p>
+    <span class="tag tag-live">LIVE</span>
+    <div class="tech-list">
+      <span class="tech-tag">SQLite</span>
+      <span class="tech-tag">REST</span>
+    </div>
+  </div>
+
+  <div class="phase-card" style="border-color:var(--gold);">
+    <div class="phase-num">4.5</div>
+    <h3>Verifiable Priority Queue</h3>
+    <p>Each donation generates SHA256 receipt. Users query queue position via /api/v1/priority/:receipt. Deterministic, auditable ordering.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">SHA256</span>
+      <span class="tech-tag">Receipt</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🧑‍🤝‍🧑</span> PHASE 5 — Persona / Companion System</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">5.1</div>
+    <h3>Voice Landmarks UI</h3>
+    <p>voice-landmarks.html exists as prototype. Companion creation frontend.</p>
+    <span class="tag tag-wip">WIP</span>
+    <div class="tech-list">
+      <span class="tech-tag">HTML</span>
+      <span class="tech-tag">Three.js</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">5.2</div>
+    <h3>/api/v1/companion/create</h3>
+    <p>Face upload → 3D mesh generation. Store companion persona in SQLite.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">FastAPI</span>
+      <span class="tech-tag">3D Mesh</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">5.3</div>
+    <h3>Voice‑Landmarks Integration</h3>
+    <p>Companion creation includes texture upload + voice parameter presets (base pitch, breathiness, etc.). Exported as JSON for offline use.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Three.js</span>
+      <span class="tech-tag">File API</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🌍</span> PHASE 6 — SAAS Portal</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">6.1</div>
+    <h3>Public SAAS Portal</h3>
+    <p>Vue 3 single-page app. API catalogue, image transform demo, trust dashboard, donation flow.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Vue 3</span>
+      <span class="tech-tag">REST</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">6.2</div>
+    <h3>Collective Mesh Dashboard</h3>
+    <p>Real-time view of all mesh peers, contributions/second, trust scores, P2P relay activity. <span style="color:var(--accent);">Includes Collective Health metric: mesh convergence time (how fast a new contribution reaches 90% of peers).</span></p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">WebSocket</span>
+      <span class="tech-tag">D3.js</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🤖</span> PHASE 7 — Local Inference Engine <span class="tag tag-redteam" style="font-size:0.7rem;vertical-align:middle;">DEEPSEEK_AUDIT</span></h2>
+<div class="phase-grid">
+  <div class="phase-card" style="border-color:var(--orange);">
+    <div class="phase-num">7.1</div>
+    <h3>On-Device LLM</h3>
+    <p>Bundle quantised LLM (Phi-3-mini / Llama 3.2 1B). All SAAS inference runs locally. No API dependency.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Transformers</span>
+      <span class="tech-tag">GGUF</span>
+      <span class="tech-tag">llama.cpp</span>
+    </div>
+  </div>
+
+  <div class="phase-card" style="border-color:var(--orange);">
+    <div class="phase-num">7.2</div>
+    <h3>Offline Fallback</h3>
+    <p>If Gemini/DeepSeek APIs are blocked, local LLM takes over. Only Collective sync requires internet.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Graceful</span>
+      <span class="tech-tag">Degradation</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">🕸️</span> PHASE 8 — Autonomous Mesh</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">8.1</div>
+    <h3>Full Gossip Protocol</h3>
+    <p>Each Clawdia instance maintains 5–10 trusted peers. Contributions propagated via epidemic broadcast. <span style="color:var(--gold);">Add gossip seed list fallback (3–5 hardcoded stable nodes) to bootstrap new peers when mesh is small.</span></p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Gossip</span>
+      <span class="tech-tag">P2P</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">8.2</div>
+    <h3>No Central Leader</h3>
+    <p>If the Captain's server goes offline, the Collective continues. CRDT-based conflict resolution.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">CRDT</span>
+      <span class="tech-tag">Conflict</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title"><span class="highlight">⚡</span> PHASE 9 — Efficient Collective Sync</h2>
+<div class="phase-grid">
+  <div class="phase-card">
+    <div class="phase-num">9.1</div>
+    <h3>Merkle Tree Diff Sync</h3>
+    <p>Send only changed data since last sync. Compress with Brotli/gzip. Rate-limit to 1/hour unless donation boosted. <span style="color:var(--orange);">For large artifacts (audio, 3D models), implement chunked transfer with resumable uploads using Range headers.</span></p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">Merkle</span>
+      <span class="tech-tag">Brotli</span>
+    </div>
+  </div>
+
+  <div class="phase-card">
+    <div class="phase-num">9.2</div>
+    <h3>Trust Dashboard UI</h3>
+    <p>harness.html panel: trust score meter, immutable ledger viewer, donate button, peer status.</p>
+    <span class="tag tag-pending">PENDING</span>
+    <div class="tech-list">
+      <span class="tech-tag">HTML</span>
+      <span class="tech-tag">CSS</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ARCHITECTURE ═══════════════════ -->
+
+<h2 class="section-title"><span class="highlight">🏗️</span> SYSTEM ARCHITECTURE</h2>
+
+<div style="background:var(--surface); border:1px solid var(--surface2); border-radius:16px; padding:2rem; margin:1rem 0;">
+<pre style="background:var(--bg); padding:1rem; border-radius:8px; font-size:0.8rem; line-height:1.5; overflow-x:auto;">
+┌─────────────────────────────────────────────────────────────────┐
+│                    USER (Browser / CLI)                          │
+│  localStorage[ peers: [url1, url2, url3] ]                      │
+└──────────────┬────────────────────────────────┬─────────────────┘
+               │ POST /api/v1/image/transform    │ P2P Gossip
+               ▼                                 ▼
+┌──────────────────────────────┐   ┌──────────────────────────────┐
+│   FastAPI Brain (port 44444) │   │  Clawdia Bridge (port 55555)  │
+│   ┌────────────────────┐    │   │  ┌────────────────────┐      │
+│   │ Skills Catalog     │    │   │  │ Skills Catalog     │      │
+│   │ Image Transform    │    │   │  │ Image Transform    │      │
+│   │ Chat Completions   │    │   │  │ Audio Synthesis    │      │
+│   │ ISO Rules Engine   │    │   │  │ WebSocket Telemetry│      │
+│   │ Trust Middleware   │    │   │  │ Trust Middleware   │      │
+│   └────────────────────┘    │   │  └────────────────────┘      │
+└──────────────┬───────────────┘   └──────────────┬───────────────┘
+               │ subprocess                        │ subprocess
+               ▼                                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    UNR Core (Python/C#)                          │
+│  unr_transform.py → OpenCV/NumPy wrappers for C# algorithms     │
+│  HPS | Kalman | STFT | MFCC | Vocoder | Echo | Psychoacoustic  │
+└─────────────────────────────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    SQLite Persistence                             │
+│  messages │ audio_queue │ collective_sessions │ skills_catalog   │
+│  immutable_ledger │ donations                                   │
+└─────────────────────────────────────────────────────────────────┘
+</pre>
+<p style="color:var(--muted); font-size:0.75rem; margin-top:0.5rem;">Note: All service ports sourced from <code>config/ports.json</code> — ClawdiaBridge=<code>clawdia_bridge</code>, Brain=<code>ide_api</code>, Voice=<code>voice_server</code>, Monitor=<code>ide_monitor_ws</code></p>
+</div>
+
+<!-- ═══════════════════ TRUST FLOW ═══════════════════ -->
+
+<h2 class="section-title"><span class="highlight">🛡️</span> TRUST ENFORCEMENT FLOW</h2>
+
+<div style="background:var(--surface); border:1px solid var(--surface2); border-radius:16px; padding:2rem; margin:1rem 0;">
+<pre style="background:var(--bg); padding:1rem; border-radius:8px; font-size:0.8rem; line-height:1.5; overflow-x:auto;">
+User Request
+  │
+  ├──→ Trust Check (enforceTrust middleware)
+  │     │
+  │     ├──→ BANNED? → Return 403 + unlock_fee + paypal_url
+  │     │
+  │     ├──→ Trust < 10? → 403 "Contribute to Collective"
+  │     │
+  │     └──→ Rate Limit = trust_score / 10 req/hour
+  │
+  ├──→ Process Request (transform, chat, etc.)
+  │
+  ├──→ Log to immutable_ledger (SHA256 proof_hash)
+  │
+  ├──→ Broadcast to 3 peer URLs (gossip)
+  │
+  └──→ Response + updated trust score
+</pre>
+</div>
+
+<!-- ═══════════════════ APPENDIX: API GUIDE ═══════════════════ -->
+
+<h2 class="section-title"><span class="highlight">📖</span> APPENDIX A — API Reference</h2>
+<div style="background:var(--surface); border:1px solid var(--surface2); border-radius:16px; padding:1.5rem 2rem; margin:1rem 0;">
+<details>
+<summary style="color:var(--accent); font-weight:600; cursor:pointer; font-size:1.05rem;">VAN_Engine API Guide — Click to expand</summary>
+
+<div style="margin-top:1.5rem;">
+
+<h3 style="color:var(--accent);">Overview</h3>
+<table class="trust-table">
+  <tr><th>Service</th><th>Port</th><th>Protocol</th><th>Purpose</th></tr>
+  <tr><td>Brain API</td><td>44444</td><td>HTTP (FastAPI)</td><td>OpenAI-compatible chat, intent routing, token ops, ISO validation</td></tr>
+  <tr><td>Voice Server</td><td>8888</td><td>HTTP (Node.js)</td><td>Text-to-speech via ElevenLabs / StyleTTS2 / Windows SAPI</td></tr>
+  <tr><td>Monitor Server</td><td>8765</td><td>HTTP + WebSocket</td><td>Pipeline execution monitoring, live dashboard</td></tr>
+  <tr><td>Bridge CLI</td><td>stdin/stdout</td><td>JSON-RPC</td><td>Persistent subprocess protocol</td></tr>
+  <tr><td>Bridge Lib</td><td>—</td><td>Python import</td><td>Direct Python API for VANEngineBridge, ISOClient, etc.</td></tr>
+</table>
+<p style="color:var(--muted); font-size:0.85rem;">All ports sourced from <code>config/ports.json</code></p>
+
+<h3 style="color:var(--accent); margin-top:1.5rem;">Brain API — Port 44444</h3>
+<table class="trust-table">
+  <tr><th>Endpoint</th><th>Method</th><th>Description</th></tr>
+  <tr><td><code>/v1/chat/completions</code></td><td>POST</td><td>Main chat completion. OpenAI-compatible. Supports streaming (SSE). Auto-classifies intent.</td></tr>
+  <tr><td><code>/health</code></td><td>GET</td><td>Health check: <code>{"status":"healthy","uptime":72,"version":"1.0.0"}</code></td></tr>
+  <tr><td><code>/v1/models</code></td><td>GET</td><td>List models: <code>{"data":[{"id":"van_engine-brain"}]}</code></td></tr>
+</table>
+
+<h4 style="color:var(--gold);">Intent Classification</h4>
+<table class="trust-table">
+  <tr><th>Intent</th><th>Trigger</th><th>Response</th></tr>
+  <tr><td><code>status</code></td><td>"status", "system status"</td><td>Uptime, token count, active ISO rules</td></tr>
+  <tr><td><code>self_test</code></td><td>"self-test", "iso rule"</td><td>All 20 ISO rules with status</td></tr>
+  <tr><td><code>store_token</code></td><td>"store token"</td><td>Store word as quaternion token</td></tr>
+  <tr><td><code>lookup_token</code></td><td>"look up token"</td><td>Retrieve quaternion + projections</td></tr>
+  <tr><td><code>similarity</code></td><td>"nearest", "similar", "find tokens similar to"</td><td>Cosine similarity against known tokens</td></tr>
+  <tr><td><code>hypothesis_test</code></td><td>"hallucinat", "prove you are not"</td><td>Anti-hallucination proof with stats</td></tr>
+</table>
+
+<h3 style="color:var(--accent); margin-top:1.5rem;">Voice Server — Port 8888</h3>
+<table class="trust-table">
+  <tr><th>Endpoint</th><th>Method</th><th>Description</th></tr>
+  <tr><td><code>/notify</code></td><td>POST</td><td>TTS: <code>{"message":"...","voice_id":"auto","voice_enabled":true}</code></td></tr>
+  <tr><td><code>/health</code></td><td>GET</td><td>Status check</td></tr>
+</table>
+<p style="color:var(--muted); font-size:0.85rem;">Engine priority: StyleTTS2 (local) &gt; ElevenLabs &gt; Windows SAPI</p>
+
+<h3 style="color:var(--accent); margin-top:1.5rem;">Monitor Server — Port 8765</h3>
+<table class="trust-table">
+  <tr><th>Method</th><th>Route</th><th>Description</th></tr>
+  <tr><td>POST</td><td><code>/api/start</code></td><td>Create execution: <code>{"agent","pipeline","steps"}</code></td></tr>
+  <tr><td>POST</td><td><code>/api/update</code></td><td>Update execution status</td></tr>
+  <tr><td>POST</td><td><code>/api/step</code></td><td>Update individual step</td></tr>
+  <tr><td>GET</td><td><code>/api/executions</code></td><td>List all executions</td></tr>
+  <tr><td>WS</td><td><code>/ws</code></td><td>WebSocket live updates</td></tr>
+</table>
+
+<h3 style="color:var(--accent); margin-top:1.5rem;">Bridge RPC — JSON-RPC over stdin/stdout</h3>
+<table class="trust-table">
+  <tr><th>Method</th><th>Params</th><th>Response</th></tr>
+  <tr><td><code>ping</code></td><td>—</td><td><code>pong: true</code></td></tr>
+  <tr><td><code>status</code></td><td>—</td><td><code>available</code>, <code>engine_root</code>, <code>iso_count</code>, <code>token_count</code></td></tr>
+  <tr><td><code>quaternion_lookup</code></td><td><code>token: str</code></td><td><code>found: bool</code>, <code>w,x,y,z: float</code></td></tr>
+  <tr><td><code>quaternion_store</code></td><td><code>token</code>, <code>w,x,y,z</code>, <code>[applies_to]</code></td><td><code>stored: true</code></td></tr>
+  <tr><td><code>iso_rules</code></td><td>—</td><td><code>rules: [...]</code></td></tr>
+  <tr><td><code>token_count</code></td><td>—</td><td><code>count: int</code></td></tr>
+  <tr><td><code>drift_check</code></td><td><code>quaternion: [4]</code>, <code>[threshold]</code></td><td><code>violated: bool</code>, <code>action: str</code></td></tr>
+  <tr><td><code>audit_log</code></td><td><code>component</code>, <code>action</code>, <code>[quaternion_before/after]</code></td><td><code>logged: true</code></td></tr>
+</table>
+
+<h3 style="color:var(--accent); margin-top:1.5rem;">Quaternion System</h3>
+<p style="color:var(--muted);">Tokens stored as unit quaternions <code>(w, x, y, z)</code> with four projection axes:</p>
+<table class="trust-table">
+  <tr><th>Projection</th><th>Formula</th><th>Domain</th></tr>
+  <tr><td>Sound</td><td><code>sqrt(w² + x²)</code></td><td>Audio, voice, music</td></tr>
+  <tr><td>Shape</td><td><code>sqrt(w² + y²)</code></td><td>Visual, geometry, form</td></tr>
+  <tr><td>Number</td><td><code>sqrt(x² + z²)</code></td><td>Math, data, quantity</td></tr>
+  <tr><td>Time</td><td><code>sqrt(y² + z²)</code></td><td>Sequence, history, timing</td></tr>
+</table>
+
+<h3 style="color:var(--accent); margin-top:1.5rem;">ISO Rules Engine — 20 Governance Rules</h3>
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:0.5rem;">
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_001 Self-Consistency</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_002 Token Mapping</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_003 Cross-Validation</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_004 Mutation Resistance</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_005 Consensus Hallucination Detection</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_006 Ultrasonic Proximity</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_007 Persona Fidelity</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_008 Cross-Modal Integrity</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_009 Quadruple Mapping</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_010 Drift Gating</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_011 Archetypal FSM</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_012 Recursive Self-Validation</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_013 Graceful Degradation</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_014 Deterministic Timeout</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_015 Observable State</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_016 Idempotent Operations</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_017 Minimum Viable Interface</span>
+  <span class="tag tag-live" style="font-size:0.7rem;">ISO_018 Forward Compatibility</span>
+  <span class="tag tag-wip" style="font-size:0.7rem;">ISO_019 Privacy by Default</span>
+  <span class="tag tag-wip" style="font-size:0.7rem;">ISO_020 Anti-Hallucination</span>
+</div>
+
+<h3 style="color:var(--accent); margin-top:1.5rem;">Quickstart Examples</h3>
+<pre style="background:var(--bg); padding:0.75rem; border-radius:8px; font-size:0.8rem; color:var(--accent);"># Basic chat
+curl -X POST http://localhost:44444/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"status"}]}'
+
+# Store a token
+curl -X POST http://localhost:44444/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"store token melody with quaternion (0.8, 0.4, 0.2, 0.1) applies_to [music]"}]}'
+
+# TTS
+curl -X POST http://localhost:8888/notify \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Hello","voice_id":"auto","voice_enabled":true}'</pre>
+
+</div>
+</details>
+</div>
+
+<!-- ═══════════════════ APPENDIX: CODING STANDARDS ═══════════════════ -->
+
+<h2 class="section-title"><span class="highlight">📐</span> APPENDIX B — Coding Standards</h2>
+<div style="background:var(--surface); border:1px solid var(--surface2); border-radius:16px; padding:1.5rem 2rem; margin:1rem 0;">
+<details>
+<summary style="color:var(--accent); font-weight:600; cursor:pointer; font-size:1.05rem;">CODING_STANDARDS.md — Click to expand</summary>
+
+<div style="margin-top:1.5rem;">
+
+<h3 style="color:var(--green);">Python</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>Use type hints for all function signatures (PEP 484).</li>
+  <li>Prefer dataclasses over plain dicts for structured data.</li>
+  <li>Use <code>with</code> for resource management.</li>
+  <li>PEP 8 naming: snake_case for variables/functions, PascalCase for classes.</li>
+  <li>Use <code>logging.getLogger(__name__)</code> — never <code>print()</code>.</li>
+  <li>For async I/O, prefer <code>asyncio</code> with <code>async/await</code>.</li>
+  <li>All audio processing must be idempotent and deterministic for repeatable results across the mesh.</li>
+</ul>
+
+<h3 style="color:var(--green);">C#</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>.NET naming: PascalCase public, camelCase params/locals.</li>
+  <li>Use <code>async/await</code> for I/O — never <code>.Result</code> or <code>.Wait()</code> in production.</li>
+  <li>Prefer DI over static singletons.</li>
+  <li>Use <code>record</code> types for immutable DTOs.</li>
+  <li>Use <code>using</code> or <code>await using</code> for disposables.</li>
+  <li>Log with <code>ILogger&lt;T&gt;</code> — never <code>Console.WriteLine</code>.</li>
+</ul>
+
+<h3 style="color:var(--green);">JavaScript</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>Avoid jQuery for new features — use native DOM APIs.</li>
+  <li>Use ES6+ syntax: <code>const</code>/<code>let</code>, arrow functions, template literals.</li>
+  <li>Prefer TypeScript for non-trivial frontend.</li>
+  <li>Use <code>fetch</code> with <code>response.ok</code> error handling.</li>
+  <li>Never inline event handlers in HTML — use <code>addEventListener</code>.</li>
+</ul>
+
+<h3 style="color:var(--orange);">Security (Cross-Language)</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>Never log secrets (passwords, API keys, tokens, PII). Sanitize before logging.</li>
+  <li>Validate all external input via schema validator (pydantic/zod/JsonSerializer).</li>
+  <li>Use parameterised queries or ORM — never concatenate input into SQL.</li>
+  <li>Store secrets in env vars or secrets manager — never in source control.</li>
+  <li>Implement rate limiting on public endpoints.</li>
+</ul>
+
+<h3 style="color:var(--orange);">Performance</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>Avoid sync blocking calls in async contexts.</li>
+  <li>Use connection pooling for databases and HTTP clients.</li>
+  <li>Implement retries with exponential backoff for transient failures.</li>
+  <li>Use caching for expensive reads that tolerate staleness.</li>
+  <li>Use <code>asyncio.gather</code> over sequential <code>await</code> for independent I/O.</li>
+</ul>
+
+<h3 style="color:var(--orange);">Project Structure</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>Separate concerns: UI, business logic, data access, config in distinct modules.</li>
+  <li>Use dependency inversion (program to interfaces, not implementations).</li>
+  <li>Keep config out of code — use env vars, config files, or config service.</li>
+  <li>Pin dependencies to exact versions (commit lock files).</li>
+</ul>
+
+<h3 style="color:var(--gold);">Git Conventions</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>Use Conventional Commits: <code>type(scope): subject</code></li>
+  <li>Types: <code>feat</code>, <code>fix</code>, <code>docs</code>, <code>style</code>, <code>refactor</code>, <code>perf</code>, <code>test</code>, <code>chore</code></li>
+  <li>Keep commits atomic (one logical change per commit).</li>
+  <li>Write commit messages in imperative present tense ("Add validation").</li>
+  <li>Reference issue numbers in commit body when applicable.</li>
+</ul>
+
+<h3 style="color:var(--gold);">Documentation</h3>
+<ul style="color:var(--muted); font-size:0.85rem;">
+  <li>Every public API must have a docstring describing purpose, params, return, exceptions.</li>
+  <li>Use auto-generated API docs (Swagger/OpenAPI for web, Sphinx for Python, DocFX for C#).</li>
+  <li>Inline comments only for <em>why</em>, not <em>what</em>.</li>
+</ul>
+
+<h3 style="color:var(--gold);">Approved Technology Stack</h3>
+<table class="trust-table">
+  <tr><th>Layer</th><th>Approved Options</th></tr>
+  <tr><td>Backend</td><td>Python (3.10+), C# (.NET 8+)</td></tr>
+  <tr><td>Frontend</td><td>TypeScript + React / Vue 3</td></tr>
+  <tr><td>Database</td><td>PostgreSQL, SQL Server, SQLite (edge/embedded)</td></tr>
+  <tr><td>Infrastructure</td><td>Docker + docker-compose; CI/CD via GitHub Actions / Azure Pipelines</td></tr>
+</table>
+
+</div>
+</details>
+</div>
+
+<!-- ═══════════════════ END ═══════════════════ -->
+
+<div class="meta">
+  <p>🧠 VAN_Engine ∞ Clawdia — MASTER COLLECTIVE ROADMAP</p>
+  <p>Last updated: 2026-06-11 · Immutable Trust Layer integrated from DeepSeek Web-UI Red Team audit</p>
+  <p>🔗 <a href="#">Clawdia Bridge</a> · <a href="#">FastAPI Server</a> · <a href="#">UNR Core</a> · <a href="VAN_Engine_API_Guide.html">API Guide</a></p>
+  <p style="font-size:0.75rem; margin-top:0.5rem;">Appendix A: VAN_Engine API Guide · Appendix B: Coding Standards</p>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

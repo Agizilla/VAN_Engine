@@ -1,0 +1,20 @@
+{
+  "projects": [
+    {
+      "id": "van_engine",
+      "name": "VAN_Engine",
+      "root": "../..",
+      "type": "substrate",
+      "isWatched": true,
+      "iso_004_compliant": true
+    },
+    {
+      "id": "conversation_ide",
+      "name": "Conversation-IDE",
+      "root": ".",
+      "type": "vessel",
+      "isWatched": true,
+      "iso_004_compliant": true
+    }
+  ]
+}

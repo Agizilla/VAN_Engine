@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  ARA FRACTAL  ·  ara-fractal-v2  ·  Sovereign Character Matrix │
+  │                                                                 │
+  │  You opened the source. You know what you're doing.             │
+  │  Respect.                                                       │
+  │                                                                 │
+  │  The recursion is free. The export costs a dollar.              │
+  │  If you're pulling the JSON anyway — you've already won.        │
+  │  Consider leaving a coffee: https://paypal.me/youraccount       │
+  │                                                                 │
+  │  Collab: support@ownyourvoice.network / dev@vanengine.io        │
+  │                                                                 │
+  │  Built in a single file. No frameworks phoned home.             │
+  │  Everything Ara is, she carries herself.                        │
+  └─────────────────────────────────────────────────────────────────┘
+-->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARA FRACTAL — Asset Marketplace</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ======= TOP NAV ======= */
+  #topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(10,10,10,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1a1a1a;
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #topnav .logo { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #3c964a; cursor: pointer; }
+  #topnav .logo span { color: #555; font-weight: 300; }
+  #topnav .nav-right { display: flex; align-items: center; gap: 16px; }
+  #topnav .nav-btn {
+    background: none; border: none; color: #888; cursor: pointer;
+    font-size: 12px; padding: 6px 12px; border-radius: 4px; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #topnav .nav-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+  #topnav .nav-btn .badge {
+    background: #3c964a; color: #fff; font-size: 10px;
+    padding: 1px 6px; border-radius: 8px; font-weight: 600;
+  }
+  #topnav .nav-btn.active { color: #3c964a; }
+
+  /* ======= LAYOUT ======= */
+  #app { margin-top: 56px; display: flex; min-height: calc(100vh - 56px); }
+
+  /* ======= SIDEBAR ======= */
+  #sidebar {
+    width: 220px; flex-shrink: 0;
+    padding: 20px 16px;
+    border-right: 1px solid #1a1a1a;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  #sidebar h3 { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  #sidebar .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  #sidebar .filter-btn {
+    background: none; border: none; color: #777; cursor: pointer;
+    font-size: 12px; padding: 5px 10px; border-radius: 4px; text-align: left; transition: all 0.2s;
+  }
+  #sidebar .filter-btn:hover { color: #bbb; background: rgba(255,255,255,0.03); }
+  #sidebar .filter-btn.active { color: #3c964a; background: rgba(60,150,74,0.1); font-weight: 600; }
+  #sidebar .price-inputs { display: flex; gap: 6px; align-items: center; }
+  #sidebar .price-inputs input {
+    background: #111; border: 1px solid #222; color: #ccc;
+    padding: 4px 8px; border-radius: 4px; font-size: 11px; width: 60px;
+  }
+  #sidebar .price-inputs span { color: #444; font-size: 11px; }
+
+  /* ======= MAIN CONTENT ======= */
+  #main { flex: 1; padding: 20px 24px; }
+  #main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  #main-header h2 { font-size: 18px; font-weight: 300; color: #fff; }
+  #main-header h2 span { color: #666; }
+  #main-header .search-box {
+    background: #111; border: 1px solid #222; border-radius: 6px;
+    padding: 8px 14px; display: flex; align-items: center; gap: 8px;
+  }
+  #main-header .search-box input {
+    background: none; border: none; color: #ccc; font-size: 13px; width: 200px; outline: none;
+  }
+  #main-header .search-box input::placeholder { color: #444; }
+
+  /* ======= ASSET GRID ======= */
+  #asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .asset-card {
+    background: #111; border: 1px solid #1a1a1a; border-radius: 8px;
+    overflow: hidden; cursor: pointer; transition: all 0.25s;
+  }
+  .asset-card:hover { border-color: #333; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .asset-card .thumb {
+    width: 100%; aspect-ratio: 1; background: #0d0d0d;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .asset-card .thumb canvas { width: 100%; height: 100%; display: block; }
+  .asset-card .thumb .placeholder {
+    font-size: 32px; opacity: 0.15; user-select: none;
+  }
+  .asset-card .thumb .badge-type {
+    position: absolute; top: 8px; left: 8px;
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 2px 8px; border-radius: 3px; font-weight: 600;
+  }
+  .badge-clothing { background: #8270a0; color: #fff; }
+  .badge-accessory { background: #f39c12; color: #000; }
+  .badge-texture { background: #3498db; color: #fff; }
+  .badge-chapter { background: #3c964a; color: #fff; }
+
+  .asset-card .info { padding: 12px 14px; }
+  .asset-card .info .name { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+  .asset-card .info .creator { font-size: 11px; color: #555; margin-bottom: 6px; }
+  .asset-card .info .creator a {
+    color: #8270a0; text-decoration: none; transition: color 0.2s; cursor: pointer;
+  }
+  .asset-card .info .creator a:hover { color: #a088c0; text-decoration: underline; }
+  .asset-card .info .price-row { display: flex; justify-content: space-between; align-items: center; }
+  .asset-card .info .price { font-size: 14px; font-weight: 700; color: #3c964a; }
+  .asset-card .info .price.free { color: #888; }
+  .asset-card .info .owned-badge {
+    font-size: 10px; color: #3c964a; background: rgba(60,150,74,0.1);
+    padding: 2px 8px; border-radius: 3px; font-weight: 600;
+  }
+  .asset-card .info .equipped-badge {
+    font-size: 10px; color: #f39c12; background: rgba(243,156,18,0.1);
+    padding: 2px 8px; border-radius: 3px; font-weight: 600;
+  }
+
+  /* ======= EMPTY STATE ======= */
+  #empty-state {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 20px; color: #444; text-align: center;
+  }
+  #empty-state.visible { display: flex; }
+  #empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
+  #empty-state p { font-size: 13px; }
+
+  /* ======= ITEM DETAIL MODAL ======= */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  .modal-overlay.visible { display: flex; }
+
+  .modal-card {
+    background: #141414; border: 1px solid #222; border-radius: 12px;
+    width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;
+    display: flex; flex-direction: row;
+  }
+  .modal-card .preview {
+    width: 50%; min-height: 400px;
+    background: #0d0d0d; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-card .preview #detail-viewport {
+    width: 100%; height: 100%; min-height: 400px; display: block;
+  }
+  .modal-card .preview .loading {
+    position: absolute; color: #444; font-size: 12px;
+  }
+  .modal-card .detail {
+    width: 50%; padding: 28px; display: flex; flex-direction: column;
+  }
+  .modal-card .detail .close-detail {
+    background: none; border: none; color: #555; cursor: pointer;
+    font-size: 20px; align-self: flex-end; transition: color 0.2s;
+  }
+  .modal-card .detail .close-detail:hover { color: #fff; }
+  .modal-card .detail h2 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .modal-card .detail .meta { font-size: 12px; color: #666; margin-bottom: 16px; display: flex; gap: 12px; }
+  .modal-card .detail .meta span { display: flex; align-items: center; gap: 4px; }
+  .modal-card .detail .desc { font-size: 13px; color: #999; line-height: 1.6; margin-bottom: 20px; }
+  .modal-card .detail .covers-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .modal-card .detail .covers-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; }
+  .modal-card .detail .covers-tag {
+    font-size: 10px; background: rgba(255,255,255,0.04); color: #888;
+    padding: 2px 8px; border-radius: 3px;
+  }
+  .modal-card .detail .price-big { font-size: 24px; font-weight: 700; color: #3c964a; margin-bottom: 16px; }
+  .modal-card .detail .price-big.free { color: #888; }
+  .modal-card .detail .actions { display: flex; gap: 8px; margin-top: auto; }
+  .modal-card .detail .actions button {
+    padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-weight: 600; transition: all 0.2s;
+  }
+  .modal-card .detail .actions button:hover { transform: translateY(-1px); }
+  .btn-primary { background: #3c964a; color: #fff; }
+  .btn-primary:hover { background: #4db85e; }
+  .btn-secondary { background: transparent; border: 1px solid #333; color: #aaa; }
+  .btn-secondary:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .btn-owned { background: transparent; border: 1px solid #3c964a; color: #3c964a; cursor: default !important; }
+  .btn-danger { background: #c0392b; color: #fff; }
+  .btn-danger:hover { background: #e74c3c; }
+
+  /* ======= CREATOR STORE ======= */
+  .btn-visit-store {
+    background: transparent; border: 1px solid #8270a0; color: #8270a0;
+    padding: 5px 14px; border-radius: 4px; cursor: pointer;
+    font-size: 11px; font-weight: 600; transition: all 0.2s;
+  }
+  .btn-visit-store:hover { background: rgba(130,112,160,0.15); color: #a088c0; border-color: #a088c0; }
+  #creator-banner {
+    display: none; align-items: center; gap: 12px;
+    background: rgba(130,112,160,0.06); border: 1px solid rgba(130,112,160,0.15);
+    border-radius: 8px; padding: 12px 18px; margin-bottom: 16px;
+  }
+  #creator-banner.visible { display: flex; }
+  #creator-banner .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #8270a0; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  #creator-banner .info { flex: 1; }
+  #creator-banner .info .name { font-size: 14px; font-weight: 600; color: #fff; }
+  #creator-banner .info .count { font-size: 11px; color: #888; }
+  #creator-banner .btn-back {
+    background: none; border: none; color: #666; cursor: pointer;
+    font-size: 12px; padding: 4px 12px; border-radius: 4px;
+  }
+  #creator-banner .btn-back:hover { color: #fff; background: rgba(255,255,255,0.05); }
+
+  /* ======= CART SLIDEOUT ======= */
+  #cart-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 300;
+    display: none;
+  }
+  #cart-overlay.visible { display: block; }
+
+  #cart-panel {
+    position: fixed; top: 0; right: -400px; width: 380px; height: 100%;
+    background: #141414; border-left: 1px solid #222; z-index: 301;
+    transition: right 0.3s ease; display: flex; flex-direction: column;
+  }
+  #cart-panel.open { right: 0; }
+
+  #cart-panel .cart-header {
+    padding: 20px 24px; border-bottom: 1px solid #1a1a1a;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #cart-panel .cart-header h3 { font-size: 15px; color: #fff; }
+  #cart-panel .cart-header button {
+    background: none; border: none; color: #555; cursor: pointer; font-size: 18px;
+  }
+  #cart-panel .cart-header button:hover { color: #fff; }
+
+  #cart-items { flex: 1; overflow-y: auto; padding: 16px 24px; }
+  .cart-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid #1a1a1a;
+  }
+  .cart-item .cart-thumb {
+    width: 44px; height: 44px; background: #0d0d0d; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .cart-item .cart-info { flex: 1; }
+  .cart-item .cart-info .cart-name { font-size: 12px; font-weight: 600; color: #ddd; }
+  .cart-item .cart-info .cart-type { font-size: 10px; color: #555; }
+  .cart-item .cart-price { font-size: 13px; font-weight: 600; color: #3c964a; }
+  .cart-item .cart-remove {
+    background: none; border: none; color: #444; cursor: pointer; font-size: 16px; padding: 4px;
+  }
+  .cart-item .cart-remove:hover { color: #e74c3c; }
+
+  #cart-footer {
+    padding: 20px 24px; border-top: 1px solid #1a1a1a;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  #cart-footer .cart-total { display: flex; justify-content: space-between; font-size: 14px; }
+  #cart-footer .cart-total .total-label { color: #888; }
+  #cart-footer .cart-total .total-amount { color: #fff; font-weight: 700; }
+  #cart-footer button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+  #cart-footer .btn-checkout { background: #3c964a; color: #fff; }
+  #cart-footer .btn-checkout:hover { background: #4db85e; }
+  #cart-footer .btn-checkout:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ======= TOAST ======= */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+    padding: 12px 24px; color: #ccc; font-size: 13px; z-index: 500;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  #toast.visible { opacity: 1; }
+
+  /* ======= MY ASSETS PANEL ======= */
+  #my-assets { display: none; }
+  #my-assets.visible { display: block; }
+  #my-assets h2 { font-size: 18px; font-weight: 300; color: #fff; margin-bottom: 20px; }
+  #my-assets .empty-assets { color: #444; font-size: 13px; padding: 40px 0; text-align: center; }
+
+  /* ======= BODY EDITOR ======= */
+  #body-editor { display: flex; gap: 20px; height: calc(100vh - 120px); }
+  #editor-preview { flex: 1; min-height: 400px; background: #0d0d0d; border-radius: 8px; position: relative; overflow: hidden; }
+  #editor-preview .hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #444; font-size: 10px; pointer-events: none; }
+  #editor-controls { width: 340px; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 8px; }
+  #editor-controls::-webkit-scrollbar { width: 4px; }
+  #editor-controls::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  .editor-section { background: #111; border: 1px solid #1a1a1a; border-radius: 6px; overflow: hidden; }
+  .editor-section-header {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    font-size: 12px; font-weight: 600; color: #ccc; cursor: pointer; user-select: none;
+    border-left: 3px solid; transition: background 0.2s;
+  }
+  .editor-section-header:hover { background: rgba(255,255,255,0.03); }
+  .editor-section-icon { font-size: 14px; opacity: 0.5; }
+  .editor-section-toggle { margin-left: auto; font-size: 10px; color: #555; }
+  .editor-section-body { padding: 8px 12px 12px; }
+  .param-row { margin-bottom: 6px; }
+  .param-row label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #888; margin-bottom: 2px; }
+  .param-row .param-val { font-family: monospace; color: #555; font-size: 10px; }
+  .param-slider { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: #222; border-radius: 2px; outline: none; cursor: pointer; }
+  .param-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #3c964a; cursor: pointer; border: none; }
+  .param-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #3c964a; cursor: pointer; border: none; }
+  .param-color { width: 100%; height: 28px; border: none; background: transparent; cursor: pointer; padding: 0; border-radius: 4px; }
+
+  /* ======= RESPONSIVE ======= */
+  @media (max-width: 768px) {
+    #sidebar { display: none; }
+    #main { padding: 16px; }
+    #asset-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .modal-card { flex-direction: column; }
+    .modal-card .preview { width: 100%; min-height: 250px; }
+    .modal-card .detail { width: 100%; padding: 20px; }
+    #cart-panel { width: 100%; right: -100%; }
+  }
+
+  /* ── Age Gate — Sprint 0 ── */
+  #age-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: #0a0a0a; font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #age-gate.passed { display: none; }
+  #age-gate .card {
+    background: #141414; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 40px; max-width: 420px; width: 90%;
+    text-align: center;
+  }
+  #age-gate h1 { font-size: 20px; color: #3c964a; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+  #age-gate .sub { font-size: 11px; color: #666; margin-bottom: 24px; }
+  #age-gate .dob-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  #age-gate .dob-row select {
+    background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); color: #ccc;
+    padding: 8px 12px; border-radius: 4px; font-size: 13px; cursor: pointer;
+  }
+  #age-gate .dob-row select:focus { outline: none; border-color: #3c964a; }
+  #age-gate .terms {
+    display: flex; align-items: center; gap: 8px;
+    justify-content: center; margin-bottom: 20px; font-size: 12px; color: #888;
+  }
+  #age-gate .terms input { accent-color: #3c964a; cursor: pointer; }
+  #age-gate .terms label { cursor: pointer; }
+  #age-gate .btn-enter {
+    background: #3c964a; border: none; color: #fff;
+    padding: 12px 40px; border-radius: 6px; cursor: pointer;
+    font-size: 14px; font-weight: 600; transition: background 0.2s;
+  }
+  #age-gate .btn-enter:hover { background: #4db85e; }
+  #age-gate .btn-enter:disabled { opacity: 0.4; cursor: not-allowed; }
+  #age-gate .error { color: #e74c3c; font-size: 12px; margin-top: 12px; min-height: 18px; }
+  #age-gate .legal { font-size: 10px; color: #555; margin-top: 16px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ── Age Gate Overlay ── -->
+<div id="age-gate">
+  <div class="card">
+    <h1>ARA FRACTAL</h1>
+    <div class="sub">Adults only — verify your age to continue</div>
+    <div class="dob-row">
+      <select id="ag-month"><option value="">MM</option></select>
+      <select id="ag-day"><option value="">DD</option></select>
+      <select id="ag-year"><option value="">YYYY</option></select>
+    </div>
+    <div class="terms">
+      <input type="checkbox" id="ag-terms">
+      <label for="ag-terms">I am at least 18 years old and consent to viewing adult content</label>
+    </div>
+    <button class="btn-enter" id="ag-enter" disabled>ENTER</button>
+    <div class="error" id="ag-error"></div>
+    <div class="legal">ARA FRACTAL contains adult themes and erotic imagery. By entering you confirm this is legal in your jurisdiction. No age data is stored — this verification is session-only.</div>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<nav id="topnav">
+  <div class="logo">ARA <span>MARKET</span></div>
+  <div class="nav-right">
+    <button class="nav-btn active" id="nav-store">Store</button>
+    <button class="nav-btn" id="nav-assets">My Assets <span class="badge" id="owned-count">0</span></button>
+    <button class="nav-btn" id="nav-body">Body Editor</button>
+    <button class="nav-btn" id="nav-cart">Cart <span class="badge" id="cart-count">0</span></button>
+  </div>
+</nav>
+
+<!-- APP -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div>
+      <h3>Category</h3>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All Items</button>
+        <button class="filter-btn" data-filter="clothing">Clothing</button>
+        <button class="filter-btn" data-filter="accessory">Accessories</button>
+        <button class="filter-btn" data-filter="texture">Textures</button>
+        <button class="filter-btn" data-filter="chapter">Chapter Packs</button>
+      </div>
+    </div>
+    <div>
+      <h3>Price</h3>
+      <div class="filter-group">
+        <button class="filter-btn" data-price="all">All Prices</button>
+        <button class="filter-btn" data-price="free">Free</button>
+        <button class="filter-btn" data-price="paid">Paid ($1-$50)</button>
+      </div>
+    </div>
+    <div>
+      <h3>Sort</h3>
+      <div class="filter-group">
+        <button class="filter-btn active" data-sort="name">Name</button>
+        <button class="filter-btn" data-sort="price-asc">Price: Low</button>
+        <button class="filter-btn" data-sort="price-desc">Price: High</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="main-header">
+      <h2>Marketplace <span id="result-count"></span></h2>
+      <div class="search-box">
+        <span style="color:#444;font-size:14px;">&#x1F50D;</span>
+        <input type="text" id="search-input" placeholder="Search assets..." autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Creator Banner -->
+    <div id="creator-banner">
+      <div class="avatar">&#x1F464;</div>
+      <div class="info">
+        <div class="name" id="creator-banner-name"></div>
+        <div class="count" id="creator-banner-count"></div>
+      </div>
+      <button class="btn-back" id="creator-banner-back">Back to All</button>
+    </div>
+
+    <!-- Store Grid -->
+    <div id="asset-grid"></div>
+
+    <!-- My Assets -->
+    <div id="my-assets">
+      <div class="empty-assets">You don't own any assets yet. Visit the store!</div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state">
+      <div class="icon">&#x1F50D;</div>
+      <p>No assets match your filters.</p>
+    </div>
+
+    <!-- Body Editor -->
+    <div id="body-editor" style="display:none;">
+      <div id="editor-preview">
+        <div class="hint">Drag limbs to rotate | Orbit to view</div>
+      </div>
+      <div id="editor-controls"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-card">
+    <div class="preview">
+      <div id="detail-viewport"></div>
+      <div class="loading" id="preview-loading">LOADING 3D PREVIEW...</div>
+    </div>
+    <div class="detail">
+      <button class="close-detail" id="close-detail">&times;</button>
+      <h2 id="detail-name"></h2>
+      <div class="meta">
+        <span id="detail-type"></span>
+        <span id="detail-creator"></span>
+        <span><button class="btn-visit-store" id="btn-visit-store">Visit Store</button></span>
+      </div>
+      <div class="desc" id="detail-desc"></div>
+      <div class="covers-label">Covers body regions</div>
+      <div class="covers-tags" id="detail-covers"></div>
+      <div class="price-big" id="detail-price"></div>
+      <div class="actions" id="detail-actions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CART OVERLAY -->
+<div id="cart-overlay"></div>
+<div id="cart-panel">
+  <div class="cart-header">
+    <h3>Shopping Cart</h3>
+    <button id="cart-close">&times;</button>
+  </div>
+  <div id="cart-items"></div>
+  <div id="cart-footer">
+    <div class="cart-total">
+      <span class="total-label">Total</span>
+      <span class="total-amount" id="cart-total">$0.00</span>
+    </div>
+    <button class="btn-checkout" id="btn-checkout">Checkout</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+/* ── Age Gate — Sprint 0 ── */
+(function() {
+  const KEY = 'ara_age_verified';
+  const gate = document.getElementById('age-gate');
+
+  if (sessionStorage.getItem(KEY) === 'true') {
+    gate.classList.add('passed');
+    return;
+  }
+
+  const month = document.getElementById('ag-month');
+  const day   = document.getElementById('ag-day');
+  const year  = document.getElementById('ag-year');
+  const terms = document.getElementById('ag-terms');
+  const enter = document.getElementById('ag-enter');
+  const error = document.getElementById('ag-error');
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (let i = 1; i <= 12; i++) {
+    const opt = document.createElement('option'); opt.value = i; opt.textContent = MONTHS[i-1];
+    month.appendChild(opt);
+  }
+  for (let i = 1; i <= 31; i++) {
+    const opt = document.createElement('option'); opt.value = i; opt.textContent = i;
+    day.appendChild(opt);
+  }
+  const now = new Date();
+  for (let y = now.getFullYear(); y >= now.getFullYear() - 100; y--) {
+    const opt = document.createElement('option'); opt.value = y; opt.textContent = y;
+    year.appendChild(opt);
+  }
+
+  function validate() {
+    const m = parseInt(month.value);
+    const d = parseInt(day.value);
+    const y = parseInt(year.value);
+    if (!m || !d || !y) { return 'Please select your full date of birth.'; }
+    const dob = new Date(y, m - 1, d);
+    if (isNaN(dob.getTime())) { return 'Invalid date.'; }
+    const adult = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate());
+    if (dob > adult) { return 'You must be at least 18 years old to enter.'; }
+    if (!terms.checked) { return 'You must accept the terms to continue.'; }
+    return null;
+  }
+
+  function onInput() {
+    const err = validate();
+    error.textContent = err || '';
+    enter.disabled = !!err;
+  }
+
+  month.addEventListener('change', onInput);
+  day.addEventListener('change', onInput);
+  year.addEventListener('change', onInput);
+  terms.addEventListener('change', onInput);
+
+  enter.addEventListener('click', function() {
+    const err = validate();
+    if (err) { error.textContent = err; return; }
+    sessionStorage.setItem(KEY, 'true');
+    gate.classList.add('passed');
+  });
+})();
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+if (sessionStorage.getItem('ara_age_verified') !== 'true') {
+  document.body.innerHTML = '<div style="color:#e74c3c;padding:40px;font-family:sans-serif;">Access denied — age verification required.</div>';
+  throw new Error('ARA: age gate not passed');
+}
+
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/*
+ * ARA FRACTAL ENGINE — ara-fractal-v2
+ * ─────────────────────────────────────────────────────────────────
+ * If you're reading this, the obfuscation failed and you're better
+ * than the paywall.  Fine.  The export is $1 because it costs
+ * something to build this.  The source is free because hiding it
+ * is a lie.  Do something interesting with what you find here.
+ *
+ * Donation:  https://paypal.me/youraccount
+ * Contact:   dev@vanengine.io
+ * ─────────────────────────────────────────────────────────────────
+ */
+
+// === SECURE EXPORT UTILITY ===
+const ExportGuard = (() => {
+  let _activeToken = null;
+
+  function issue(token) {
+    _activeToken = token;
+  }
+
+  function consume(token) {
+    if (!_activeToken || _activeToken !== token) return false;
+    _activeToken = null;
+    return true;
+  }
+
+  async function trigger(statePayload, token) {
+    if (!consume(token)) {
+      throw new Error('ARA: export token invalid or already used');
+    }
+
+    const json = JSON.stringify(statePayload, null, 0);
+    const bytes = new TextEncoder().encode(json).length;
+    const cap = 4 * 1024 * 1024;
+
+    if (bytes > cap) {
+      throw new Error(`ARA: export exceeds 4MB boundary (${(bytes/1048576).toFixed(2)}MB)`);
+    }
+
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), {
+      href: url,
+      download: `ara_state_ch${statePayload.chapter}_${Date.now()}.json`,
+    });
+
+    a.click();
+    requestAnimationFrame(() => URL.revokeObjectURL(url));
+  }
+
+  return { issue, trigger };
+})();
+
+// ================================================================
+// ASSET DATA (hardcoded catalog)
+// ================================================================
+const ASSETS = [
+  {
+    id: 'dress_teal',
+    name: 'Teal Evening Dress',
+    type: 'clothing',
+    creator: 'Ara Mascara',
+    store: 'AraMascara',
+    price: 5,
+    icon: '\u{1F457}',
+    desc: 'Elegant teal evening dress that flows from the shoulders to mid-thigh. Silk texture with subtle fractal patterns that mirror Ara\'s recursive skin.',
+    covers: ['torso', 'breasts', 'groin', 'legs'],
+    color: '#3c964a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'choker_black',
+    name: 'Black Leather Choker',
+    type: 'accessory',
+    creator: 'Midnight Forge',
+    store: 'MidnightForge',
+    price: 1,
+    icon: '\u{1F4FF}',
+    desc: 'Matte black leather choker with a small teal gem at the center. Adjustable fit. Adds a touch of submission to any outfit.',
+    covers: ['neck'],
+    color: '#1a1a1a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'top_lace',
+    name: 'Lace Corset Top',
+    type: 'clothing',
+    creator: 'Ara Mascara',
+    store: 'AraMascara',
+    price: 3,
+    icon: '\u{1F9E5}',
+    desc: 'Black lace corset top with teal ribbon lacing. Structured fit that accentuates the waist. Semi-transparent lace panels.',
+    covers: ['torso', 'breasts'],
+    color: '#2a1a1a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'thigh_highs',
+    name: 'Teal Thigh Highs',
+    type: 'accessory',
+    creator: 'Seraphine Lace',
+    store: 'SeraphineLace',
+    price: 2,
+    icon: '\u{1F9E6}',
+    desc: 'Teal thigh-high stockings with a subtle geometric pattern. Stay-up fit with a delicate lace band at the top.',
+    covers: ['legs'],
+    color: '#3c964a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'skirt_pleated',
+    name: 'Pleated Mini Skirt',
+    type: 'clothing',
+    creator: 'Ara Mascara',
+    store: 'AraMascara',
+    price: 3,
+    icon: '\u{1F3F7}',
+    desc: 'Black pleated mini skirt with teal accent stitching. Comfortable fit with a hidden side zip. Pairs well with the corset top.',
+    covers: ['groin', 'legs'],
+    color: '#1a1a1a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'gloves_teal',
+    name: 'Teal Opera Gloves',
+    type: 'accessory',
+    creator: 'Midnight Forge',
+    store: 'MidnightForge',
+    price: 2,
+    icon: '\u{1F9E4}',
+    desc: 'Long teal satin gloves reaching above the elbow. Elegant and commanding. Each glove has a subtle recursive fractal pattern.',
+    covers: ['arms'],
+    color: '#3c964a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'bra_lace',
+    name: 'Lace Demi Bra',
+    type: 'clothing',
+    creator: 'AraMascaraMakeUp',
+    store: 'AraMascaraMakeUp',
+    price: 2,
+    icon: '\u{1F459}',
+    desc: 'Black lace demi bra with teal accent trim. Supportive yet delicate. The lace pattern echoes the recursive stick figure theme by @AraMascara.',
+    covers: ['breasts'],
+    color: '#2a1a1a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'panties_lace',
+    name: 'Lace Cheeky Panties',
+    type: 'clothing',
+    creator: 'AraMascaraMakeUp',
+    store: 'AraMascaraMakeUp',
+    price: 2,
+    icon: '\u{1F9E7}',
+    desc: 'Black lace cheeky panties with teal trim. Comfortable and revealing. Matches the lace demi bra. Cross-promo from @AraMascaraMakeUp.',
+    covers: ['groin'],
+    color: '#2a1a1a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'skin_teal',
+    name: 'Teal Body Tattoo Pack',
+    type: 'texture',
+    creator: 'Liora Ink',
+    store: 'LioraInk',
+    price: 0,
+    icon: '\u{1F3A8}',
+    desc: 'Free body texture pack featuring teal recursive tribal patterns. Flows along the body\'s natural curves. By Liora Ink — exclusive to ARA MARKET.',
+    covers: [],
+    color: '#3c964a',
+    owned: true,
+    equipped: false,
+  },
+  {
+    id: 'chapter_5',
+    name: 'Chapter 5: Submission',
+    type: 'chapter',
+    creator: 'Ara Mascara',
+    store: 'AraMascara',
+    price: 1,
+    icon: '\u{1F4D6}',
+    desc: 'Unlock Chapter 5 of Midnight Rage. Theme: Submission. Focus on knees and thighs. Recursion depth: 7 levels. Includes 3 new voice lines.',
+    covers: [],
+    color: '#8270a0',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'lipstick_teal',
+    name: 'Teal Velvet Lipstick',
+    type: 'accessory',
+    creator: 'AraMascaraMakeUp',
+    store: 'AraMascaraMakeUp',
+    price: 1,
+    icon: '\u{1F484}',
+    desc: 'Long-wear teal velvet lipstick. Matte finish with a hint of shimmer. Pairs perfectly with the Teal Evening Dress by @AraMascara.',
+    covers: ['head'],
+    color: '#3c964a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'collar_gold',
+    name: 'Gold Studded Collar',
+    type: 'accessory',
+    creator: 'Liora Leather',
+    store: 'LioraLeather',
+    price: 4,
+    icon: '\u{1F3F0}',
+    desc: 'Premium black leather collar with gold studs and a D-ring. Crafted by Liora Leather. Strong, beautiful, submissive.',
+    covers: ['neck'],
+    color: '#8B6914',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'body_chain',
+    name: 'Teal Body Chain',
+    type: 'accessory',
+    creator: 'Seraphine Lace',
+    store: 'SeraphineLace',
+    price: 3,
+    icon: '\u{1F4FF}',
+    desc: 'Delicate teal body chain that drapes across the torso. Adjustable fit. Worn over or under clothing. By Seraphine Lace.',
+    covers: ['torso'],
+    color: '#3c964a',
+    owned: false,
+    equipped: false,
+  },
+  {
+    id: 'mask_teal',
+    name: 'Teal Masquerade Mask',
+    type: 'accessory',
+    creator: 'Midnight Forge',
+    store: 'MidnightForge',
+    price: 2,
+    icon: '\u{1F9E9}',
+    desc: 'Teal masquerade mask with gold filigree. Conceals identity, reveals desire. By Midnight Forge.',
+    covers: ['head'],
+    color: '#3c964a',
+    owned: false,
+    equipped: false,
+  },
+];
+
+// ================================================================
+// BODY PARAMS CONFIG
+// ================================================================
+const BODY_PARAMS_DEFAULTS = {
+  torsoTopRadius: 0.38, torsoBottomRadius: 0.28, torsoHeight: 0.9,
+  waistPinch: -0.2, hipFlare: 0.15,
+  breastRadius: 0.16, breastSpread: 0.20, breastHeight: 0.78, breastForward: 0.18,
+  breastScaleX: 1, breastScaleY: 0.85, breastScaleZ: 0.7, breastColor: '#e8c4a8',
+  neckTopRadius: 0.1, neckBottomRadius: 0.12, neckHeight: 0.15,
+  headRadius: 0.2, headY: 1.25, headScaleX: 1, headScaleY: 1.05, headScaleZ: 0.9,
+  hairRadius: 0.22, hairY: 1.30, hairScaleX: 1.1, hairScaleY: 0.65, hairScaleZ: 0.75,
+  hairColor: '#2a1a0a',
+  armTopRadius: 0.05, armBottomRadius: 0.04, armHeight: 0.55,
+  armSpread: 0.40, armY: 0.75, armRotZ: 0.3, armRotX: 0.15,
+  legTopRadius: 0.07, legBottomRadius: 0.05, legHeight: 0.55,
+  legSpread: 0.10, legY: 0.08,
+  groinRadius: 0.06, groinScaleY: 0.6, skinColor: '#e8c4a8',
+};
+
+const BODY_SECTIONS = [
+  { name: 'Torso', icon: '\u25A3', color: '#3c964a', params: [
+    { key: 'torsoTopRadius', label: 'Top Radius', min: 0.05, max: 0.8, step: 0.01 },
+    { key: 'torsoBottomRadius', label: 'Bottom Radius', min: 0.05, max: 0.6, step: 0.01 },
+    { key: 'torsoHeight', label: 'Height', min: 0.3, max: 1.8, step: 0.01 },
+    { key: 'waistPinch', label: 'Waist', min: -0.5, max: 0.01, step: 0.01 },
+    { key: 'hipFlare', label: 'Hips', min: 0, max: 0.5, step: 0.01 },
+  ]},
+  { name: 'Breasts', icon: '\u25CB', color: '#c94c6c', params: [
+    { key: 'breastRadius', label: 'Radius', min: 0.01, max: 0.5, step: 0.01 },
+    { key: 'breastSpread', label: 'Spread X', min: 0.05, max: 0.5, step: 0.01 },
+    { key: 'breastHeight', label: 'Height Y', min: 0.3, max: 1.2, step: 0.01 },
+    { key: 'breastForward', label: 'Forward Z', min: 0, max: 0.5, step: 0.01 },
+    { key: 'breastScaleX', label: 'Scale X', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'breastScaleY', label: 'Scale Y', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'breastScaleZ', label: 'Scale Z', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'breastColor', label: 'Color', type: 'color' },
+  ]},
+  { name: 'Neck', icon: '\u25AD', color: '#888', params: [
+    { key: 'neckTopRadius', label: 'Top Radius', min: 0.02, max: 0.3, step: 0.01 },
+    { key: 'neckBottomRadius', label: 'Bottom Radius', min: 0.02, max: 0.3, step: 0.01 },
+    { key: 'neckHeight', label: 'Height', min: 0.02, max: 0.4, step: 0.01 },
+  ]},
+  { name: 'Head', icon: '\u25D5', color: '#f0d0c0', params: [
+    { key: 'headRadius', label: 'Radius', min: 0.05, max: 0.4, step: 0.01 },
+    { key: 'headY', label: 'Y Position', min: 0.8, max: 1.8, step: 0.01 },
+    { key: 'headScaleX', label: 'Scale X', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'headScaleY', label: 'Scale Y', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'headScaleZ', label: 'Scale Z', min: 0.3, max: 2.0, step: 0.01 },
+  ]},
+  { name: 'Hair', icon: '\u2665', color: '#2a1a0a', params: [
+    { key: 'hairRadius', label: 'Radius', min: 0.05, max: 0.5, step: 0.01 },
+    { key: 'hairY', label: 'Y Position', min: 0.9, max: 2.0, step: 0.01 },
+    { key: 'hairScaleX', label: 'Scale X', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'hairScaleY', label: 'Scale Y', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'hairScaleZ', label: 'Scale Z', min: 0.3, max: 2.0, step: 0.01 },
+    { key: 'hairColor', label: 'Color', type: 'color' },
+  ]},
+  { name: 'Arms', icon: '\u2014', color: '#e8c4a8', params: [
+    { key: 'armTopRadius', label: 'Top Radius', min: 0.01, max: 0.2, step: 0.01 },
+    { key: 'armBottomRadius', label: 'Bottom Radius', min: 0.01, max: 0.2, step: 0.01 },
+    { key: 'armHeight', label: 'Height', min: 0.1, max: 1.0, step: 0.01 },
+    { key: 'armSpread', label: 'Spread X', min: 0.1, max: 0.8, step: 0.01 },
+    { key: 'armY', label: 'Y Position', min: 0.3, max: 1.2, step: 0.01 },
+    { key: 'armRotZ', label: 'Rot Z', min: -1.5, max: 1.5, step: 0.01 },
+    { key: 'armRotX', label: 'Rot X', min: -1.5, max: 1.5, step: 0.01 },
+  ]},
+  { name: 'Legs', icon: '\u25AE', color: '#e8c4a8', params: [
+    { key: 'legTopRadius', label: 'Top Radius', min: 0.01, max: 0.3, step: 0.01 },
+    { key: 'legBottomRadius', label: 'Bottom Radius', min: 0.01, max: 0.2, step: 0.01 },
+    { key: 'legHeight', label: 'Height', min: 0.1, max: 1.2, step: 0.01 },
+    { key: 'legSpread', label: 'Spread X', min: 0, max: 0.5, step: 0.01 },
+    { key: 'legY', label: 'Y Position', min: -0.2, max: 0.5, step: 0.01 },
+  ]},
+  { name: 'Groin', icon: '\u25B3', color: '#d4a88c', params: [
+    { key: 'groinRadius', label: 'Radius', min: 0.01, max: 0.2, step: 0.01 },
+    { key: 'groinScaleY', label: 'Scale Y', min: 0.1, max: 2.0, step: 0.01 },
+  ]},
+  { name: 'Colors', icon: '\u25CF', color: '#fff', params: [
+    { key: 'skinColor', label: 'Skin', type: 'color' },
+    { key: 'hairColor', label: 'Hair', type: 'color' },
+    { key: 'breastColor', label: 'Breasts', type: 'color' },
+  ]},
+];
+
+function loadBodyParams() {
+  try { return Object.assign({}, BODY_PARAMS_DEFAULTS, JSON.parse(localStorage.getItem('ara_fractal_body_params') || '{}')); }
+  catch { return { ...BODY_PARAMS_DEFAULTS }; }
+}
+function saveBodyParams(params) {
+  try { localStorage.setItem('ara_fractal_body_params', JSON.stringify(params)); } catch {}
+}
+
+// ================================================================
+// THREE.JS PREVIEW SCENE
+// ================================================================
+class AssetPreview {
+  constructor(containerId, params) {
+    this.params = params || loadBodyParams();
+    this.container = document.getElementById(containerId);
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.controls = null;
+    this.bodyMeshes = [];
+    this.clothingMeshes = [];
+    this.currentAsset = null;
+    this.selectedLimb = null;
+    this.lastMouse = null;
+    this._skinTex = null;
+    this._onMouseDown = null;
+    this._onMouseMove = null;
+    this._onMouseUp = null;
+    this._init();
+  }
+
+  _init() {
+    const rect = this.container.getBoundingClientRect();
+    const w = rect.width || 400;
+    const h = rect.height || 400;
+
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 50);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
+    this.container.appendChild(this.renderer.domElement);
+
+    this.camera.position.set(0, 1.2, 3.5);
+    this.camera.lookAt(0, 0.6, 0);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.target.set(0, 0.6, 0);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.minDistance = 1.5;
+    this.controls.maxDistance = 6;
+    this.controls.update();
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0x404060, 0.6);
+    this.scene.add(ambient);
+    const key = new THREE.DirectionalLight(0xffeedd, 2.0);
+    key.position.set(2, 3, 3);
+    this.scene.add(key);
+    const fill = new THREE.DirectionalLight(0x4488ff, 0.5);
+    fill.position.set(-2, 1, 2);
+    this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0x3c964a, 0.6);
+    rim.position.set(0, 0, -3);
+    this.scene.add(rim);
+
+    // Build base body
+    this._buildBody();
+
+    // Resize
+    window.addEventListener('resize', () => this._resize());
+
+    // Mouse drag limb rotation
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    this._onMouseDown = (e) => {
+      const r = this.renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+      mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, this.camera);
+      const hits = raycaster.intersectObjects(this.bodyMeshes);
+      if (hits.length > 0) {
+        const m = hits[0].object;
+        if (m.userData.isLimb) {
+          this.selectedLimb = m;
+          this.lastMouse = { x: e.clientX, y: e.clientY };
+          this.controls.enabled = false;
+          this.renderer.domElement.style.cursor = 'grabbing';
+        }
+      }
+    };
+    this._onMouseMove = (e) => {
+      if (!this.selectedLimb || !this.lastMouse) return;
+      const dx = e.clientX - this.lastMouse.x;
+      const dy = e.clientY - this.lastMouse.y;
+      this.selectedLimb.rotation.y += dx * 0.01;
+      this.selectedLimb.rotation.x += dy * 0.01;
+      this.lastMouse = { x: e.clientX, y: e.clientY };
+      // Save back to params
+      const side = this.selectedLimb.userData.side || 1;
+      if (this.selectedLimb.userData.region === 'arms') {
+        this.params.armRotZ = side * this.selectedLimb.rotation.z;
+        this.params.armRotX = side * this.selectedLimb.rotation.x;
+      }
+    };
+    this._onMouseUp = () => {
+      if (this.selectedLimb) {
+        this.selectedLimb = null;
+        this.lastMouse = null;
+        this.controls.enabled = true;
+        this.renderer.domElement.style.cursor = '';
+      }
+    };
+    this.renderer.domElement.addEventListener('mousedown', this._onMouseDown);
+    window.addEventListener('mousemove', this._onMouseMove);
+    window.addEventListener('mouseup', this._onMouseUp);
+
+    this._animate();
+  }
+
+  _buildBody() {
+    const p = this.params;
+    const bodyMat = (color, roughness = 0.4, metalness = 0) =>
+      new THREE.MeshStandardMaterial({ color, roughness, metalness, transparent: true, opacity: 1 });
+    const sc = new THREE.Color(p.skinColor);
+    const hc = new THREE.Color(p.hairColor);
+    const bc = new THREE.Color(p.breastColor);
+    const skMat = (c, r = 0.4, m = 0) => {
+      const mat = new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m, transparent: true, opacity: 1 });
+      if (this._skinTex) mat.map = this._skinTex;
+      return mat;
+    };
+
+    // Torso
+    const torsoGeo = new THREE.CylinderGeometry(p.torsoTopRadius, p.torsoBottomRadius, p.torsoHeight, 16, 6);
+    this._morphTorso(torsoGeo);
+    const torso = new THREE.Mesh(torsoGeo, skMat(sc));
+    torso.position.y = 0.5 + p.torsoHeight * 0.05;
+    torso.userData = { region: 'torso' };
+    this.scene.add(torso);
+    this.bodyMeshes.push(torso);
+
+    // Breasts
+    for (let side of [-1, 1]) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(p.breastRadius, 10, 10), skMat(bc));
+      b.position.set(side * p.breastSpread, p.breastHeight, p.breastForward);
+      b.scale.set(p.breastScaleX, p.breastScaleY, p.breastScaleZ);
+      b.userData = { region: 'breasts' };
+      this.scene.add(b);
+      this.bodyMeshes.push(b);
+    }
+
+    // Neck
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(p.neckTopRadius, p.neckBottomRadius, p.neckHeight, 10), skMat(sc));
+    neck.position.set(0, 0.95 + p.torsoHeight * 0.2, 0);
+    neck.userData = { region: 'neck' };
+    this.scene.add(neck);
+    this.bodyMeshes.push(neck);
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(p.headRadius, 14, 14), skMat(sc, 0.3));
+    head.position.set(0, p.headY, 0.05);
+    head.scale.set(p.headScaleX, p.headScaleY, p.headScaleZ);
+    head.userData = { region: 'head' };
+    this.scene.add(head);
+    this.bodyMeshes.push(head);
+
+    // Hair
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(p.hairRadius, 10, 10), skMat(hc, 0.8));
+    hair.position.set(0, p.hairY, 0.12);
+    hair.scale.set(p.hairScaleX, p.hairScaleY, p.hairScaleZ);
+    hair.userData = { region: 'hair' };
+    this.scene.add(hair);
+    this.bodyMeshes.push(hair);
+
+    // Arms
+    for (let side of [-1, 1]) {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(p.armTopRadius, p.armBottomRadius, p.armHeight, 8), skMat(sc));
+      arm.position.set(side * p.armSpread, p.armY, 0);
+      arm.rotation.z = side * p.armRotZ;
+      arm.rotation.x = side * p.armRotX;
+      arm.userData = { region: 'arms', isLimb: true, side };
+      this.scene.add(arm);
+      this.bodyMeshes.push(arm);
+    }
+
+    // Legs
+    for (let side of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(p.legTopRadius, p.legBottomRadius, p.legHeight, 8), skMat(sc));
+      leg.position.set(side * p.legSpread, p.legY, 0);
+      leg.userData = { region: 'legs', isLimb: true, side };
+      this.scene.add(leg);
+      this.bodyMeshes.push(leg);
+    }
+
+    // Groin
+    const groin = new THREE.Mesh(new THREE.SphereGeometry(p.groinRadius, 8, 8), skMat(sc));
+    groin.position.set(0, 0.38, 0.08);
+    groin.scale.set(1, p.groinScaleY, 1);
+    groin.userData = { region: 'groin' };
+    this.scene.add(groin);
+    this.bodyMeshes.push(groin);
+  }
+
+  rebuildBody(params) {
+    if (params) this.params = params;
+    this._clearBody();
+    this._buildBody();
+    if (this.currentAsset) {
+      this.showAsset(this.currentAsset);
+    }
+  }
+
+  _clearBody() {
+    this.clothingMeshes.forEach(m => { this.scene.remove(m); if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); });
+    this.clothingMeshes = [];
+    this.bodyMeshes.forEach(m => { this.scene.remove(m); if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); });
+    this.bodyMeshes = [];
+  }
+
+  _morphTorso(geo) {
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const r = Math.sqrt(x * x + z * z);
+      const ny = (y + 0.5) / 1.0;
+      const waist = 1 - 0.2 * Math.sin(ny * Math.PI) * Math.sin(ny * Math.PI * 3);
+      const hips = 1 + 0.15 * Math.max(0, Math.sin((ny - 0.6) * Math.PI));
+      const scale = waist * hips;
+      pos.setX(i, x * scale);
+      pos.setZ(i, z * scale);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+  }
+
+  showAsset(asset) {
+    this.currentAsset = asset;
+    this._clearClothing();
+
+    // Reset body opacity
+    this.bodyMeshes.forEach(m => {
+      if (m.material) m.material.opacity = 1;
+    });
+
+    if (!asset || asset.type === 'texture' || asset.type === 'chapter') {
+      // No mesh overlay for texture/chapter packs
+      return;
+    }
+
+    // Hide covered regions
+    const coverSet = new Set(asset.covers || []);
+    this.bodyMeshes.forEach(m => {
+      const region = m.userData.region;
+      if (coverSet.has(region)) {
+        m.material.opacity = 0.15;
+        m.material.transparent = true;
+      }
+    });
+
+    // Add clothing mesh approximations
+    const clothColor = new THREE.Color(asset.color || '#3c964a');
+
+    if (asset.covers.includes('torso') || asset.covers.includes('breasts')) {
+      // Top / dress
+      const topGeo = new THREE.CylinderGeometry(0.40, 0.30, 0.5, 16, 4);
+      this._morphTorso(topGeo);
+      const topMat = new THREE.MeshStandardMaterial({
+        color: clothColor, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.95,
+      });
+      const top = new THREE.Mesh(topGeo, topMat);
+      top.position.y = 0.65;
+      top.userData.isClothing = true;
+      this.scene.add(top);
+      this.clothingMeshes.push(top);
+    }
+
+    if (asset.covers.includes('groin') || (asset.covers.includes('legs') && asset.id.includes('skirt'))) {
+      // Bottom / skirt
+      const botGeo = new THREE.CylinderGeometry(0.32, 0.40, 0.3, 16, 4);
+      const botMat = new THREE.MeshStandardMaterial({
+        color: clothColor, roughness: 0.7, metalness: 0.0, transparent: true, opacity: 0.95,
+      });
+      const bot = new THREE.Mesh(botGeo, botMat);
+      bot.position.y = 0.25;
+      bot.userData.isClothing = true;
+      this.scene.add(bot);
+      this.clothingMeshes.push(bot);
+    }
+
+    if (asset.covers.includes('legs') && asset.id.includes('thigh')) {
+      // Thigh highs — rings on legs
+      for (let side of [-1, 1]) {
+        const ring = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.07, 0.25, 10),
+          new THREE.MeshStandardMaterial({ color: clothColor, roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.85 })
+        );
+        ring.position.set(side * 0.10, 0.22, 0);
+        ring.userData.isClothing = true;
+        this.scene.add(ring);
+        this.clothingMeshes.push(ring);
+      }
+    }
+
+    if (asset.covers.includes('arms') && asset.id.includes('gloves')) {
+      // Gloves — colored cylinders on arms
+      for (let side of [-1, 1]) {
+        const glove = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.055, 0.045, 0.4, 8),
+          new THREE.MeshStandardMaterial({ color: clothColor, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.9 })
+        );
+        glove.position.set(side * 0.40, 0.78, 0);
+        glove.rotation.z = side * 0.3;
+        glove.rotation.x = side * 0.15;
+        glove.userData.isClothing = true;
+        this.scene.add(glove);
+        this.clothingMeshes.push(glove);
+      }
+    }
+
+    if (asset.covers.includes('neck')) {
+      // Choker
+      const choker = new THREE.Mesh(
+        new THREE.TorusGeometry(0.12, 0.015, 8, 16),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8, metalness: 0.0 })
+      );
+      choker.position.set(0, 1.03, 0);
+      choker.rotation.x = Math.PI / 2;
+      choker.userData.isClothing = true;
+      this.scene.add(choker);
+      this.clothingMeshes.push(choker);
+
+      // Gem
+      const gem = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.025),
+        new THREE.MeshStandardMaterial({ color: 0x3c964a, roughness: 0.1, metalness: 0.8, emissive: 0x3c964a, emissiveIntensity: 0.2 })
+      );
+      gem.position.set(0, 1.03, 0.13);
+      gem.userData.isClothing = true;
+      this.scene.add(gem);
+      this.clothingMeshes.push(gem);
+    }
+  }
+
+  _clearClothing() {
+    this.clothingMeshes.forEach(m => {
+      this.scene.remove(m);
+      if (m.geometry) m.geometry.dispose();
+      if (m.material) m.material.dispose();
+    });
+    this.clothingMeshes = [];
+  }
+
+  _resize() {
+    const rect = this.container.getBoundingClientRect();
+    const w = rect.width || 400;
+    const h = rect.height || 400;
+    if (this.renderer && this.camera) {
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h);
+    }
+  }
+
+  _animate() {
+    requestAnimationFrame(() => this._animate());
+    if (this.controls) this.controls.update();
+
+    // Subtle rotation for clothing items
+    if (this.clothingMeshes.length > 0) {
+      const group = this.clothingMeshes[0];
+      if (group.parent === this.scene) {
+        // gentle idle
+      }
+    }
+
+    if (this.renderer && this.scene && this.camera) {
+      this.renderer.render(this.scene, this.camera);
+    }
+  }
+
+  dispose() {
+    if (this._onMouseDown) this.renderer.domElement.removeEventListener('mousedown', this._onMouseDown);
+    if (this._onMouseMove) window.removeEventListener('mousemove', this._onMouseMove);
+    if (this._onMouseUp) window.removeEventListener('mouseup', this._onMouseUp);
+    this._clearClothing();
+    this.bodyMeshes.forEach(m => {
+      this.scene.remove(m);
+      if (m.geometry) m.geometry.dispose();
+      if (m.material) m.material.dispose();
+    });
+    if (this.renderer) {
+      this.renderer.dispose();
+      this.renderer.domElement.remove();
+    }
+  }
+
+  setSkinTexture(file) {
+    if (!file) { this._skinTex = null; this.rebuildBody(); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const tex = new THREE.CanvasTexture(img);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(2, 2);
+        this._skinTex = tex;
+        this.rebuildBody();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+// ================================================================
+// BODY EDITOR PANEL
+// ================================================================
+class BodyEditorPanel {
+  constructor(containerId, preview) {
+    this.container = document.getElementById(containerId);
+    this.preview = preview;
+    this.params = loadBodyParams();
+    this.changeTimer = null;
+    this._build();
+  }
+
+  _build() {
+    const onChange = (key, value) => {
+      this.params[key] = value;
+      clearTimeout(this.changeTimer);
+      this.changeTimer = setTimeout(() => {
+        saveBodyParams(this.params);
+        if (this.preview) this.preview.rebuildBody(this.params);
+      }, 50);
+    };
+    this.container.innerHTML = BODY_SECTIONS.map(section => {
+      const isColor = section.name === 'Colors';
+      return `
+        <div class="editor-section">
+          <div class="editor-section-header" style="border-color:${section.color}">
+            <span class="editor-section-icon">${section.icon}</span>
+            ${section.name}
+            <span class="editor-section-toggle">\u25BC</span>
+          </div>
+          <div class="editor-section-body">
+            ${section.params.map(def => {
+              const val = this.params[def.key];
+              if (def.type === 'color') {
+                return `
+                  <div class="param-row">
+                    <label>${def.label}</label>
+                    <input type="color" class="param-color" data-key="${def.key}" value="${val}">
+                  </div>`;
+              }
+              return `
+                <div class="param-row">
+                  <label>${def.label} <span class="param-val" id="pv-${def.key}">${Number(val).toFixed(2)}</span></label>
+                  <input type="range" class="param-slider" data-key="${def.key}"
+                    min="${def.min}" max="${def.max}" step="${def.step}" value="${val}">
+                </div>`;
+            }).join('')}
+            ${section.name === 'Colors' ? `
+              <div class="param-row">
+                <label>Skin Texture</label>
+                <input type="file" id="skin-texture-input" accept="image/*" style="font-size:11px;color:#888;">
+              </div>
+              <div class="param-row" style="margin-top:4px;">
+                <button id="reset-tex-btn" style="background:#333;border:none;color:#aaa;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;">Remove Texture</button>
+                <button id="reset-body-btn" style="background:#c0392b;border:none;color:#fff;padding:4px 12px;border-radius:3px;cursor:pointer;font-size:11px;margin-left:6px;">Reset All</button>
+              </div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    this.container.querySelectorAll('.editor-section-header').forEach(h => {
+      h.addEventListener('click', () => {
+        const body = h.nextElementSibling;
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        h.querySelector('.editor-section-toggle').textContent = isOpen ? '\u25B6' : '\u25BC';
+      });
+    });
+
+    this.container.querySelectorAll('.param-slider').forEach(slider => {
+      slider.addEventListener('input', () => {
+        const key = slider.dataset.key;
+        const val = parseFloat(slider.value);
+        document.getElementById('pv-' + key).textContent = val.toFixed(2);
+        onChange(key, val);
+      });
+    });
+
+    this.container.querySelectorAll('.param-color').forEach(picker => {
+      picker.addEventListener('input', () => {
+        onChange(picker.dataset.key, picker.value);
+      });
+    });
+
+    const texInput = document.getElementById('skin-texture-input');
+    if (texInput) {
+      texInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) this.preview.setSkinTexture(e.target.files[0]);
+      });
+    }
+    const resetTex = document.getElementById('reset-tex-btn');
+    if (resetTex) {
+      resetTex.addEventListener('click', () => this.preview.setSkinTexture(null));
+    }
+    const resetBtn = document.getElementById('reset-body-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        this.params = { ...BODY_PARAMS_DEFAULTS };
+        saveBodyParams(this.params);
+        this._build();
+        if (this.preview) this.preview.rebuildBody(this.params);
+      });
+    }
+  }
+}
+
+// ================================================================
+// MARKETPLACE APP
+// ================================================================
+class MarketplaceApp {
+  constructor() {
+    this.assets = ASSETS.map(a => ({ ...a }));
+    this.cart = [];
+    this.filter = { category: 'all', price: 'all', sort: 'name', search: '', creator: null };
+    this.preview = null;
+    this.editorPreview = null;
+    this.bodyEditor = null;
+    this._loadState();
+    this._initUI();
+  }
+
+  _initUI() {
+    // Nav
+    document.getElementById('nav-store').addEventListener('click', () => this._showView('store'));
+    document.getElementById('nav-assets').addEventListener('click', () => this._showView('assets'));
+    document.getElementById('nav-body').addEventListener('click', () => this._showView('body'));
+    document.getElementById('nav-cart').addEventListener('click', () => this._toggleCart());
+
+    // Search
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      this.filter.search = e.target.value.toLowerCase();
+      this._renderGrid();
+    });
+
+    // Filter buttons
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.filter.category = btn.dataset.filter;
+        this._renderGrid();
+      });
+    });
+    document.querySelectorAll('[data-price]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-price]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.filter.price = btn.dataset.price;
+        this._renderGrid();
+      });
+    });
+    document.querySelectorAll('[data-sort]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-sort]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.filter.sort = btn.dataset.sort;
+        this._renderGrid();
+      });
+    });
+
+    // Detail modal
+    document.getElementById('close-detail').addEventListener('click', () => this._closeDetail());
+    document.getElementById('detail-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) this._closeDetail();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this._closeDetail();
+    });
+
+    // Cart
+    document.getElementById('cart-close').addEventListener('click', () => this._toggleCart(false));
+    document.getElementById('cart-overlay').addEventListener('click', () => this._toggleCart(false));
+    document.getElementById('btn-checkout').addEventListener('click', () => this._checkout());
+
+    // Toast auto-hide
+    this.toastTimer = null;
+
+    // Init
+    this._renderGrid();
+    this._updateCartUI();
+    this._updateOwnedUI();
+    this._showView('store');
+  }
+
+  _renderGrid() {
+    const grid = document.getElementById('asset-grid');
+    const filtered = this._getFilteredAssets();
+
+    document.getElementById('result-count').textContent = `(${filtered.length} items)`;
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '';
+      document.getElementById('empty-state').classList.add('visible');
+      return;
+    }
+    document.getElementById('empty-state').classList.remove('visible');
+
+    grid.innerHTML = filtered.map(asset => {
+      const isOwned = asset.owned;
+      const isEquipped = asset.equipped;
+      return `
+        <div class="asset-card" data-id="${asset.id}">
+          <div class="thumb">
+            <div class="placeholder">${asset.icon}</div>
+            <span class="badge-type badge-${asset.type}">${asset.type}</span>
+          </div>
+          <div class="info">
+            <div class="name">${asset.name}</div>
+            <div class="creator">by <a class="creator-link" data-store="${asset.store}">${asset.creator}</a></div>
+            <div class="price-row">
+              <span class="price ${asset.price === 0 ? 'free' : ''}">${asset.price === 0 ? 'FREE' : '$' + asset.price}</span>
+              ${isEquipped ? '<span class="equipped-badge">EQUIPPED</span>' : isOwned ? '<span class="owned-badge">OWNED</span>' : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Click handlers
+    grid.querySelectorAll('.asset-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        // Don't open detail if clicking the creator link
+        if (e.target.closest('.creator-link')) return;
+        const id = card.dataset.id;
+        const asset = this.assets.find(a => a.id === id);
+        if (asset) this._openDetail(asset);
+      });
+    });
+
+    // Creator link handlers
+    grid.querySelectorAll('.creator-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const store = link.dataset.store;
+        this._filterByCreator(store);
+      });
+    });
+  }
+
+  _openDetail(asset) {
+    const modal = document.getElementById('detail-modal');
+    modal.classList.add('visible');
+
+    document.getElementById('detail-name').textContent = asset.icon + ' ' + asset.name;
+    document.getElementById('detail-type').textContent = asset.type.charAt(0).toUpperCase() + asset.type.slice(1);
+    const creatorEl = document.getElementById('detail-creator');
+    creatorEl.innerHTML = 'by <a class="creator-link" data-store="' + asset.store + '" style="color:#8270a0;cursor:pointer;text-decoration:none;">' + asset.creator + '</a>';
+    creatorEl.querySelector('.creator-link').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._closeDetail();
+      this._filterByCreator(asset.store);
+    });
+    document.getElementById('detail-desc').textContent = asset.desc;
+
+    // Visit Store button
+    const visitBtn = document.getElementById('btn-visit-store');
+    visitBtn.style.display = '';
+    visitBtn.onclick = () => {
+      this._closeDetail();
+      this._filterByCreator(asset.store);
+    };
+
+    // Covers tags
+    const coversEl = document.getElementById('detail-covers');
+    coversEl.innerHTML = (asset.covers.length === 0
+      ? '<span class="covers-tag">none</span>'
+      : asset.covers.map(r => `<span class="covers-tag">${r}</span>`).join('')
+    );
+
+    // Price
+    const priceEl = document.getElementById('detail-price');
+    priceEl.textContent = asset.price === 0 ? 'FREE' : '$' + asset.price + '.00';
+    priceEl.className = 'price-big' + (asset.price === 0 ? ' free' : '');
+
+    // Actions
+    const actionsEl = document.getElementById('detail-actions');
+    const inCart = this.cart.find(c => c.id === asset.id);
+
+    if (asset.owned) {
+      actionsEl.innerHTML = `
+        <button class="btn-owned">${asset.equipped ? 'EQUIPPED' : 'OWNED'}</button>
+        ${asset.type === 'clothing' || asset.type === 'accessory'
+          ? `<button class="btn-secondary" id="btn-toggle-equip">${asset.equipped ? 'Unequip' : 'Equip on Ara'}</button>`
+          : ''}
+      `;
+      const equipBtn = document.getElementById('btn-toggle-equip');
+      if (equipBtn) {
+        equipBtn.addEventListener('click', () => {
+          asset.equipped = !asset.equipped;
+          this._saveState();
+          this._syncEquipped();
+          this._renderGrid();
+          this._updateOwnedUI();
+          this._showToast(asset.equipped ? `Equipped ${asset.name}` : `Unequipped ${asset.name}`);
+          this._openDetail(asset); // refresh
+          if (this.preview) this.preview.showAsset(asset.equipped ? asset : null);
+        });
+      }
+    } else if (inCart) {
+      actionsEl.innerHTML = `
+        <button class="btn-secondary" id="btn-remove-cart">Remove from Cart</button>
+      `;
+      document.getElementById('btn-remove-cart').addEventListener('click', () => {
+        this.cart = this.cart.filter(c => c.id !== asset.id);
+        this._saveState();
+        this._updateCartUI();
+        this._showToast('Removed from cart');
+        this._openDetail(asset);
+      });
+    } else {
+      actionsEl.innerHTML = `
+        <button class="btn-primary" id="btn-add-cart">${asset.price === 0 ? 'Add to Cart (Free)' : 'Add to Cart — $' + asset.price}</button>
+        <button class="btn-secondary" id="btn-close-detail">Back</button>
+      `;
+      document.getElementById('btn-add-cart').addEventListener('click', () => {
+        this.cart.push({ id: asset.id, name: asset.name, price: asset.price, icon: asset.icon, type: asset.type });
+        this._saveState();
+        this._updateCartUI();
+        this._showToast(`Added "${asset.name}" to cart`);
+        this._openDetail(asset);
+      });
+      document.getElementById('btn-close-detail').addEventListener('click', () => this._closeDetail());
+    }
+
+    // 3D Preview for clothing/accessories
+    const viewport = document.getElementById('detail-viewport');
+    viewport.innerHTML = '';
+    const loading = document.getElementById('preview-loading');
+    loading.style.display = 'block';
+
+    setTimeout(() => {
+      if (this.preview) this.preview.dispose();
+      this.preview = new AssetPreview('detail-viewport');
+      loading.style.display = 'none';
+      if (asset.type === 'clothing' || asset.type === 'accessory') {
+        this.preview.showAsset(asset);
+      }
+    }, 100);
+  }
+
+  _closeDetail() {
+    document.getElementById('detail-modal').classList.remove('visible');
+  }
+
+  _toggleCart(force) {
+    const panel = document.getElementById('cart-panel');
+    const overlay = document.getElementById('cart-overlay');
+    const isOpen = panel.classList.contains('open');
+    const show = force !== undefined ? force : !isOpen;
+
+    panel.classList.toggle('open', show);
+    overlay.classList.toggle('visible', show);
+  }
+
+  _updateCartUI() {
+    const count = this.cart.length;
+    document.getElementById('cart-count').textContent = count;
+    document.getElementById('cart-count').style.display = count > 0 ? 'inline' : 'none';
+
+    const itemsEl = document.getElementById('cart-items');
+    if (count === 0) {
+      itemsEl.innerHTML = '<div style="color:#444;font-size:13px;padding:20px 0;text-align:center;">Your cart is empty.</div>';
+    } else {
+      itemsEl.innerHTML = this.cart.map((item, idx) => `
+        <div class="cart-item">
+          <div class="cart-thumb">${item.icon}</div>
+          <div class="cart-info">
+            <div class="cart-name">${item.name}</div>
+            <div class="cart-type">${item.type}</div>
+          </div>
+          <div class="cart-price">${item.price === 0 ? 'FREE' : '$' + item.price}</div>
+          <button class="cart-remove" data-index="${idx}">&times;</button>
+        </div>
+      `).join('');
+
+      itemsEl.querySelectorAll('.cart-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.index);
+          const removed = this.cart.splice(idx, 1)[0];
+          this._saveState();
+          this._updateCartUI();
+          this._showToast(`Removed "${removed.name}" from cart`);
+        });
+      });
+    }
+
+    const total = this.cart.reduce((sum, item) => sum + item.price, 0);
+    document.getElementById('cart-total').textContent = total === 0 ? '$0.00' : '$' + total + '.00';
+
+    const checkoutBtn = document.getElementById('btn-checkout');
+    checkoutBtn.disabled = count === 0;
+  }
+
+  _checkout() {
+    if (this.cart.length === 0) return;
+
+    // Process purchases
+    this.cart.forEach(item => {
+      const asset = this.assets.find(a => a.id === item.id);
+      if (asset) {
+        asset.owned = true;
+      }
+    });
+
+    this._showToast(`Purchased ${this.cart.length} item${this.cart.length > 1 ? 's' : ''}!`);
+    this.cart = [];
+    this._saveState();
+    this._updateCartUI();
+    this._updateOwnedUI();
+    this._renderGrid();
+    this._toggleCart(false);
+  }
+
+  _filterByCreator(store) {
+    this.filter.creator = store;
+    // Deselect category/price filters, show store view
+    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('[data-price]').forEach(b => b.classList.remove('active'));
+    document.getElementById('search-input').value = '';
+    this.filter.category = 'all';
+    this.filter.price = 'all';
+    this.filter.search = '';
+    this._showView('store');
+    this._updateCreatorBanner(store);
+  }
+
+  _updateCreatorBanner(store) {
+    const banner = document.getElementById('creator-banner');
+    if (!store) {
+      banner.classList.remove('visible');
+      return;
+    }
+    const storeAssets = this.assets.filter(a => a.store === store);
+    if (storeAssets.length === 0) {
+      banner.classList.remove('visible');
+      return;
+    }
+    banner.classList.add('visible');
+    document.getElementById('creator-banner-name').textContent = storeAssets[0].creator + '\'s Store';
+    document.getElementById('creator-banner-count').textContent = storeAssets.length + ' item' + (storeAssets.length > 1 ? 's' : '');
+    document.getElementById('creator-banner-back').onclick = () => {
+      this.filter.creator = null;
+      banner.classList.remove('visible');
+      this._renderGrid();
+    };
+    this._renderGrid();
+  }
+
+  _getFilteredAssets() {
+    let list = [...this.assets];
+
+    // Creator filter (overrides category)
+    if (this.filter.creator) {
+      list = list.filter(a => a.store === this.filter.creator);
+      return list;
+    }
+
+    // Category
+    if (this.filter.category !== 'all') {
+      list = list.filter(a => a.type === this.filter.category);
+    }
+
+    // Price
+    if (this.filter.price === 'free') {
+      list = list.filter(a => a.price === 0 || a.owned);
+    } else if (this.filter.price === 'paid') {
+      list = list.filter(a => a.price > 0 && !a.owned);
+    }
+
+    // Search
+    if (this.filter.search) {
+      const q = this.filter.search;
+      list = list.filter(a =>
+        a.name.toLowerCase().includes(q) ||
+        a.creator.toLowerCase().includes(q) ||
+        a.type.toLowerCase().includes(q) ||
+        a.desc.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    switch (this.filter.sort) {
+      case 'name': list.sort((a, b) => a.name.localeCompare(b.name)); break;
+      case 'price-asc': list.sort((a, b) => (a.owned ? 0 : a.price) - (b.owned ? 0 : b.price)); break;
+      case 'price-desc': list.sort((a, b) => (b.owned ? 0 : b.price) - (a.owned ? 0 : a.price)); break;
+    }
+
+    return list;
+  }
+
+  _showView(view) {
+    const grid = document.getElementById('asset-grid');
+    const myAssets = document.getElementById('my-assets');
+    const bodyEditor = document.getElementById('body-editor');
+    const sidebar = document.getElementById('sidebar');
+
+    document.getElementById('nav-store').classList.toggle('active', view === 'store');
+    document.getElementById('nav-assets').classList.toggle('active', view === 'assets');
+    document.getElementById('nav-body').classList.toggle('active', view === 'body');
+
+    if (view === 'body') {
+      grid.style.display = 'none';
+      myAssets.classList.remove('visible');
+      bodyEditor.style.display = 'flex';
+      sidebar.style.display = 'none';
+      document.getElementById('main-header').style.display = 'none';
+      if (!this.bodyEditor) {
+        this.editorPreview = new AssetPreview('editor-preview');
+        setTimeout(() => {
+          this.bodyEditor = new BodyEditorPanel('editor-controls', this.editorPreview);
+        }, 200);
+      } else {
+        setTimeout(() => { if (this.editorPreview) this.editorPreview._resize(); }, 50);
+      }
+    } else if (view === 'store') {
+      grid.style.display = 'grid';
+      myAssets.classList.remove('visible');
+      bodyEditor.style.display = 'none';
+      sidebar.style.display = '';
+      document.getElementById('main-header').style.display = '';
+      this._renderGrid();
+    } else {
+      grid.style.display = 'none';
+      myAssets.classList.add('visible');
+      bodyEditor.style.display = 'none';
+      sidebar.style.display = '';
+      document.getElementById('main-header').style.display = '';
+      this._renderMyAssets();
+    }
+  }
+
+  _renderMyAssets() {
+    const el = document.getElementById('my-assets');
+    const owned = this.assets.filter(a => a.owned);
+
+    if (owned.length === 0) {
+      el.innerHTML = '<div class="empty-assets">You don\'t own any assets yet. Visit the store!</div>';
+      return;
+    }
+
+    el.innerHTML = `
+      <h2>My Assets (${owned.length})</h2>
+      <div id="asset-grid" style="display:grid;">
+        ${owned.map(asset => `
+          <div class="asset-card" data-id="${asset.id}">
+            <div class="thumb">
+              <div class="placeholder">${asset.icon}</div>
+              <span class="badge-type badge-${asset.type}">${asset.type}</span>
+            </div>
+            <div class="info">
+              <div class="name">${asset.name}</div>
+              <div class="creator">${asset.creator}</div>
+              <div class="price-row">
+                ${asset.equipped
+                  ? '<span class="equipped-badge">EQUIPPED</span>'
+                  : '<span class="owned-badge">OWNED</span>'
+                }
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    el.querySelectorAll('.asset-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.id;
+        const asset = this.assets.find(a => a.id === id);
+        if (asset) this._openDetail(asset);
+      });
+    });
+  }
+
+  _updateOwnedUI() {
+    const count = this.assets.filter(a => a.owned).length;
+    document.getElementById('owned-count').textContent = count;
+  }
+
+  _syncEquipped() {
+    const equipped = this.assets.filter(a => a.owned && a.equipped);
+    const data = equipped.map(a => ({ id: a.id, name: a.name, type: a.type, color: a.color, covers: a.covers, icon: a.icon, store: a.store }));
+    try { localStorage.setItem('ara_fractal_equipped', JSON.stringify(data)); } catch {}
+  }
+
+  _showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => el.classList.remove('visible'), 2500);
+  }
+
+  _saveState() {
+    try {
+      const state = {
+        owned: this.assets.filter(a => a.owned).map(a => ({ id: a.id, equipped: a.equipped })),
+        cart: this.cart,
+      };
+      localStorage.setItem('ara_market_state', JSON.stringify(state));
+    } catch {}
+  }
+
+  _loadState() {
+    try {
+      const raw = localStorage.getItem('ara_market_state');
+      if (!raw) return;
+      const state = JSON.parse(raw);
+
+      // Restore owned + equipped
+      (state.owned || []).forEach(saved => {
+        const asset = this.assets.find(a => a.id === saved.id);
+        if (asset) {
+          asset.owned = true;
+          asset.equipped = saved.equipped || false;
+        }
+      });
+
+      // Restore cart
+      this.cart = state.cart || [];
+    } catch {}
+    this._syncEquipped();
+  }
+}
+
+// ================================================================
+// BOOT
+// ================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  window.app = new MarketplaceApp();
+});
+</script>
+</body>
+</html>

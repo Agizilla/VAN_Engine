@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conversation-IDE Overview</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --panel: rgba(14, 24, 40, 0.86);
+      --panel-2: rgba(20, 34, 52, 0.92);
+      --line: rgba(120, 160, 200, 0.22);
+      --text: #e8f0fb;
+      --muted: #9fb2c9;
+      --accent: #5de4c7;
+      --accent-2: #7aa2f7;
+      --warn: #f7c97a;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      --radius: 20px;
+      --radius-sm: 14px;
+      --font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(93, 228, 199, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(122, 162, 247, 0.12), transparent 24%),
+        linear-gradient(180deg, #07101d 0%, #09131f 50%, #050b14 100%);
+      overflow-x: hidden;
+    }
+
+    .wrap {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-top: 14px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(18, 29, 46, 0.94), rgba(10, 18, 31, 0.92));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .hero-copy {
+      padding: 34px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-copy::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -40% auto;
+      width: 340px;
+      height: 340px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(93, 228, 199, 0.16), transparent 70%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 14px;
+      border: 1px solid rgba(93, 228, 199, 0.25);
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(93, 228, 199, 0.06);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 18px 0 12px;
+      font-size: clamp(2.4rem, 5vw, 4.8rem);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+    }
+
+    .lead {
+      max-width: 64ch;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin: 0 0 24px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #dce7f4;
+      font-size: 0.92rem;
+    }
+
+    .stats {
+      padding: 24px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(180deg, rgba(28, 41, 62, 0.85), rgba(18, 28, 44, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .stat .label {
+      display: block;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .stat .value {
+      font-size: 1.1rem;
+      line-height: 1.55;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .section {
+      padding: 24px;
+    }
+
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section p {
+      color: var(--muted);
+      margin: 0 0 18px;
+      line-height: 1.65;
+    }
+
+    .feature-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .feature-list li {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      line-height: 1.55;
+    }
+
+    .feature-list strong {
+      color: #ffffff;
+    }
+
+    .mockup {
+      grid-column: span 5;
+      padding: 18px;
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .mock-window {
+      flex: 1;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(8, 13, 21, 0.9), rgba(13, 21, 34, 0.98)),
+        radial-gradient(circle at top, rgba(93, 228, 199, 0.08), transparent 36%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 190px 1fr;
+    }
+
+    .sidebar {
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 18px 14px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .nav {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .nav-item, .nav-item-active {
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 0.93rem;
+    }
+
+    .nav-item { color: var(--muted); }
+    .nav-item-active {
+      background: rgba(93, 228, 199, 0.12);
+      border: 1px solid rgba(93, 228, 199, 0.28);
+      color: var(--text);
+    }
+
+    .workarea {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      grid-template-rows: auto auto 1fr auto;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .window-title {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .status-pill {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(93, 228, 199, 0.10);
+      color: var(--accent);
+      border: 1px solid rgba(93, 228, 199, 0.24);
+      font-size: 0.82rem;
+    }
+
+    .panel-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mini-panel {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .mini-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .message {
+      padding: 14px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(93, 228, 199, 0.10), rgba(93, 228, 199, 0.05));
+      border: 1px solid rgba(93, 228, 199, 0.20);
+      color: #f3fbf8;
+      line-height: 1.6;
+    }
+
+    .editor {
+      min-height: 140px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(17, 26, 39, 0.96), rgba(10, 16, 25, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px;
+      color: #cfe3fb;
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+
+    .bottom-grid {
+      grid-column: span 7;
+      display: grid;
+      gap: 20px;
+    }
+
+    .half {
+      grid-column: span 6;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .mockup, .bottom-grid, .half { grid-column: auto; }
+      .mock-window { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .panel-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <section class="card hero-copy">
+        <div class="eyebrow">Conversation-IDE</div>
+        <h1>A governed local workspace for VAN_Engine.</h1>
+        <p class="lead">
+          Conversation-IDE is designed as an operator cockpit for chat, files, builds, audits, and VAN_Engine inspection.
+          It aims to feel like a real control room: local-first, project-aware, and governed by ISO rules rather than a plain prompt box.
+        </p>
+        <div class="chips">
+          <span class="chip">Offline-first</span>
+          <span class="chip">Chat + files + build</span>
+          <span class="chip">ISO governance</span>
+          <span class="chip">VAN_Engine bridge</span>
+          <span class="chip">Audit trail</span>
+        </div>
+      </section>
+
+      <aside class="card stats">
+        <div class="stat">
+          <span class="label">Core promise</span>
+          <div class="value">A single local workspace that can inspect, explain, patch, build, and verify.</div>
+        </div>
+        <div class="stat">
+          <span class="label">Behavior</span>
+          <div class="value">Governed actions with file access control, audit logging, and rule-aware operations.</div>
+        </div>
+        <div class="stat">
+          <span class="label">Integration</span>
+          <div class="value">Electron shell, preload bridge, renderer UI, Python/VAN engine bridge, and build tooling.</div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="grid">
+      <section class="card section half">
+        <h2>Key Highlights</h2>
+        <p>These are the elements that make the application feel distinct rather than like a generic IDE wrapper.</p>
+        <ul class="feature-list">
+          <li><strong>Governed actions:</strong> ISO rules can block, warn, and audit changes instead of only being visible in a panel.</li>
+          <li><strong>Project-aware workspace:</strong> the app is intended to know the current repo, file tree, and operational state.</li>
+          <li><strong>Operator mode:</strong> the chat surface is meant for inspect, patch, build, and verify workflows.</li>
+          <li><strong>Local-first posture:</strong> the tool is designed to keep the core loop offline and self-contained.</li>
+          <li><strong>Audit visibility:</strong> state changes should be traceable through an explicit log and status surfaces.</li>
+        </ul>
+      </section>
+
+      <section class="card mockup">
+        <h2 style="margin: 0 0 2px;">Example Look and Feel</h2>
+        <p style="margin: 0; color: var(--muted); line-height: 1.6;">A dark control-room style with sharp panels, soft glow, and command-centric information density.</p>
+        <div class="mock-window">
+          <div class="sidebar">
+            <div class="window-title">Conversation-IDE</div>
+            <div class="nav">
+              <div class="nav-item-active">Chat</div>
+              <div class="nav-item">Files</div>
+              <div class="nav-item">Build</div>
+              <div class="nav-item">ISO</div>
+              <div class="nav-item">Audit</div>
+              <div class="nav-item">Settings</div>
+            </div>
+          </div>
+          <div class="workarea">
+            <div class="toolbar">
+              <div class="window-title">VAN_Engine Control Surface</div>
+              <div class="status-pill">Connected</div>
+            </div>
+            <div class="panel-row">
+              <div class="mini-panel">
+                <span class="mini-label">Chat</span>
+                <div class="message">Scan the current repo, identify the IPC mismatch, and prepare a safe patch plan.</div>
+              </div>
+              <div class="mini-panel">
+                <span class="mini-label">Status</span>
+                <div class="message">ISO_019 compliant. File access restricted to approved roots. Audit trail enabled.</div>
+              </div>
+            </div>
+            <div class="editor">src/main/ipc/files.ts
+const allowedRoots = loadConfiguredRoots();
+setAllowedRoots(allowedRoots);
+
+ipcMain.handle('files:write', async (...) => {
+  if (!isPathAllowed(filePath)) {
+    throw new Error('ISO_004: Access denied');
+  }
+});</div>
+            <div class="mini-panel">
+              <span class="mini-label">Footer</span>
+              <div style="color: var(--muted); line-height: 1.6;">Build status, project root, current mode, and bridge health live in one low-friction status bar.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card section bottom-grid">
+        <div class="half card section" style="padding: 22px;">
+          <h2>What Users Get</h2>
+          <p>Conversation-IDE is positioned as a workspace where the assistant can act like an operator, not just a text generator.</p>
+          <ul class="feature-list">
+            <li>Chat with project context and direct action hooks.</li>
+            <li>Browse, edit, and protect local files in a governed way.</li>
+            <li>Run builds and surface progress in the same environment.</li>
+            <li>Inspect VAN_Engine state, rules, and audit signals without leaving the app.</li>
+          </ul>
+        </div>
+        <div class="half card section" style="padding: 22px;">
+          <h2>Visual Direction</h2>
+          <p>The interface should feel deliberate and technical, with a dark control-panel aesthetic rather than a generic chat client.</p>
+          <ul class="feature-list">
+            <li>Deep navy backgrounds with cyan and blue accents.</li>
+            <li>Layered glass panels, thin borders, and compact spacing.</li>
+            <li>Terminal-like editor surfaces and operational status chips.</li>
+            <li>Clear hierarchy between chat, file tree, build, and governance panels.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <p class="footer-note">
+      This page is a concept overview and visual direction reference. The real implementation should keep the same governed, local-first intent while aligning the UI and IPC contract in `OpenCode.md`.
+    </p>
+  </div>
+</body>
+</html>

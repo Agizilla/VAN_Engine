@@ -1,0 +1,25 @@
+{
+  "bridges": [
+    {
+      "id": "gemini",
+      "name": "Gemini Bridge",
+      "enabled": false,
+      "type": "api",
+      "iso_019_compliant": true
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek Bridge",
+      "enabled": false,
+      "type": "api",
+      "iso_019_compliant": true
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI Bridge",
+      "enabled": false,
+      "type": "api",
+      "iso_019_compliant": true
+    }
+  ]
+}

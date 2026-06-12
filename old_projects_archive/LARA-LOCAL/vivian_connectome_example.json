@@ -1,0 +1,221 @@
+{
+  "persona_id": "vivian",
+  "persona_name": "Vivian",
+  "connectome": {
+    "nodes": {
+      "vivian_vp": {
+        "mobject_id": "vivian_vp",
+        "node_type": "voice_pitch",
+        "params": { "base_hz": 195.0, "variance": 0.28 },
+        "weight": 0.82,
+        "activation": "sigmoid",
+        "description": "Vivian's fundamental pitch — slightly higher than neutral"
+      },
+      "vivian_vt": {
+        "mobject_id": "vivian_vt",
+        "node_type": "voice_tempo",
+        "params": { "syllables_per_sec": 4.8, "variance": 0.18 },
+        "weight": 0.73,
+        "activation": "sigmoid",
+        "description": "Slightly faster than average, reflecting alert personality"
+      },
+      "vivian_vi": {
+        "mobject_id": "vivian_vi",
+        "node_type": "voice_timbre",
+        "params": { "brightness": 0.65, "warmth": 0.62 },
+        "weight": 0.77,
+        "activation": "sigmoid",
+        "description": "Warm but clear — balanced brightness and resonance"
+      },
+      "vivian_ve": {
+        "mobject_id": "vivian_ve",
+        "node_type": "voice_energy",
+        "params": { "amplitude": 0.74, "attack_ms": 28.0 },
+        "weight": 0.80,
+        "activation": "sigmoid",
+        "description": "Confident amplitude, fast attack for crisp consonants"
+      },
+      "vivian_ev": {
+        "mobject_id": "vivian_ev",
+        "node_type": "emotion_valence",
+        "params": { "value": 0.52 },
+        "weight": 0.63,
+        "activation": "sigmoid",
+        "description": "Moderately positive emotional tone"
+      },
+      "vivian_ea": {
+        "mobject_id": "vivian_ea",
+        "node_type": "emotion_arousal",
+        "params": { "value": 0.57 },
+        "weight": 0.58,
+        "activation": "sigmoid",
+        "description": "Alert but not excitable"
+      },
+      "vivian_ed": {
+        "mobject_id": "vivian_ed",
+        "node_type": "emotion_dominance",
+        "params": { "value": 0.62 },
+        "weight": 0.54,
+        "activation": "sigmoid",
+        "description": "Slightly dominant — confident social stance"
+      },
+      "vivian_rs": {
+        "mobject_id": "vivian_rs",
+        "node_type": "rhythm_stress",
+        "params": { "strength": 0.61, "regularity": 0.72 },
+        "weight": 0.66,
+        "activation": "sigmoid",
+        "description": "Clear, regular stress patterns — easy to understand"
+      },
+      "vivian_rp": {
+        "mobject_id": "vivian_rp",
+        "node_type": "rhythm_pause",
+        "params": { "mean_ms": 185.0, "variance_ms": 70.0 },
+        "weight": 0.62,
+        "activation": "sigmoid",
+        "description": "Moderate pauses — thoughtful but not slow"
+      },
+      "vivian_rc": {
+        "mobject_id": "vivian_rc",
+        "node_type": "rhythm_cadence",
+        "params": { "fall_hz": 18.0, "rise_hz": 6.0 },
+        "weight": 0.61,
+        "activation": "sigmoid",
+        "description": "Definitive falling cadence — declarative sentence endings"
+      },
+      "vivian_sg": {
+        "mobject_id": "vivian_sg",
+        "node_type": "speech_register",
+        "params": { "formality": 0.58 },
+        "weight": 0.70,
+        "activation": "sigmoid",
+        "description": "Slightly formal — professional but approachable"
+      },
+      "vivian_sv": {
+        "mobject_id": "vivian_sv",
+        "node_type": "speech_vocabulary",
+        "params": { "richness": 0.70 },
+        "weight": 0.67,
+        "activation": "sigmoid",
+        "description": "Rich vocabulary — precise word choice"
+      },
+      "vivian_sx": {
+        "mobject_id": "vivian_sx",
+        "node_type": "speech_syntax",
+        "params": { "complexity": 0.55 },
+        "weight": 0.62,
+        "activation": "sigmoid",
+        "description": "Moderate syntactic complexity — clear but nuanced"
+      },
+      "vivian_pe": {
+        "mobject_id": "vivian_pe",
+        "node_type": "prosody_emphasis",
+        "params": { "strength": 0.58 },
+        "weight": 0.61,
+        "activation": "sigmoid",
+        "description": "Moderate emphasis on key words"
+      },
+      "vivian_pm": {
+        "mobject_id": "vivian_pm",
+        "node_type": "prosody_melody",
+        "params": { "range_semitones": 9.5 },
+        "weight": 0.66,
+        "activation": "sigmoid",
+        "description": "Wide melodic range — expressive intonation"
+      }
+    },
+    "connections": [
+      { "source_id": "vivian_vp", "target_id": "vivian_pm", "influence": 0.60, "direction": "forward",       "label": "pitch→melody" },
+      { "source_id": "vivian_vt", "target_id": "vivian_rs", "influence": 0.50, "direction": "forward",       "label": "tempo→stress" },
+      { "source_id": "vivian_vi", "target_id": "vivian_pe", "influence": 0.40, "direction": "forward",       "label": "timbre→emphasis" },
+      { "source_id": "vivian_ve", "target_id": "vivian_vp", "influence": 0.30, "direction": "feedback",      "label": "energy↩pitch" },
+      { "source_id": "vivian_ev", "target_id": "vivian_vp", "influence": 0.55, "direction": "forward",       "label": "valence→pitch" },
+      { "source_id": "vivian_ev", "target_id": "vivian_vt", "influence": 0.40, "direction": "forward",       "label": "valence→tempo" },
+      { "source_id": "vivian_ea", "target_id": "vivian_ve", "influence": 0.60, "direction": "forward",       "label": "arousal→energy" },
+      { "source_id": "vivian_ea", "target_id": "vivian_vt", "influence": 0.50, "direction": "forward",       "label": "arousal→tempo" },
+      { "source_id": "vivian_ed", "target_id": "vivian_vi", "influence": 0.35, "direction": "forward",       "label": "dominance→timbre" },
+      { "source_id": "vivian_ed", "target_id": "vivian_sg", "influence": 0.50, "direction": "forward",       "label": "dominance→register" },
+      { "source_id": "vivian_ev", "target_id": "vivian_ea", "influence": 0.30, "direction": "bidirectional", "label": "valence↔arousal" },
+      { "source_id": "vivian_rs", "target_id": "vivian_pe", "influence": 0.55, "direction": "forward",       "label": "stress→emphasis" },
+      { "source_id": "vivian_rp", "target_id": "vivian_rc", "influence": 0.40, "direction": "forward",       "label": "pause→cadence" },
+      { "source_id": "vivian_rc", "target_id": "vivian_pm", "influence": 0.50, "direction": "forward",       "label": "cadence→melody" },
+      { "source_id": "vivian_sg", "target_id": "vivian_sv", "influence": 0.45, "direction": "forward",       "label": "register→vocab" },
+      { "source_id": "vivian_sv", "target_id": "vivian_sx", "influence": 0.40, "direction": "forward",       "label": "vocab→syntax" },
+      { "source_id": "vivian_sx", "target_id": "vivian_rp", "influence": 0.30, "direction": "feedback",      "label": "syntax↩pause" }
+    ],
+    "global_weights": {
+      "voice_family":   1.00,
+      "emotion_family": 0.87,
+      "rhythm_family":  0.82,
+      "speech_family":  0.91,
+      "prosody_family": 0.76
+    },
+    "plasticity_rules": [
+      {
+        "rule_id": "pr_audio_pitch",
+        "trigger": "audio_training",
+        "target_id": "vivian_vp",
+        "condition": "weight < 0.95",
+        "delta": 0.04,
+        "decay": 0.002,
+        "max_weight": 0.95,
+        "min_weight": 0.0,
+        "description": "Pitch adapts with new voice training"
+      },
+      {
+        "rule_id": "pr_rating_pos_valence",
+        "trigger": "user_rating_positive",
+        "target_id": "vivian_ev",
+        "condition": "weight < 0.8",
+        "delta": 0.04,
+        "decay": 0.0,
+        "max_weight": 0.85,
+        "min_weight": 0.0,
+        "description": "Positive feedback lifts valence"
+      },
+      {
+        "rule_id": "pr_rating_neg_arousal",
+        "trigger": "user_rating_negative",
+        "target_id": "vivian_ea",
+        "condition": "always",
+        "delta": -0.03,
+        "decay": 0.0,
+        "max_weight": 1.0,
+        "min_weight": 0.20,
+        "description": "Negative feedback calms arousal"
+      },
+      {
+        "rule_id": "pr_lyrics_melody",
+        "trigger": "new_lyrics",
+        "target_id": "vivian_pm",
+        "condition": "always",
+        "delta": 0.04,
+        "decay": 0.0,
+        "max_weight": 0.90,
+        "min_weight": 0.0,
+        "description": "Lyric writing broadens melodic range"
+      },
+      {
+        "rule_id": "pr_global_decay",
+        "trigger": "daily_decay",
+        "target_id": "*",
+        "condition": "weight > 0.98",
+        "delta": -0.01,
+        "decay": 0.0,
+        "max_weight": 0.98,
+        "min_weight": 0.0,
+        "description": "Daily soft-cap prevents weight saturation"
+      }
+    ]
+  },
+  "metadata": {
+    "created_at": "2026-02-23T00:00:00",
+    "updated_at": "2026-02-23T00:00:00",
+    "version": 1,
+    "lara_version": "0.1.1",
+    "build": "002",
+    "schema": "connectome_v1",
+    "plasticity_trigger_count": 0,
+    "total_adaptations": 0
+  }
+}

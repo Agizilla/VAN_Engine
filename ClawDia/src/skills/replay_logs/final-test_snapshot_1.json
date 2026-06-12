@@ -1,0 +1,8 @@
+{
+  "step": 1,
+  "event": "snapshot:snapshot_1",
+  "state": {
+    "done": true
+  },
+  "timestamp": "2026-06-05T00:06:25.738549"
+}

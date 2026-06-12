@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clawdia SAAS API</title>
+<style>
+  :root{--bg:#0d0d0d;--surface:#1a1a1a;--surface2:#242424;--accent:#00f0ff;--gold:#ffd700;--text:#e0e0e0;--muted:#888}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,monospace;background:var(--bg);color:var(--text);padding:2rem;line-height:1.6}
+  .container{max-width:960px;margin:0 auto}
+  h1{font-size:2rem;color:var(--accent);margin-bottom:.25rem}
+  .sub{color:var(--muted);margin-bottom:2rem}
+  .server{display:inline-block;background:var(--surface2);padding:.25rem .75rem;border-radius:6px;font-size:.8rem;border:1px solid #333;margin-right:.5rem;margin-bottom:.5rem}
+  .server .tag{color:var(--accent)}
+  h2{font-size:1.2rem;color:var(--gold);margin:1.5rem 0 .75rem;padding-bottom:.35rem;border-bottom:1px solid var(--surface2)}
+  .endpoint{background:var(--surface);border:1px solid var(--surface2);border-radius:10px;padding:1rem;margin:.75rem 0}
+  .endpoint .method{display:inline-block;font-weight:700;padding:.15rem .5rem;border-radius:4px;font-size:.75rem}
+  .method-get{background:#0a3a2a;color:#00ff88;border:1px solid #00ff88}
+  .method-post{background:#2a1a4a;color:#aa66ff;border:1px solid #aa66ff}
+  .method-delete{background:#3a1a1a;color:#ff3355;border:1px solid #ff3355}
+  .endpoint .path{font-family:monospace;font-size:.9rem;margin:.35rem 0;color:var(--accent)}
+  .endpoint .desc{color:var(--muted);font-size:.8rem}
+  .endpoint .example{background:var(--bg);padding:.5rem;border-radius:6px;font-size:.75rem;margin-top:.4rem;overflow-x:auto;color:#aaa}
+  .endpoint .example code{color:var(--accent)}
+  .endpoint .params{font-size:.75rem;color:var(--muted);margin-top:.35rem}
+  .endpoint .params span{color:var(--text);background:var(--surface2);padding:.1rem .4rem;border-radius:3px;font-family:monospace;font-size:.7rem}
+  .footer{text-align:center;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--surface2);color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>🧠 Clawdia SAAS API</h1>
+<p class="sub">VAN_Engine ∞ Clawdia Collective — RESTful API for AI-powered transformations</p>
+
+<div>
+  <span class="server"><span class="tag">ClawdiaBridge:</span> http://localhost:8080</span>
+  <span class="server"><span class="tag">Brain API:</span> http://localhost:11434</span>
+  <span class="server"><span class="tag">Mesh:</span> P2P Gossip Protocol</span>
+</div>
+
+<!-- ═══════════════════ COLLECTIVE ═══════════════════ -->
+
+<h2>🌐 Collective</h2>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/clawdia/collective</div>
+  <div class="desc">Contribute anonymized session data to the AI Collective. Returns a personalized recommendation and available service list.</div>
+  <div class="params">Body: <span>sessions</span> <span>total_sessions</span> <span>total_messages</span> <span>donation_amount</span> <span>source</span></div>
+  <div class="example">
+    <div>curl -X POST http://localhost:8080/clawdia/collective \</div>
+    <div>  -H "Content-Type: application/json" \</div>
+    <div>  -d '{"sessions":[],"total_sessions":3,"total_messages":42,"donation_amount":5,"source":"cli"}'</div>
+  </div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/clawdia/inbox?target=&lt;name&gt;</div>
+  <div class="desc">Pull messages from a named queue. Auto-acks oldest message.</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/clawdia/db?source=&lt;name&gt;&limit=&lt;n&gt;</div>
+  <div class="desc">Query stored messages by source.</div>
+</div>
+
+<!-- ═══════════════════ SKILLS ═══════════════════ -->
+
+<h2>📚 Skills Catalog</h2>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/skills</div>
+  <div class="desc">List all available UNR audio-motif image processing skills with metadata.</div>
+  <div class="example">curl http://localhost:8080/api/v1/skills</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/skills/{name}</div>
+  <div class="desc">Get full markdown documentation for a specific skill (e.g. HarmonicPercussiveSeparation, KalmanStrokeRestorer, SpectralImageDenoiser).</div>
+  <div class="example">curl http://localhost:8080/api/v1/skills/SpectralImageDenoiser</div>
+</div>
+
+<!-- ═══════════════════ IMAGE TRANSFORM ═══════════════════ -->
+
+<h2>🖼️ Image Transform</h2>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/api/v1/image/transform</div>
+  <div class="desc">Apply an audio-motif image processing algorithm. Accepts base64-encoded image. Returns base64 result + metadata.</div>
+  <div class="params">
+    Body: <span>model</span> (required) · <span>image</span> (base64, required) · <span>params</span> (object, optional)
+    <br>Models: <span>gray</span> <span>blur</span> <span>sharpen</span> <span>threshold</span> <span>negate</span> <span>resize</span> <span>rotate</span> <span>normalize</span> <span>median</span> <span>clahe</span> <span>hps</span> <span>kalman</span> <span>spectral</span> <span>mfcc</span> <span>vocoder</span> <span>echo</span> <span>psychoacoustic</span> <span>advanced-ocr</span>
+  </div>
+  <div class="example">
+    <div>curl -X POST http://localhost:8080/api/v1/image/transform \</div>
+    <div>  -H "Content-Type: application/json" \</div>
+    <div>  -d '{"model":"spectral","image":"&lt;base64&gt;","params":{"windowSize":128,"noiseFloor":0.05}}'</div>
+  </div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/api/v1/image/transform/upload</div>
+  <div class="desc">Upload a file directly instead of base64. Uses multipart/form-data.</div>
+  <div class="params">Fields: <span>model</span> <span>file</span> <span>params</span> (JSON string)</div>
+  <div class="example">
+    <div>curl -X POST http://localhost:8080/api/v1/image/transform/upload \</div>
+    <div>  -F "model=gray" -F "file=@photo.jpg" -F 'params={"threshold":128}'</div>
+  </div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/image/file/{filename}</div>
+  <div class="desc">Retrieve a previously processed image by filename. Returns the image file directly.</div>
+</div>
+
+<!-- ═══════════════════ P2P MESH ═══════════════════ -->
+
+<h2>🕸️ P2P Mesh (Phase 2.5)</h2>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/peers</div>
+  <div class="desc">List all registered P2P mesh nodes with trust scores and health status.</div>
+  <div class="example">curl http://localhost:8080/api/v1/peers</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/peer/status</div>
+  <div class="desc">Get mesh health: total peers, alive count, and whether mesh is ready for fault tolerance.</div>
+  <div class="example">curl http://localhost:8080/api/v1/peer/status</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/api/v1/peer/register</div>
+  <div class="desc">Register a URL as a P2P mesh node. Once registered, collective contributions gossip to this peer.</div>
+  <div class="params">Body: <span>url</span> (required) · <span>label</span> · <span>trust_score</span></div>
+  <div class="example">
+    <div>curl -X POST http://localhost:8080/api/v1/peer/register \</div>
+    <div>  -H "Content-Type: application/json" \</div>
+    <div>  -d '{"url":"http://192.168.1.42:8080","label":"my-server","trust_score":70}'</div>
+  </div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/api/v1/peer/sync</div>
+  <div class="desc">Receive a P2P event broadcast from another mesh node. Events are forwarded to 2 random peers (gossip fanout).</div>
+  <div class="params">Body: <span>event</span> (required) · <span>origin</span> · <span>gossip_id</span> · <span>forwarded</span></div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-delete">DELETE</span>
+  <div class="path">/api/v1/peer/{url}</div>
+  <div class="desc">Remove a peer from the mesh.</div>
+</div>
+
+<!-- ═══════════════════ AUDIO ═══════════════════ -->
+
+<h2>🎵 Audio Synthesis</h2>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/audio/synthesize</div>
+  <div class="desc">Synthesize speech from text using the StyleTTS2 voice server. Supports emotion and voice intensity parameters.</div>
+  <div class="params">Body: <span>text</span> (required) · <span>source</span> · <span>emotion</span> · <span>intensity</span> · <span>voice_id</span></div>
+  <div class="example">
+    <div>curl -X POST http://localhost:8080/audio/synthesize \</div>
+    <div>  -H "Content-Type: application/json" \</div>
+    <div>  -d '{"text":"Hello from the Collective","emotion":"neutral","intensity":1.0}'</div>
+  </div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/audio/inbox</div>
+  <div class="desc">List all synthesized audio files in the queue.</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/audio/file/{id}</div>
+  <div class="desc">Download a synthesized audio file by its database ID.</div>
+</div>
+
+<!-- ═══════════════════ BRAIN API ═══════════════════ -->
+
+<h2>🧠 Brain API (FastAPI — port 11434)</h2>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/v1/chat/completions</div>
+  <div class="desc">OpenAI-compatible chat endpoint. Supports streaming. Routes to the VAN_Engine brain with intent classification (status, self-test, token storage, parrot, etc.).</div>
+  <div class="params">Body: <span>model</span> · <span>messages</span> (array of {role, content}) · <span>stream</span> (bool) · <span>temperature</span> · <span>max_tokens</span></div>
+  <div class="example">
+    <div>curl http://localhost:11434/v1/chat/completions \</div>
+    <div>  -H "Content-Type: application/json" \</div>
+    <div>  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"system status"}]}'</div>
+  </div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/v1/models</div>
+  <div class="desc">List available models (OpenAI-compatible).</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/health</div>
+  <div class="desc">Health check — returns healthy/degraded status + uptime.</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/skills</div>
+  <div class="desc">Same skills catalog from the Brain API (FastAPI mirror).</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/skills/{name}</div>
+  <div class="desc">Same skill detail from the Brain API.</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-post">POST</span>
+  <div class="path">/api/v1/image/transform</div>
+  <div class="desc">Same image transform from the Brain API (with Pillow backend).</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api/v1/peers</div>
+  <div class="desc">Same P2P peer list from the Brain API.</div>
+</div>
+
+<!-- ═══════════════════ SCRIPTS ═══════════════════ -->
+
+<h2>📜 Browser Injection Scripts</h2>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/recovery-popup.js</div>
+  <div class="desc">Cross-platform session recovery + Collective contribution popup. Paste into any AI chat browser console (DeepSeek, Gemini, ChatGPT, Claude). Auto-detects platform, scrapes sessions, contributes to mesh.</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/p2p-client.js</div>
+  <div class="desc">P2P mesh client for browser injection. Registers the browser as a mesh node, stores peer URLs in localStorage, gossips contributions to known peers.</div>
+</div>
+
+<div class="endpoint">
+  <span class="method method-get">GET</span>
+  <div class="path">/api.html</div>
+  <div class="desc">This page — full API reference documentation.</div>
+</div>
+
+<!-- ═══════════════════ USAGE ═══════════════════ -->
+
+<h2>🚀 Quickstart Examples</h2>
+
+<div class="endpoint">
+  <div class="path" style="color:var(--gold)">1. List all skills</div>
+  <div class="example">curl http://localhost:8080/api/v1/skills | jq '.skills[].title'</div>
+</div>
+
+<div class="endpoint">
+  <div class="path" style="color:var(--gold)">2. Grayscale an image</div>
+  <div class="example">curl -X POST http://localhost:8080/api/v1/image/transform -H "Content-Type: application/json" -d '{"model":"gray","image":"'$(base64 -w0 photo.jpg)'"}' | jq -r '.image' | base64 -d > output.png</div>
+</div>
+
+<div class="endpoint">
+  <div class="path" style="color:var(--gold)">3. Join the P2P mesh</div>
+  <div class="example">curl -X POST http://localhost:8080/api/v1/peer/register -H "Content-Type: application/json" -d '{"url":"http://my-server:8080","label":"my-node"}'</div>
+</div>
+
+<div class="endpoint">
+  <div class="path" style="color:var(--gold)">4. Check mesh health</div>
+  <div class="example">curl http://localhost:8080/api/v1/peer/status</div>
+</div>
+
+<div class="endpoint">
+  <div class="path" style="color:var(--gold)">5. Synthesize speech</div>
+  <div class="example">curl -X POST http://localhost:8080/audio/synthesize -H "Content-Type: application/json" -d '{"text":"Hello Collective"}' --output speech.wav</div>
+</div>
+
+<div class="footer">
+  <p>🧠 VAN_Engine ∞ Clawdia Collective — SAAS API v2.0</p>
+  <p>Updated: 2026-06-09 · P2P Mesh Phase 2.5 Active</p>
+</div>
+
+</div>
+</body>
+</html>

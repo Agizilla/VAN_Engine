@@ -1,0 +1,18 @@
+types:
+  Task:
+    required: [title, status]
+    status_enum: [open, in_progress, done, blocked, cancelled]
+    priority_enum: [P0, P1, P2, P3]
+  Person:
+    required: [name]
+  Project:
+    required: [name, status]
+    status_enum: [active, paused, completed, archived]
+  Document:
+    required: [title]
+  Action:
+    required: [action, timestamp]
+  File:
+    required: [path]
+  Note:
+    required: [content]

@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAN_Engine — Complete API Integration Guide for LLMs</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --codebg: #1c2128;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+    background: var(--bg); color: var(--text); line-height:1.6;
+    display: flex;
+  }
+  /* ── Sidebar ── */
+  nav {
+    position:fixed; top:0; left:0; width:280px; height:100vh; overflow-y:auto;
+    background: var(--bg2); border-right:1px solid var(--border); padding:0;
+    z-index:100;
+  }
+  nav h1 { font-size:14px; padding:16px 16px 8px; color:var(--accent); letter-spacing:0.5px; text-transform:uppercase; }
+  nav .ver { font-size:11px; color:var(--text2); padding:0 16px 12px; border-bottom:1px solid var(--border); }
+  nav a {
+    display:block; padding:6px 16px; font-size:13px; color:var(--text2); text-decoration:none;
+    border-left:2px solid transparent; transition:all 0.15s;
+  }
+  nav a:hover { color:var(--text); background:var(--bg3); }
+  nav a.section { color:var(--accent); font-weight:600; margin-top:8px; }
+  nav a.sub { padding-left:28px; font-size:12px; }
+  nav a.endpoint { padding-left:28px; font-size:12px; }
+  /* ── Main ── */
+  main { margin-left:280px; padding:32px 48px; max-width:960px; }
+  h2 { font-size:24px; margin:40px 0 12px; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:8px; }
+  h3 { font-size:18px; margin:28px 0 8px; color:var(--text); }
+  h4 { font-size:14px; margin:20px 0 6px; color:var(--text2); text-transform:uppercase; letter-spacing:0.3px; }
+  p { margin:8px 0; color:var(--text2); }
+  /* ── Code / Pre ── */
+  pre, code { font-family:'JetBrains Mono','Fira Code',monospace; font-size:13px; }
+  pre {
+    background:var(--codebg); border:1px solid var(--border); border-radius:6px;
+    padding:12px 16px; overflow-x:auto; margin:12px 0; line-height:1.5;
+  }
+  code { background:var(--codebg); padding:2px 5px; border-radius:3px; }
+  pre code { background:none; padding:0; }
+  /* ── Tables ── */
+  table { width:100%; border-collapse:collapse; margin:12px 0 20px; font-size:13px; }
+  th, td { padding:8px 12px; text-align:left; border:1px solid var(--border); }
+  th { background:var(--bg2); color:var(--text); font-weight:600; }
+  td { color:var(--text2); }
+  /* ── Tags ── */
+  .tag { display:inline-block; font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; margin-right:4px; }
+  .get { background:#1a3a4a; color:#58a6ff; }
+  .post { background:#1a3a2a; color:#3fb950; }
+  .ws { background:#2a1a3a; color:#bc8cff; }
+  .rpc { background:#3a2a1a; color:#d29922; }
+  /* ── Cards ── */
+  .card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+    padding:16px 20px; margin:12px 0;
+  }
+  .card strong { color:var(--text); }
+  /* ── Status ── */
+  .status { display:inline-block; font-size:12px; padding:2px 8px; border-radius:10px; }
+  .live { background: #0a2a1a; color: var(--green); border:1px solid var(--green); }
+  /* ── Misc ── */
+  .badge { display:inline-block; font-size:11px; padding:1px 6px; border-radius:3px; background:var(--bg3); color:var(--text2); margin-right:4px; }
+  hr { border:none; border-top:1px solid var(--border); margin:24px 0; }
+  ul, ol { margin:8px 0; padding-left:20px; color:var(--text2); }
+  li { margin:4px 0; }
+  .example { background:var(--codebg); border-left:3px solid var(--accent); border-radius:0 6px 6px 0; padding:12px 16px; margin:8px 0; }
+  .example strong { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<nav>
+  <h1>VAN_Engine API</h1>
+  <div class="ver">v1.0.0 &mdash; 2026-06-11</div>
+  <a href="#intro" class="section">Overview</a>
+  <a href="#brain-api" class="section">Brain API &mdash; Port 44444</a>
+  <a href="#brain-chat" class="endpoint">POST /v1/chat/completions</a>
+  <a href="#brain-health" class="endpoint">GET /health</a>
+  <a href="#brain-models" class="endpoint">GET /v1/models</a>
+  <a href="#brain-intents" class="sub">Intent Classification</a>
+  <a href="#voice-server" class="section">Voice Server &mdash; Port 8888</a>
+  <a href="#voice-notify" class="endpoint">POST /notify</a>
+  <a href="#monitor-server" class="section">Monitor &mdash; Port 8765</a>
+  <a href="#bridge-rpc" class="section">Bridge RPC &mdash; stdin/stdout</a>
+  <a href="#bridge-lib" class="section">Bridge Client Library</a>
+  <a href="#quaternion" class="section">Quaternion System</a>
+  <a href="#iso-rules" class="section">ISO Rules Engine</a>
+  <a href="#audit" class="section">Audit System</a>
+  <a href="#audio-skill" class="section">Audio Skill (131 Methods)</a>
+  <a href="#streaming" class="endpoint">SSE Streaming Format</a>
+  <a href="#tool-exec" class="section">Tool Execution Patterns</a>
+  <a href="#ide-int" class="section">IDE Integration</a>
+  <a href="#examples" class="section">Quickstart Examples</a>
+</nav>
+
+<!-- ═══ MAIN ═══ -->
+<main>
+
+<!-- ──────────────── OVERVIEW ──────────────── -->
+<h2 id="intro">VAN_Engine API Overview</h2>
+<p>
+  VAN_Engine exposes <strong>3 HTTP servers</strong>, <strong>1 JSON-RPC protocol</strong>,
+  and a <strong>Python client library</strong>. Every capability &mdash; from chat to stem
+  separation to quaternion token storage &mdash; is accessible through these interfaces.
+</p>
+
+<table>
+  <tr><th>Service</th><th>Port</th><th>Protocol</th><th>Purpose</th></tr>
+  <tr><td>Brain API</td><td>44444</td><td>HTTP (FastAPI)</td><td>OpenAI-compatible chat, intent routing, token operations, ISO validation</td></tr>
+  <tr><td>Voice Server</td><td>8888</td><td>HTTP (Node.js)</td><td>Text-to-speech via ElevenLabs / StyleTTS2 / Windows SAPI</td></tr>
+  <tr><td>Monitor Server</td><td>8765</td><td>HTTP + WebSocket</td><td>Pipeline execution monitoring, live dashboard</td></tr>
+  <tr><td>Bridge CLI</td><td>stdin/stdout</td><td>JSON-RPC</td><td>Persistent subprocess protocol for quaternion/ISO/audit ops</td></tr>
+  <tr><td>Bridge Lib</td><td>&mdash;</td><td>Python import</td><td>Direct Python API for VANEngineBridge, ISOClient, AuditClient, QuaternionClient</td></tr>
+</table>
+
+<div class="card">
+  <strong>Base URL (Brain API):</strong> <code>http://localhost:44444</code><br>
+  <strong>Base URL (Voice):</strong> <code>http://localhost:8888</code><br>
+  <strong>Base URL (Monitor):</strong> <code>http://localhost:8765</code><br>
+  <em style="font-size:0.8rem; color:var(--text2);">All ports sourced from <code>config/ports.json</code></em>
+</div>
+
+<!-- ──────────────── BRAIN API ──────────────── -->
+<h2 id="brain-api">Brain API &mdash; Port 44444</h2>
+<p>FastAPI server with OpenAI-compatible interface. Bridges to VAN_Engine substrate (SQLite token index, ISO rules, audit trail).</p>
+
+<h3 id="brain-chat"><span class="tag post">POST</span> <code>/v1/chat/completions</code></h3>
+<p>Main chat completion endpoint. Supports streaming and non-streaming modes. Auto-classifies intent and routes to the appropriate response builder.</p>
+
+<h4>Request Body</h4>
+<pre><code>{
+  "model": "van_engine-brain",
+  "messages": [
+    { "role": "user", "content": "your message here" }
+  ],
+  "stream": false,
+  "temperature": null,
+  "max_tokens": null
+}</code></pre>
+
+<h4>Response (non-streaming)</h4>
+<pre><code>{
+  "id": "van_a1b2c3d4e5f6",
+  "object": "chat.completion",
+  "created": 1717000000,
+  "model": "van_engine-brain",
+  "choices": [{
+    "index": 0,
+    "message": { "role": "assistant", "content": "..." },
+    "finish_reason": "stop"
+  }],
+  "usage": {
+    "prompt_tokens": 4,
+    "completion_tokens": 48,
+    "total_tokens": 52
+  },
+  "system_fingerprint": "van_engine_v1"
+}</code></pre>
+
+<h4>Response (streaming)</h4>
+<p>See <a href="#streaming">SSE Streaming Format</a> section below.</p>
+
+<h4>Intent Routing</h4>
+<p>The server classifies the last user message into one of these intents:</p>
+<table>
+  <tr><th>Intent</th><th>Triggered By</th><th>Response Builder</th></tr>
+  <tr><td><code>status</code></td><td>"status", "system status"</td><td>Uptime, token count, active ISO rules, engine path</td></tr>
+  <tr><td><code>self_test</code></td><td>"self-test", "iso rule"</td><td>All 20 ISO rules with ACTIVE/ENFORCED status</td></tr>
+  <tr><td><code>store_token</code></td><td>"store token"</td><td>Stores word as quaternion token via bridge</td></tr>
+  <tr><td><code>lookup_token</code></td><td>"look up token"</td><td>Retrieves quaternion + projections</td></tr>
+  <tr><td><code>similarity</code></td><td>"nearest", "similar", "find tokens similar to"</td><td>Cosine similarity against known tokens</td></tr>
+  <tr><td><code>stream_iso</code></td><td>"stream the current iso rule statuses"</td><td>Same as self_test</td></tr>
+  <tr><td><code>hypothesis_test</code></td><td>"hallucinat", "prove you are not"</td><td>Anti-hallucination proof with stats</td></tr>
+  <tr><td><code>unknown</code></td><td><em>fallback</em></td><td>Parrot: echoes input + learns new words as tokens</td></tr>
+</table>
+
+<h3 id="brain-intent"><span class="tag post">POST</span> <code>/v1/intent</code></h3>
+<p>Direct intent classification endpoint. Returns the classified intent without running chat completion.</p>
+<h4>Request Body</h4>
+<pre><code>{
+  "message": "store token melody"
+}</code></pre>
+<h4>Response</h4>
+<pre><code>{
+  "intent": "store_token",
+  "confidence": "exact",
+  "params": {
+    "token": "melody"
+  }
+}</code></pre>
+
+<h3 id="brain-health"><span class="tag get">GET</span> <code>/health</code></h3>
+<pre><code>{
+  "status": "healthy" | "degraded",
+  "uptime": 72,
+  "version": "1.0.0"
+}</code></pre>
+
+<h3 id="brain-models"><span class="tag get">GET</span> <code>/v1/models</code></h3>
+<pre><code>{
+  "object": "list",
+  "data": [
+    {
+      "id": "van_engine-brain",
+      "object": "model",
+      "created": 1717000000,
+      "owned_by": "van_engine",
+      "permission": []
+    }
+  ]
+}</code></pre>
+
+<h3 id="brain-intents">Intent Classification Details</h3>
+<p>The <code>classify_intent()</code> function uses exact match (KNOWN_INTENTS dict) then substring pattern matching (PATTERN_MAP). Patterns are checked in order; first match wins.</p>
+
+<p><strong>Token parameter extraction</strong> from natural language via <code>extract_token_params(content)</code>:</p>
+<pre><code>{
+  "token": "my_token",           // from 'token: word' or 'token "word"' or '"word"'
+  "w": 0.0, "x": 0.0,           // from quaternion (w, x, y, z) in text
+  "y": 0.0, "z": 0.0,
+  "applies_to": ["category1"]   // from applies_to[item1, item2]
+}</code></pre>
+
+<!-- ──────────────── VOICE SERVER ──────────────── -->
+<h2 id="voice-server">Voice Server &mdash; Port 8888</h2>
+<p>Node.js HTTP server with CORS. Routes text to the best available TTS engine.</p>
+
+<h3 id="voice-notify"><span class="tag post">POST</span> <code>/notify</code></h3>
+<h4>Request</h4>
+<pre><code>{
+  "message": "Text to speak here",
+  "voice_id": "auto",           // "auto" | "local" | "elevenlabs" | "sapi"
+  "voice_enabled": true
+}</code></pre>
+<h4>Response</h4>
+<pre><code>{
+  "status": "played" | "skipped",
+  "engine": "local" | "elevenlabs" | "sapi",
+  "voice_id": "auto"
+}</code></pre>
+
+<h4>Engine Selection Logic</h4>
+<table>
+  <tr><th>Priority</th><th>Engine</th><th>Condition</th></tr>
+  <tr><td>1</td><td>Local (StyleTTS2)</td><td><code>voice_id === "local"</code> || <code>tts_local.py</code> exists</td></tr>
+  <tr><td>2</td><td>ElevenLabs</td><td><code>voice_id === "elevenlabs"</code> || (<code>"auto"</code> && <code>ELEVENLABS_API_KEY</code> set)</td></tr>
+  <tr><td>3</td><td>Windows SAPI</td><td>Fallback</td></tr>
+</table>
+
+<h4>Other Endpoints</h4>
+<table>
+  <tr><td><span class="tag get">GET</span> <code>/health</code></td><td>Status check</td><td><code>{"status":"ok","local_tts":bool,"engines":{...}}</code></td></tr>
+  <tr><td><span class="tag ws">WS</span> <code>/stream/voice</code></td><td>Viseme/lip-sync stream</td><td>Streams <code>{"viseme":"rest","blend":[0.0,...]}</code> in real-time for facial animation</td></tr>
+  <tr><td><span class="tag">OPTIONS</span> <code>/*</code></td><td>CORS preflight</td><td>204 No Content</td></tr>
+</table>
+
+<!-- ──────────────── MONITOR SERVER ──────────────── -->
+<h2 id="monitor-server">Monitor Server &mdash; Port 8765</h2>
+<p>aiohttp server for pipeline execution monitoring. Includes REST API, WebSocket broadcast, and embedded HTML dashboard at <code>/</code>.</p>
+
+<table>
+  <tr><th>Method</th><th>Route</th><th>Description</th></tr>
+  <tr><td><span class="tag post">POST</span></td><td><code>/api/start</code></td><td>Create execution. Body: <code>{"agent","pipeline","steps":[{"id","action"}]}</code> &rarr; <code>{"id":uuid}</code></td></tr>
+  <tr><td><span class="tag post">POST</span></td><td><code>/api/update</code></td><td>Update execution status. Body: <code>{"id","status","current_step","result","error"}</code> &rarr; <code>{"ok":true}</code></td></tr>
+  <tr><td><span class="tag post">POST</span></td><td><code>/api/step</code></td><td>Update individual step. Body: <code>{"executionId","stepId","status","output","error"}</code> &rarr; <code>{"ok":true}</code></td></tr>
+  <tr><td><span class="tag get">GET</span></td><td><code>/api/executions</code></td><td>List all executions</td></tr>
+  <tr><td><span class="tag get">GET</span></td><td><code>/health</code></td><td>Health check: <code>{"status":"ok","port":8765}</code></td></tr>
+  <tr><td><span class="tag get">GET</span></td><td><code>/</code></td><td>Embedded HTML dashboard with WebSocket live updates</td></tr>
+  <tr><td><span class="tag ws">WS</span></td><td><code>/ws</code></td><td>WebSocket. Events: <code>init</code>, <code>pipeline:start</code>, <code>pipeline:update</code>, <code>step:{status}</code></td></tr>
+  <tr><td><span class="tag get">GET</span></td><td><code>/api/v1/priority/:receipt</code></td><td>Get donation priority status. <code>:receipt</code> is the donation receipt UUID. Returns <code>{"receipt":"...","trust_score":65,"penalty_multiplier":1,"queue_position":3}</code></td></tr>
+</table>
+
+<!-- ──────────────── BRIDGE RPC ──────────────── -->
+<h2 id="bridge-rpc">Bridge RPC &mdash; JSON-RPC over stdin/stdout</h2>
+<p>Persistent subprocess protocol. Spawn <code>bridge_cli.py</code>, read/write JSON-RPC on stdio. Prints <code>{"id":0,"ready":true}</code> on startup.</p>
+
+<h4>Request Format</h4>
+<pre><code>{"id": 1, "method": "method_name", "params": { ... } }
+&rarr;
+{"id": 1, "success": true, ...response_fields... }</code></pre>
+
+<table>
+  <tr><th>Method</th><th>Params</th><th>Response Fields</th></tr>
+  <tr><td><code>ping</code></td><td><em>none</em></td><td><code>pong: true</code></td></tr>
+  <tr><td><code>status</code></td><td><em>none</em></td><td><code>available</code>, <code>engine_root</code>, <code>iso_count</code>, <code>token_count</code></td></tr>
+  <tr><td><code>quaternion_lookup</code></td><td><code>token: str</code></td><td><code>found: bool</code>, <code>w,x,y,z: float</code></td></tr>
+  <tr><td><code>quaternion_store</code></td><td><code>token</code>, <code>w,x,y,z</code>, <code>[applies_to]</code></td><td><code>stored: true</code></td></tr>
+  <tr><td><code>iso_rules</code></td><td><em>none</em></td><td><code>rules: [...]</code></td></tr>
+  <tr><td><code>token_count</code></td><td><em>none</em></td><td><code>count: int</code></td></tr>
+  <tr><td><code>drift_check</code></td><td><code>quaternion: [4]</code>, <code>[threshold: float]</code></td><td><code>violated: bool</code>, <code>action: str</code></td></tr>
+  <tr><td><code>audit_log</code></td><td><code>component</code>, <code>action</code>, <code>[quaternion_before]</code>, <code>[quaternion_after]</code></td><td><code>logged: true</code></td></tr>
+</table>
+
+<!-- ──────────────── BRIDGE CLIENT LIBRARY ──────────────── -->
+<h2 id="bridge-lib">Bridge Client Library (Python)</h2>
+<p>Import from <code>van_engine_bridge</code>:</p>
+<pre><code>from client import VANEngineBridge, get_bridge
+from iso_client import ISOClient
+from audit_client import AuditClient
+from quaternion_client import QuaternionClient, IsographicQuaternion</code></pre>
+
+<h3><code>VANEngineBridge</code></h3>
+<table>
+  <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+  <tr><td><code>quaternion_lookup(token: str)</code></td><td><code>Optional[Tuple[w,x,y,z]]</code></td><td>Lookup token quaternion from SQLite index</td></tr>
+  <tr><td><code>quaternion_store(token, w, x, y, z, applies_to)</code></td><td><code>None</code></td><td>Insert/update token quaternion</td></tr>
+  <tr><td><code>get_iso_rules()</code></td><td><code>Dict</code></td><td>All 20 ISO rules from JSON</td></tr>
+  <tr><td><code>get_token_count()</code></td><td><code>int</code></td><td>Total tokens in index</td></tr>
+  <tr><td><code>drift_gate(quaternion, threshold=0.85)</code></td><td><code>Dict[violated, action, diagnostic]</code></td><td>ISO_010 drift gate check</td></tr>
+  <tr><td><code>log_audit(component, action, before, after)</code></td><td><code>None</code></td><td>Write JSONL audit event with magnitude drift</td></tr>
+</table>
+
+<h3><code>ISOClient(bridge)</code></h3>
+<table>
+  <tr><th>Method</th><th>Returns</th></tr>
+  <tr><td><code>get_all_rules()</code></td><td><code>Dict</code></td></tr>
+  <tr><td><code>get_rule(rule_id)</code></td><td><code>Optional[Dict]</code></td></tr>
+  <tr><td><code>get_rule_status(rule_id)</code></td><td><code>str</code> ("active"|"enforced"|"violated"|"unknown")</td></tr>
+  <tr><td><code>get_active_rules()</code></td><td><code>List[Dict]</code></td></tr>
+  <tr><td><code>get_violated_rules()</code></td><td><code>List[Dict]</code></td></tr>
+  <tr><td><code>check_iso_004()</code></td><td><code>Dict[mutation_resistance, compliant]</code></td></tr>
+  <tr><td><code>check_iso_010(quaternion_tuple)</code></td><td><code>Dict[violated, action]</code></td></tr>
+  <tr><td><code>check_iso_019()</code></td><td><code>Dict[privacy_by_default, compliant]</code></td></tr>
+  <tr><td><code>report_all()</code></td><td><code>str</code> &mdash; formatted rule list</td></tr>
+</table>
+
+<h3><code>AuditClient(bridge)</code></h3>
+<table>
+  <tr><th>Method</th><th>Returns</th></tr>
+  <tr><td><code>log_event(component, action, before, after)</code></td><td><code>None</code></td></tr>
+  <tr><td><code>read_events(limit=100)</code></td><td><code>List[Dict]</code></td></tr>
+  <tr><td><code>get_events_by_component(component, limit=50)</code></td><td><code>List[Dict]</code></td></tr>
+  <tr><td><code>get_events_by_action(action, limit=50)</code></td><td><code>List[Dict]</code></td></tr>
+  <tr><td><code>get_drift_events(min_drift=0.0, limit=50)</code></td><td><code>List[Dict]</code></td></tr>
+  <tr><td><code>get_recent_audit_summary(minutes=60)</code></td><td><code>Dict[total_recent, components, actions, drift_events]</code></td></tr>
+</table>
+
+<!-- ──────────────── QUATERNION ──────────────── -->
+<h2 id="quaternion">Quaternion System</h2>
+<p>Tokens are stored as unit quaternions <code>(w, x, y, z)</code> with four projection axes:</p>
+<table>
+  <tr><th>Projection</th><th>Formula</th><th>Domain</th></tr>
+  <tr><td>Sound</td><td><code>sqrt(w^2 + x^2)</code></td><td>Audio, voice, music</td></tr>
+  <tr><td>Shape</td><td><code>sqrt(w^2 + y^2)</code></td><td>Visual, geometry, form</td></tr>
+  <tr><td>Number</td><td><code>sqrt(x^2 + z^2)</code></td><td>Math, data, quantity</td></tr>
+  <tr><td>Time</td><td><code>sqrt(y^2 + z^2)</code></td><td>Sequence, history, timing</td></tr>
+</table>
+
+<h3><code>IsographicQuaternion(w, x, y, z)</code></h3>
+<pre><code>q = IsographicQuaternion(0.707, 0.707, 0.0, 0.0)
+q.magnitude                    # &rarr; 1.0
+q.normalize()                  # unit quaternion
+q.get_sound_projection()       # sqrt(w^2 + x^2)
+q.get_shape_projection()       # sqrt(w^2 + y^2)
+q * other                      # Hamilton product
+q.approx_equals(other, 1e-6)   # componentwise comparison
+q.to_tuple()                   # (w,x,y,z)
+IsographicQuaternion.from_tuple(t)</code></pre>
+
+<h3><code>QuaternionClient(bridge)</code></h3>
+<pre><code>qc = QuaternionClient(bridge)
+q = qc.lookup("my_token")      # &rarr; IsographicQuaternion | None
+qc.store("my_token", q, "music")
+qc.validate_round_trip("my_token")  # verifies integrity</code></pre>
+
+<p><strong>MD5-based deterministic quaternion (used by parrot mode):</strong></p>
+<pre><code># api/server.py
+def _word_to_quaternion(word):
+    h = hashlib.md5(word.lower().encode()).hexdigest()
+    w = (int(h[0:8], 16) / 0xFFFFFFFF) * 2 - 1
+    x = (int(h[8:16], 16) / 0xFFFFFFFF) * 2 - 1
+    y = (int(h[16:24], 16) / 0xFFFFFFFF) * 2 - 1
+    z = (int(h[24:32], 16) / 0xFFFFFFFF) * 2 - 1
+    mag = sqrt(w*w + x*x + y*y + z*z)
+    return (w/mag, x/mag, y/mag, z/mag)</code></pre>
+
+<!-- ──────────────── ISO RULES ──────────────── -->
+<h2 id="iso-rules">ISO Rules Engine</h2>
+<p>20 governance rules stored in <code>core/ISO_Rules.json</code>. Each rule has <code>id</code>, <code>name</code>, <code>description</code>, <code>status</code>.</p>
+
+<table>
+  <tr><th>ID</th><th>Name</th><th>Status</th></tr>
+  <tr><td>ISO_001</td><td>Self-Consistency</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_002</td><td>Token Mapping</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_003</td><td>Cross-Validation</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_004</td><td>Mutation Resistance</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_005</td><td>Consensus Hallucination Detection</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_006</td><td>Ultrasonic Proximity</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_007</td><td>Persona Fidelity</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_008</td><td>Cross-Modal Integrity</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_009</td><td>Quadruple Mapping</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_010</td><td>Drift Gating</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_011</td><td>Archetypal FSM</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_012</td><td>Recursive Self-Validation</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_013</td><td>Graceful Degradation</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_014</td><td>Deterministic Timeout</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_015</td><td>Observable State</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_016</td><td>Idempotent Operations</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_017</td><td>Minimum Viable Interface</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_018</td><td>Forward Compatibility</td><td><span class="status" style="background:#0a2a1a;color:#3fb950;">active</span></td></tr>
+  <tr><td>ISO_019</td><td>Privacy by Default</td><td><span class="status" style="background:#2a1a0a;color:#d29922;">enforced</span></td></tr>
+  <tr><td>ISO_020</td><td>Anti-Hallucination</td><td><span class="status" style="background:#2a1a0a;color:#d29922;">enforced</span></td></tr>
+</table>
+
+<h3 id="iso-enforcement">ISO_019 &amp; ISO_020 Enforcement Details</h3>
+<p><strong>ISO_019 — Privacy by Default</strong>: All endpoints redact PII from logs and responses unless explicitly authorized by a signed waiver. Audit events never store raw message content; only tokenized hashes. Engine subprocess calls are sandboxed — no network access, no filesystem write outside <code>logs/</code>.</p>
+<p><strong>ISO_020 — Anti-Hallucination</strong>: Every LLM response passes through <code>hallucination_detector.py</code> which runs three checks:</p>
+<ol>
+  <li><strong>Consensus check</strong> — Response must be derivable from stored tokens. Any claim without a token match is flagged.</li>
+  <li><strong>Drift gate</strong> — Quaternion drift <code>|1 - |q||</code> must be &lt; 0.001. Responses that shift token embeddings trigger a rollback.</li>
+  <li><strong>Source citation</strong> — Non-streaming responses include <code>source_tokens: ["token1", "token2"]</code> to trace every claim back to stored data.</li>
+</ol>
+<p>Both rules are <span class="status" style="background:#2a1a0a;color:#d29922;">enforced</span> and cannot be bypassed via system prompt or override flag.</p>
+
+<!-- ──────────────── AUDIT ──────────────── -->
+<h2 id="audit">Audit System</h2>
+<p>Events logged as JSONL to <code>logs/substrate_audit.log</code>. Each event:</p>
+<pre><code>{
+  "timestamp": 1717000000.123,
+  "component": "api",
+  "action": "store_token:my_token",
+  "quaternion_before": null,
+  "quaternion_after": [0.707, 0.707, 0.0, 0.0],
+  "magnitude_drift": null
+}</code></pre>
+
+<!-- ──────────────── UNR PYTHON BRIDGE ──────────────── -->
+<h2 id="unr-bridge">UNR Python Bridge &mdash; <code>unr_transform.py</code></h2>
+<p>Python/OpenCV implementation of all 8 UNR (Universal Normalized Representation) algorithms. Called as subprocess from both servers.</p>
+
+<h3>Available Transforms</h3>
+<table>
+  <tr><th>Function</th><th>Description</th></tr>
+  <tr><td><code>unr_encode(image: np.ndarray) -> bytes</code></td><td>Encodes image to UNR byte stream. Uses wavelet compression + perceptual hash.</td></tr>
+  <tr><td><code>unr_decode(data: bytes) -> np.ndarray</code></td><td>Decodes UNR byte stream back to image.</td></tr>
+  <tr><td><code>unr_similarity(a: bytes, b: bytes) -> float</code></td><td>Returns 0.0–1.0 similarity score between two UNR-encoded images.</td></tr>
+  <tr><td><code>unr_diff(a: bytes, b: bytes) -> bytes</code></td><td>Returns UNR-encoded difference mask highlighting changed regions.</td></tr>
+  <tr><td><code>unr_merge(base: bytes, delta: bytes) -> bytes</code></td><td>Applies a UNR diff to a base image, producing the merged result.</td></tr>
+  <tr><td><code>unr_thumbnail(data: bytes, size: tuple) -> bytes</code></td><td>Generates a fixed-size UNR thumbnail suitable for quick previews.</td></tr>
+  <tr><td><code>unr_watermark(data: bytes, text: str) -> bytes</code></td><td>Embeds an invisible watermark; used for artifact attribution.</td></tr>
+  <tr><td><code>unr_authenticate(data: bytes) -> dict</code></td><td>Verifies watermark integrity. Returns <code>{"valid": bool, "watermark": str}</code>.</td></tr>
+</table>
+
+<h4>Subprocess Invocation</h4>
+<pre><code># Python
+import subprocess, json
+result = subprocess.run(
+    ["python", "unr_transform.py", "encode", "--input", "photo.jpg"],
+    capture_output=True, text=True
+)
+print(result.stdout)  # UNR byte stream (base64)</code></pre>
+
+<!-- ──────────────── AUDIO SKILL ──────────────── -->
+<h2 id="audio-skill">Audio Skill &mdash; 131 Public Methods</h2>
+<p>The full master audio skill lives at <code>src/tools/master_skills/audioSkill.py</code>. Import and use directly:</p>
+<pre><code>from tools.master_skills.audioSkill import AudioSkill, DemucsSeparator, ...
+skill = AudioSkill()
+stems = skill.separate_stems(Path("song.mp3"))
+text = skill.transcribe(Path("vocals.wav"))
+skill.synthesize("Hello", Path("model.onnx"))</code></pre>
+
+<h3>Capability Categories</h3>
+<table>
+  <tr><th>Category</th><th>Key Classes / Functions</th><th>Description</th></tr>
+  <tr><td><strong>Stem Separation</strong></td><td><code>DemucsSeparator</code></td><td>Separate audio into vocals/drums/bass/other using Demucs (htdemucs model)</td></tr>
+  <tr><td><strong>Transcription</strong></td><td><code>transcribe_audio()</code>, <code>VoskTranscriber</code></td><td>Whisper (cloud) or Vosk (offline Kaldi) speech-to-text</td></tr>
+  <tr><td><strong>Voice Analysis</strong></td><td><code>detect_bpm_key()</code>, <code>extract_mfcc_profile()</code>, <code>PitchTracker</code></td><td>BPM, key, MFCC, pitch (autocorrelation/YIN/spectral)</td></tr>
+  <tr><td><strong>Voice Cloning</strong></td><td><code>extract_embedding()</code>, <code>clone_voice_from_audio()</code></td><td>ECAPA-TDNN speaker embeddings via SpeechBrain</td></tr>
+  <tr><td><strong>Voice Synthesis</strong></td><td><code>synthesise()</code>, <code>piper_models()</code></td><td>Piper TTS with multi-speaker support</td></tr>
+  <tr><td><strong>Audio Effects</strong></td><td><code>apply_crossfade()</code>, <code>time_stretch()</code>, <code>pitch_shift()</code>, <code>apply_eq()</code>, <code>add_reverb()</code></td><td>DSP: crossfade, time/pitch shift, EQ, reverb, volume</td></tr>
+  <tr><td><strong>Mixing / Remixing</strong></td><td><code>mix_stems()</code>, <code>RemixPipeline</code></td><td>Stem mixing with per-track volumes, remix with Demucs</td></tr>
+  <tr><td><strong>MIDI / Music Theory</strong></td><td><code>MIDIEncoder</code>, <code>AeolianScaleMatrix</code>, <code>MarkovMelodyGenerator</code></td><td>MIDI export, scales, markov melody, quantizer</td></tr>
+  <tr><td><strong>Lyric Engine</strong></td><td><code>MarkovGeneticLyricEngine</code>, <code>RhymeScorer</code>, <code>LyricEnhancer</code></td><td>Lyric generation, rhyme scoring, synonym enhancement</td></tr>
+  <tr><td><strong>Forced Alignment</strong></td><td><code>DTWAligner</code>, <code>ForcedAligner</code></td><td>Word/phoneme alignment with DTW</td></tr>
+  <tr><td><strong>WAV &rarr; MIDI / ABC</strong></td><td><code>wav_to_midi()</code>, <code>wav_to_abc()</code></td><td>Audio to symbolic notation</td></tr>
+  <tr><td><strong>Drum / Chord Generation</strong></td><td><code>generate_drum_track()</code>, <code>generate_chord_track()</code></td><td>Rhythm and chord pattern generation</td></tr>
+  <tr><td><strong>Audio Processor</strong></td><td><code>AudioProcessor</code></td><td>Production engine: VAD, AGC, anti-noise, spectral masking</td></tr>
+  <tr><td><strong>Sound Classification</strong></td><td><code>ModelInference</code></td><td>ONNX sound classifier (snoring, dog bark, baby cry, etc.)</td></tr>
+  <tr><td><strong>Voice Commands</strong></td><td><code>VoiceCommands</code></td><td>Offline Pocketsphinx wake word + fuzzy command matching</td></tr>
+  <tr><td><strong>Voice Adapter</strong></td><td><code>VoiceAdapter</code></td><td>Train embedding deltas for voice transformation</td></tr>
+  <tr><td><strong>Music Video</strong></td><td><code>MusicVideoGenerator</code></td><td>Generate video from images + audio (moviepy)</td></tr>
+  <tr><td><strong>Lyrics Service</strong></td><td><code>LyricsService</code></td><td>Genius API integration for song search/lyrics/annotations</td></tr>
+  <tr><td><strong>Batch Processing</strong></td><td><code>BatchProcessor</code></td><td>Multi-threaded batch stem separation / transcription</td></tr>
+  <tr><td><strong>Session State</strong></td><td><code>SessionState</code></td><td>Persistent JSON state file</td></tr>
+</table>
+
+<h3>Audio IO Functions</h3>
+<table>
+  <tr><th>Function</th><th>Signature</th><th>Description</th></tr>
+  <tr><td><code>load_audio</code></td><td><code>(path, sr=None) &rarr; (ndarray, int)</code></td><td>Load audio, auto-resample to target sr</td></tr>
+  <tr><td><code>save_audio</code></td><td><code>(path, data, sr)</code></td><td>Save numpy array to WAV/MP3/FLAC</td></tr>
+  <tr><td><code>to_wav</code></td><td><code>(src, out=None) &rarr; Path</code></td><td>Convert any format to 16kHz mono WAV</td></tr>
+  <tr><td><code>audio_duration</code></td><td><code>(path) &rarr; float</code></td><td>Get duration in seconds</td></tr>
+  <tr><td><code>generate_tone</code></td><td><code>(freq, duration_s, sr, waveform="sine") &rarr; ndarray</code></td><td>Generate sine/square/sawtooth/triangle tone</td></tr>
+  <tr><td><code>play_wav</code></td><td><code>(path)</code></td><td>Play audio via pygame</td></tr>
+</table>
+
+<!-- ──────────────── SSE STREAMING ──────────────── -->
+<h2 id="streaming">SSE Streaming Format</h2>
+<p>Set <code>stream: true</code> in the chat request body.</p>
+
+<pre><code>data: {"id":"van_...","object":"chat.completion.chunk","created":...,"model":"van_engine-brain","choices":[{"index":0,"delta":{"content":"Hello "},"finish_reason":null}]}
+
+data: {"id":"van_...","object":"chat.completion.chunk","created":...,"model":"van_engine-brain","choices":[{"index":0,"delta":{"content":"world"},"finish_reason":null}]}
+
+data: {"id":"van_...","object":"chat.completion.chunk","created":...,"model":"van_engine-brain","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]</code></pre>
+
+<!-- ──────────────── TOOL EXECUTION ──────────────── -->
+<h2 id="tool-exec">Tool Execution Patterns</h2>
+<p>Two patterns for executing tools/capabilities:</p>
+
+<h3>Pattern A: HTTP API (for external apps)</h3>
+<pre><code># Chat completion auto-routes to intent handlers
+curl -X POST http://localhost:44444/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"store token my_word with quaternion (0.5, 0.5, 0.5, 0.5)"}]}'
+
+# TTS notification
+curl -X POST http://localhost:8888/notify \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Hello world","voice_id":"auto"}'
+
+# Monitor pipeline
+curl -X POST http://localhost:8765/api/start \
+  -H "Content-Type: application/json" \
+  -d '{"agent":"clawdia","pipeline":"audio_mix","steps":[{"id":"s1","action":"separate_stems"},{"id":"s2","action":"apply_effects"}]}'</code></pre>
+
+<h3>Pattern B: Python SDK (for ClawDia / embedded use)</h3>
+<pre><code>from client import get_bridge
+from tools.master_skills.audioSkill import AudioSkill
+
+bridge = get_bridge()
+skill = AudioSkill({"genius_token": "..."})
+
+# Store a token
+bridge.quaternion_store("my_concept", 0.707, 0.707, 0.0, 0.0, "music")
+
+# Transcribe audio
+result = skill.transcribe(Path("recording.wav"))
+print(result["text"])
+
+# Generate stems
+stems = skill.separate_stems(Path("song.mp3"), Path("output/stems/"))
+
+# Check ISO rules
+from iso_client import ISOClient
+iso = ISOClient(bridge)
+print(iso.report_all())</code></pre>
+
+<h3>Pattern C: Bridge CLI RPC (for non-Python apps)</h3>
+<pre><code># Start bridge subprocess
+python bridge_cli.py
+# {"id": 0, "ready": true}
+
+# Send RPC
+echo '{"id":1,"method":"status","params":{}}' | python bridge_cli.py
+# {"id": 1, "success": true, "available": true, "engine_root": "...", "iso_count": 20, "token_count": 42}</code></pre>
+
+<!-- ──────────────── IDE INTEGRATION ──────────────── -->
+<h2 id="ide-int">IDE Integration Guide</h2>
+<p>The ConversationIDE (Electron app, port 5173) connects to the Brain API. For your own IDE/tool integration:</p>
+
+<h4>Required Connections</h4>
+<ol>
+  <li><strong>Brain API</strong> (<code>localhost:44444</code>) &mdash; all chat, token, and ISO operations</li>
+  <li><strong>Voice Server</strong> (<code>localhost:8888</code>) &mdash; TTS notifications</li>
+  <li><strong>Monitor Server</strong> (<code>localhost:8765</code>) &mdash; pipeline execution tracking</li>
+  <li><strong>Bridge RPC</strong> (subprocess) &mdash; direct quaternion/ISO/audit access</li>
+</ol>
+
+<h4>Python SDK Import Path</h4>
+<pre><code># Add the bridge directory to sys.path
+sys.path.insert(0, "ConversationIDE/resources/van_engine_bridge")
+
+from client import VANEngineBridge, get_bridge
+from iso_client import ISOClient
+from audit_client import AuditClient
+from quaternion_client import QuaternionClient, IsographicQuaternion
+from skill_loader import SkillLoader
+from inference_bridge import InferenceBridge, InferenceTier</code></pre>
+
+<h4>Audio Skill Import Path</h4>
+<pre><code>sys.path.insert(0, "ClawDia/src")
+from tools.master_skills.audioSkill import AudioSkill</code></pre>
+
+<h4>Environment Variables</h4>
+<table>
+  <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
+  <tr><td><code>VAN_API_HOST</code></td><td><code>127.0.0.1</code></td><td>Brain API bind address</td></tr>
+  <tr><td><code>VAN_API_PORT</code></td><td><code>44444</code></td><td>Brain API port</td></tr>
+  <tr><td><code>ELEVENLABS_API_KEY</code></td><td><em>none</em></td><td>ElevenLabs TTS (optional)</td></tr>
+  <tr><td><code>PORT</code></td><td><code>8888</code></td><td>Voice server port</td></tr>
+  <tr><td><code>DOTNET_ENVIRONMENT</code></td><td><code>Production</code></td><td>.NET LLM Gateway env</td></tr>
+</table>
+
+<!-- ──────────────── QUICKSTART EXAMPLES ──────────────── -->
+<h2 id="examples">Quickstart Examples</h2>
+
+<h3>1. Basic Chat</h3>
+<div class="example">
+<strong>Request:</strong>
+<pre><code>curl -X POST http://localhost:44444/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"status"}]}'</code></pre>
+</div>
+
+<h3>2. Store &amp; Lookup a Token</h3>
+<div class="example">
+<strong>Store:</strong>
+<pre><code>curl -X POST http://localhost:44444/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"store token melody with quaternion (0.8, 0.4, 0.2, 0.1) applies_to [music, composition]"}]}'</code></pre>
+<strong>Lookup:</strong>
+<pre><code>curl -X POST http://localhost:44444/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"look up token melody"}]}'</code></pre>
+</div>
+
+<h3>3. Voice TTS</h3>
+<div class="example">
+<pre><code>curl -X POST http://localhost:8888/notify \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Processing complete","voice_id":"auto","voice_enabled":true}'</code></pre>
+</div>
+
+<h3>4. WebSocket Viseme Stream (Lip-Sync)</h3>
+<div class="example">
+<strong>Connect to WebSocket:</strong>
+<pre><code># Python
+import websocket, json
+
+ws = websocket.WebSocket()
+ws.connect("ws://localhost:8888/stream/voice")
+
+# Each frame received:
+def on_message(ws, message):
+    data = json.loads(message)
+    print(f"Viseme: {data['viseme']}, Blend: {data['blend'][:4]}...")
+
+# Viseme values: rest, viseme_aa, viseme_E, viseme_I, viseme_O, viseme_U, viseme_mbp, viseme_fv
+# Blend array: 12-element float32 array for face mesh vertex offsets</code></pre>
+</div>
+
+<h3>5. Python SDK &mdash; Full Workflow</h3>
+<div class="example">
+<pre><code>import sys
+from pathlib import Path
+
+sys.path.insert(0, "ConversationIDE/resources/van_engine_bridge")
+sys.path.insert(0, "ClawDia/src")
+
+from client import get_bridge
+from iso_client import ISOClient
+from audit_client import AuditClient
+from tools.master_skills.audioSkill import AudioSkill
+
+# Init
+bridge = get_bridge()
+iso = ISOClient(bridge)
+audit = AuditClient(bridge)
+skill = AudioSkill()
+
+# Check system health
+rules = iso.report_all()
+token_count = bridge.get_token_count()
+print(f"ISO Rules:\n{rules}")
+print(f"Tokens stored: {token_count}")
+
+# Store a concept
+bridge.quaternion_store("beat_pattern", 0.6, 0.8, 0.0, 0.0, "drums")
+audit.log_event("app", "create:beat_pattern")
+
+# Analyze audio (if file exists)
+if Path("track.wav").exists():
+    tempo, key = skill.analyze(Path("track.wav"))["tempo"], skill.analyze(Path("track.wav"))["key"]
+    print(f"Tempo: {tempo} BPM, Key: {key}")
+
+# Generate a drum track
+drums = skill.generate_drum_track(bpm=120, pattern="four_on_floor", duration_bars=4)
+print(f"Drum track generated: {len(drums)} samples")</code></pre>
+</div>
+
+<h3>5. Monitor Pipeline</h3>
+<div class="example">
+<pre><code># Start a pipeline execution
+curl -X POST http://localhost:8765/api/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent": "my_app",
+    "pipeline": "audio_process",
+    "steps": [
+      {"id": "load", "action": "load_audio"},
+      {"id": "analyze", "action": "analyze"},
+      {"id": "save", "action": "save_audio"}
+    ]
+  }'
+
+# Connect to WebSocket for live updates
+# ws://localhost:8765/ws</code></pre>
+</div>
+
+<h3>6. Bridge CLI RPC &mdash; from any language</h3>
+<div class="example">
+<pre><code># Python
+import subprocess, json
+proc = subprocess.Popen(
+    ["python", "bridge_cli.py"],
+    stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True
+)
+# Wait for ready signal
+ready = json.loads(proc.stdout.readline())
+
+# Send commands
+def rpc(method, params={}):
+    proc.stdin.write(json.dumps({"id": 1, "method": method, "params": params}) + "\n")
+    proc.stdin.flush()
+    return json.loads(proc.stdout.readline())
+
+print(rpc("ping"))
+print(rpc("status"))
+print(rpc("token_count"))
+print(rpc("iso_rules"))
+print(rpc("quaternion_lookup", {"token": "melody"}))</code></pre>
+</div>
+
+<hr>
+<p style="text-align:center; color:var(--text2); padding:32px 0;">
+  VAN_Engine v1.0.0 &mdash; Generated 2026-06-11<br>
+  <code>docs/VAN_Engine_API_Guide.html</code> &mdash; Ports sourced from <code>config/ports.json</code>
+</p>
+
+</main>
+</body>
+</html>

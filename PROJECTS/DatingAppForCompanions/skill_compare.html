@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>H.E.A.R.T.CORE - Expanded Talent Matrix</title>
+  <style>
+body{margin:0;padding:24px;background:#070b12;color:#e9eef9;font:15px/1.5 'Segoe UI',sans-serif}
+.shell{display:grid;gap:18px}
+.panel,.hero{background:#111827;border:1px solid #253047;border-radius:18px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.hero{display:grid;gap:18px}
+.eyebrow{display:inline-block;padding:6px 10px;border-radius:999px;background:#16304f;color:#69bfff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+h1,h2,h3,p{margin:0}.muted{color:#94a3b8}
+.actions,.cards,.focus-list,.tab-list,.link-list{display:flex;flex-wrap:wrap;gap:10px}
+.btn{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#e9eef9;padding:9px 14px;font-weight:700;cursor:pointer}
+.btn.primary{background:#69bfff;color:#07111b;border-color:#69bfff}
+.card{background:#0b1220;border:1px solid #253047;border-radius:14px;padding:14px;min-width:180px}
+.card strong{display:block;color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.value{font-weight:700;font-size:18px}.detail{font-size:13px;color:#94a3b8}
+table{width:100%;border-collapse:collapse;background:#0b1220;border-radius:14px;overflow:hidden}
+th,td{padding:12px;border-bottom:1px solid #1e293b;text-align:left;vertical-align:top}
+th{color:#69bfff;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.section td{background:#101826;color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.human{color:#ffd166;font-weight:700}.ai{color:#7ef0b1;font-weight:700}
+.highlight{font-weight:700}.gemini{color:#7ef0b1}.claude{color:#ffb089}.deepseek{color:#7cc6ff}.ollama{color:#d8a5ff}
+.focus-col{background:#12243b}
+.layout{display:grid;grid-template-columns:280px 1fr;gap:18px;min-height:calc(100vh - 48px)}
+.sidebar,.surface{background:#111827;border:1px solid #253047;border-radius:18px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.surface{display:grid;grid-template-rows:auto auto auto 1fr;gap:14px}
+.tab-btn,.link-btn,.action-btn{width:100%;text-align:left;border-radius:14px;border:1px solid #253047;background:#0b1220;color:#e9eef9;padding:12px;cursor:pointer}
+.tab-btn.active{border-color:#69bfff;background:#12243b}.kicker{display:block;color:#69bfff;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.summary,.status{font-size:13px;color:#94a3b8}
+iframe{width:100%;min-height:620px;border:1px solid #253047;border-radius:16px;background:#06090f}
+code{color:#9dd1ff}
+@media(max-width:980px){body{padding:14px}.layout{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Spec Surface / Skill Compare</div>
+      <h1 id="heading"></h1>
+      <p class="muted" id="description" style="margin-top:10px;"></p>
+      <div class="actions" id="links" style="margin-top:14px;"></div>
+      <div class="cards" id="cards" style="margin-top:14px;"></div>
+    </div>
+    <div class="panel" style="padding:16px;">
+      <h2>Decision Lens</h2>
+      <p class="muted" style="margin-top:8px;">These presets come from <code>SkillCompareHumanVersusLLM.spec.json</code>.</p>
+      <div class="focus-list" id="focusList" style="margin-top:12px;"></div>
+      <p class="muted" id="focusNote" style="margin-top:12px;">Choose a focus preset to highlight the strongest fit.</p>
+    </div>
+  </section>
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:14px;">
+      <div>
+        <h2>Expanded Talent Matrix</h2>
+        <p class="muted">Generated from spec JSON so labels and emphasis stay editable at the source.</p>
+      </div>
+      <button class="btn" id="refreshBtn" type="button">Refresh Live Studio Status</button>
+    </div>
+    <div id="tableHost"></div>
+  </section>
+</div>
+
+<script src="bridge_integration.js"></script>
+<script>
+
+window.callBridge ??= (action, payload) => window.BridgePortal
+  ? window.BridgePortal.sendToBridge(action, payload)
+  : Promise.resolve({ success: false, action, message: 'Bridge unavailable in this shell.' });
+console.debug('Specs bridge ready:', window.BridgePortal?.isAvailable);
+
+
+const SPEC = {
+  "title": "H.E.A.R.T.CORE - Expanded Talent Matrix",
+  "heading": "H.E.A.R.T.CORE: Studio Talent & Model Comparison",
+  "description": "A spec-driven decision table for discussing which tool or collaborator best fits a given studio task.",
+  "quickLinks": [
+    {
+      "label": "Concept Studio",
+      "url": "Concept.html"
+    },
+    {
+      "label": "Audit Matrix",
+      "url": "Audit.html"
+    },
+    {
+      "label": "Training Lab",
+      "url": "Training_Module.html"
+    },
+    {
+      "label": "Studio Settings",
+      "url": "Settings_Module.html"
+    }
+  ],
+  "liveCards": [
+    {
+      "id": "bridge",
+      "label": "Bridge Health"
+    },
+    {
+      "id": "personas",
+      "label": "Persona Count"
+    },
+    {
+      "id": "tts",
+      "label": "TTS Server"
+    },
+    {
+      "id": "settings",
+      "label": "Vault Root"
+    }
+  ],
+  "focusModes": [
+    {
+      "id": "architecture",
+      "label": "Architecture",
+      "column": "Senior Human (25y)",
+      "note": "Use the human lens when the work depends on long-memory tradeoffs and debt prevention."
+    },
+    {
+      "id": "specs",
+      "label": "Spec Discipline",
+      "column": "Gemini 1.5 Pro",
+      "note": "Best when strict structure, consistency, and broad orchestration matter most."
+    },
+    {
+      "id": "writing",
+      "label": "Polish & Writing",
+      "column": "Claude 3.5 Sonnet",
+      "note": "Best for presentation, concise explanation, and polished prose."
+    },
+    {
+      "id": "technical",
+      "label": "Technical Trench Work",
+      "column": "DeepSeek / Kimi",
+      "note": "Strong fit for affordable technical iteration and aggressive problem solving."
+    },
+    {
+      "id": "local",
+      "label": "Local Sovereignty",
+      "column": "Ollama (Llama 3.1)",
+      "note": "Best when privacy, air-gapped workflows, and local ownership are the main drivers."
+    }
+  ],
+  "columns": [
+    "Dimension",
+    "Senior Human (25y)",
+    "Gemini 1.5 Pro",
+    "Claude 3.5 Sonnet",
+    "DeepSeek / Kimi",
+    "Ollama (Llama 3.1)"
+  ],
+  "sections": [
+    {
+      "title": "The Smoke Break Dimensions",
+      "rows": [
+        [
+          "Coding",
+          "Expert",
+          "Senior / Fast",
+          "Expert / Clean",
+          "Strong / Clever",
+          "Senior / Local"
+        ],
+        [
+          "Architecture",
+          "Master",
+          "Lead",
+          "Senior",
+          "Mid / Lead",
+          "Senior / Local"
+        ],
+        [
+          "Project Management",
+          "Senior",
+          "Senior",
+          "Mid / Lead",
+          "Mid",
+          "N/A (Tool-bound)"
+        ],
+        [
+          "Team Delegation",
+          "Expert",
+          "Strategic",
+          "Collaborative",
+          "Functional",
+          "N/A"
+        ],
+        [
+          "Problem Framing",
+          "Visionary",
+          "Expert",
+          "Expert",
+          "Strong",
+          "Functional"
+        ]
+      ]
+    },
+    {
+      "title": "Extended Performance & Technical Comparison",
+      "rows": [
+        [
+          "Logic Audit Rigor",
+          "Intuitive",
+          "Extreme",
+          "High",
+          "Moderate",
+          "Lower"
+        ],
+        [
+          "Long Context Memory",
+          "Decades",
+          "2M Tokens",
+          "200k Tokens",
+          "128k / 200k",
+          "8k - 32k (VRAM dep)"
+        ],
+        [
+          "Instruction Following",
+          "Context-Aware",
+          "Very High",
+          "Exceptional",
+          "High",
+          "Variable"
+        ],
+        [
+          "Deep Refactoring",
+          "Surgical",
+          "Broad / Fast",
+          "Elegantly Concise",
+          "Aggressive",
+          "Manual-heavy"
+        ],
+        [
+          "DSP / Audio Logic",
+          "Master",
+          "Theoretical",
+          "Theoretical",
+          "Mathematical",
+          "Static"
+        ],
+        [
+          "Privacy / Sovereignty",
+          "Private",
+          "Cloud-bound",
+          "Cloud-bound",
+          "Cloud-bound",
+          "Total (Air-gapped)"
+        ],
+        [
+          "JSON/Spec Adherence",
+          "Practical",
+          "Perfect",
+          "Perfect",
+          "High",
+          "Moderate"
+        ],
+        [
+          "Error Recovery",
+          "Experience-based",
+          "Diagnostic",
+          "Self-correcting",
+          "Trial & Error",
+          "Fragile"
+        ],
+        [
+          "Cost vs. Throughput",
+          "Salary",
+          "High (Free/Tier)",
+          "Capped",
+          "Very Low Cost",
+          "Free (Hardware Only)"
+        ],
+        [
+          "Creative Soul",
+          "The Source",
+          "High Synthesis",
+          "Nuanced/Articulate",
+          "Functional",
+          "Derivative"
+        ],
+        [
+          "Obscure Libs (UVR5/RVC)",
+          "Expert",
+          "Research-ready",
+          "High",
+          "Expert (Technical)",
+          "Mid"
+        ],
+        [
+          "Visual Integrity OCR",
+          "Natural",
+          "Advanced",
+          "High",
+          "Strong (Kimi)",
+          "N/A (Llava req.)"
+        ],
+        [
+          "Multilingual Logic",
+          "Linguistic",
+          "Global",
+          "High",
+          "Native Asian/Global",
+          "Limited"
+        ],
+        [
+          "Burnout Factor",
+          "Needs Smokes",
+          "Zero",
+          "Rate-limited",
+          "Zero",
+          "Zero"
+        ],
+        [
+          "Edge-Case Detection",
+          "Expert",
+          "Lead",
+          "Senior",
+          "Mid",
+          "Junior"
+        ]
+      ]
+    }
+  ],
+  "highlightClasses": {
+    "Senior Human (25y)": "human",
+    "Gemini 1.5 Pro": "gemini",
+    "Claude 3.5 Sonnet": "claude",
+    "DeepSeek / Kimi": "deepseek",
+    "Ollama (Llama 3.1)": "ollama"
+  },
+  "highlightValues": [
+    "Expert",
+    "Master",
+    "Visionary",
+    "Extreme",
+    "Exceptional",
+    "The Source",
+    "Very Low Cost",
+    "Total (Air-gapped)"
+  ]
+};
+
+const pending = new Map();
+function createRequestId(prefix='spec'){return (window.crypto&&window.crypto.randomUUID)?`${prefix}_${window.crypto.randomUUID()}`:`${prefix}_${Date.now()}_${Math.floor(Math.random()*10000)}`;}
+function sendToBridge(action,payload={}){
+  return new Promise((resolve,reject)=>{
+    const requestId=createRequestId(action);
+    pending.set(requestId,{resolve,reject});
+    if(!window.parent||window.parent===window){pending.delete(requestId);reject(new Error('Bridge host unavailable.'));return;}
+    window.parent.postMessage({from:'spec',action,payload,requestId},'*');
+    setTimeout(()=>{if(pending.has(requestId)){pending.delete(requestId);reject(new Error(`Timed out waiting for ${action}.`));}},5000);
+  });
+}
+window.addEventListener('message',(event)=>{
+  const data=event.data;
+  if(!data||data.from!=='dashboard'||data.type!=='bridgeResponse'||!data.payload||!data.payload.requestId){return;}
+  const entry=pending.get(data.payload.requestId);
+  if(!entry){return;}
+  pending.delete(data.payload.requestId);
+  entry.resolve(data.payload);
+});
+
+let activeColumn='';
+function byId(id){return document.getElementById(id);}
+function renderLinks(){const host=byId('links');host.innerHTML='';(SPEC.quickLinks||[]).forEach(link=>{const b=document.createElement('button');b.className='btn';b.textContent=link.label;b.onclick=()=>window.location.href=link.url;host.appendChild(b);});}
+function renderCards(){const host=byId('cards');host.innerHTML='';(SPEC.liveCards||[]).forEach(card=>{const el=document.createElement('div');el.className='card';el.id=`card_${card.id}`;el.innerHTML=`<strong>${card.label}</strong><div class="value">Checking...</div><div class="detail">Waiting for runtime response.</div>`;host.appendChild(el);});}
+function setCard(id,value,detail){const el=byId(`card_${id}`);if(!el)return;el.querySelector('.value').textContent=value;el.querySelector('.detail').textContent=detail;}
+function applyFocus(modeId){const mode=(SPEC.focusModes||[]).find(x=>x.id===modeId);activeColumn=mode?mode.column:'';byId('focusNote').textContent=mode?mode.note:'Choose a focus preset to highlight the strongest fit.';document.querySelectorAll('#focusList .btn').forEach(btn=>btn.classList.toggle('primary',btn.dataset.column===activeColumn));renderTable();}
+function renderFocus(){const host=byId('focusList');host.innerHTML='';(SPEC.focusModes||[]).forEach(mode=>{const b=document.createElement('button');b.className='btn';b.dataset.column=mode.column;b.textContent=mode.label;b.onclick=()=>applyFocus(mode.id);host.appendChild(b);});}
+function cellClass(value,column){const classes=[];if((SPEC.highlightValues||[]).includes(value))classes.push('highlight');const mapped=SPEC.highlightClasses?SPEC.highlightClasses[column]:'';if(mapped&&(SPEC.highlightValues||[]).includes(value))classes.push(mapped);if(column===activeColumn)classes.push('focus-col');return classes.join(' ');}
+function renderTable(){const table=document.createElement('table');const thead=document.createElement('thead');const hr=document.createElement('tr');(SPEC.columns||[]).forEach(col=>{const th=document.createElement('th');th.textContent=col;if(col===activeColumn)th.classList.add('focus-col');hr.appendChild(th);});thead.appendChild(hr);table.appendChild(thead);const tbody=document.createElement('tbody');(SPEC.sections||[]).forEach(section=>{const sr=document.createElement('tr');sr.className='section';const td=document.createElement('td');td.colSpan=SPEC.columns.length;td.textContent=section.title;sr.appendChild(td);tbody.appendChild(sr);(section.rows||[]).forEach(row=>{const tr=document.createElement('tr');row.forEach((value,index)=>{const td=document.createElement('td');const column=SPEC.columns[index]||'';td.dataset.label=column;td.textContent=value;const cls=cellClass(value,column);if(cls)td.className=cls;tr.appendChild(td);});tbody.appendChild(tr);});});table.appendChild(tbody);byId('tableHost').replaceChildren(table);}
+async function refreshState(){const [bridge,personas,tts,settings]=await Promise.allSettled([sendToBridge('validateBridge'),sendToBridge('personaCatalog',{refreshCatalog:true}),sendToBridge('ttsStatus'),sendToBridge('settingsRead')]);setCard('bridge',bridge.status==='fulfilled'?(bridge.value.success?'Ready':'Attention'):'Offline',bridge.status==='fulfilled'?(bridge.value.message||'Diagnostics complete.'):bridge.reason.message);if(personas.status==='fulfilled'){const count=Array.isArray(personas.value.data?.personas)?personas.value.data.personas.length:0;setCard('personas',String(count),`${count} persona(s) available.`);}else{setCard('personas','Unavailable',personas.reason.message);}if(tts.status==='fulfilled'){setCard('tts',tts.value.data?.ok?'Online':'Unavailable',tts.value.message||'TTS status refreshed.');}else{setCard('tts','Unavailable',tts.reason.message);}if(settings.status==='fulfilled'){const vault=settings.value.data?.settings?.AiModelsVaultRoot||'(not set)';setCard('settings',vault,'Current vault root from bridge-backed settings.');}else{setCard('settings','Unavailable',settings.reason.message);}}
+document.addEventListener('DOMContentLoaded',()=>{byId('heading').textContent=SPEC.heading;byId('description').textContent=SPEC.description;renderLinks();renderCards();renderFocus();applyFocus(SPEC.focusModes?.[0]?.id||'');refreshState();byId('refreshBtn').onclick=refreshState;});
+
+</script>
+</body>
+</html>

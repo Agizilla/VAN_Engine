@@ -1,0 +1,22 @@
+  ACTIVE  ISO_001 - Self-Consistency
+  ACTIVE  ISO_002 - Token Mapping
+  ACTIVE  ISO_003 - Cross-Validation
+  ACTIVE  ISO_004 - Mutation Resistance
+  ACTIVE  ISO_005 - Consensus Hallucination Detection
+  ACTIVE  ISO_006 - Ultrasonic Proximity
+  ACTIVE  ISO_007 - Persona Fidelity
+  ACTIVE  ISO_008 - Cross-Modal Integrity
+  ACTIVE  ISO_009 - Quadruple Mapping
+  ACTIVE  ISO_010 - Drift Gating
+  ACTIVE  ISO_011 - Archetypal FSM
+  ACTIVE  ISO_012 - Recursive Self-Validation
+  ACTIVE  ISO_013 - Graceful Degradation
+  ACTIVE  ISO_014 - Deterministic Timeout
+  ACTIVE  ISO_015 - Observable State
+  ACTIVE  ISO_016 - Idempotent Operations
+  ACTIVE  ISO_017 - Minimum Viable Interface
+  ACTIVE  ISO_018 - Forward Compatibility
+  ENFORCED  ISO_019 - Privacy by Default
+  ENFORCED  ISO_020 - Anti-Hallucination
+
+RULES COUNT: 20

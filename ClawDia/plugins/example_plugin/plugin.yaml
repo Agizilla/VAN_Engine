@@ -1,0 +1,8 @@
+id: example_plugin
+name: Example Plugin
+version: 1.0.0
+author: ClawDia
+description: A minimal example plugin
+category: example
+requires: []
+min_clawdia_version: 0.1.0

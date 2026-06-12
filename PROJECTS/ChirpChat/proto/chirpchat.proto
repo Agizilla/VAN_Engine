@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package chirpchat.v1;
+
+option csharp_namespace = "ChirpChat.V1";
+option go_package = "chirpchat/v1";
+option java_multiple_files = true;
+option java_package = "com.chirpchat.v1";
+option swift_prefix = "CC";
+
+// Shared wire contract for the Wi-Fi-only MVP and later offline mesh transports.
+// The oneof payload lets the transport layer carry pairing, chat, receipts,
+// group events, and file transfer frames through the same envelope.
+
+message Envelope {
+  // Stable schema version for adapter negotiation.
+  string schema_version = 1;
+
+  // Unique message identifier for deduplication and delivery tracking.
+  string message_id = 2;
+
+  // Conversation ID for direct chats or groups.
+  string conversation_id = 3;
+
+  // Sender and recipient NodeIDs.
+  string sender_id = 4;
+  string recipient_id = 5;
+
+  // Monotonic timestamps for ordering and local sync.
+  uint64 created_at_ms = 6;
+  uint64 lamport_ts = 7;
+
+  // Optional routing hint used by the local LAN MVP.
+  repeated string relay_path = 8;
+
+  oneof payload {
+    PairingFrame pairing = 20;
+    TextMessage text = 21;
+    ImageMessage image = 22;
+    FileMetadata file_metadata = 23;
+    FileChunk file_chunk = 24;
+    TypingIndicator typing = 25;
+    Receipt receipt = 26;
+    GroupAction group_action = 27;
+    Presence presence = 28;
+  }
+}
+
+message PairingFrame {
+  enum Phase {
+    PHASE_UNSPECIFIED = 0;
+    DISCOVER = 1;
+    CHALLENGE = 2;
+    RESPONSE = 3;
+    CONFIRM = 4;
+  }
+
+  Phase phase = 1;
+  string session_id = 2;
+  string device_id = 3;
+  string display_name = 4;
+  bytes nonce = 5;
+  bytes ephemeral_public_key = 6;
+  bytes proof = 7;
+  string transport_hint = 8;
+  string service_name = 9;
+}
+
+message TextMessage {
+  string body = 1;
+  repeated string mentions = 2;
+  string reply_to_message_id = 3;
+}
+
+message ImageMessage {
+  string file_id = 1;
+  string mime_type = 2;
+  uint32 width = 3;
+  uint32 height = 4;
+  bytes thumbnail_jpeg = 5;
+  string caption = 6;
+}
+
+message FileMetadata {
+  string file_id = 1;
+  string file_name = 2;
+  uint64 file_size = 3;
+  string mime_type = 4;
+  string sha256_hash = 5;
+  uint32 total_blocks = 6;
+  uint32 chunk_size = 7;
+  uint32 k = 8;
+  uint32 m = 9;
+  repeated string recipient_ids = 10;
+}
+
+message FileChunk {
+  string file_id = 1;
+  uint32 block_index = 2;
+  uint32 chunk_index = 3;
+  bytes data = 4;
+  bytes sha256_hash = 5;
+}
+
+message TypingIndicator {
+  bool is_typing = 1;
+  uint32 expires_after_ms = 2;
+}
+
+message Receipt {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    DELIVERY = 1;
+    READ = 2;
+  }
+
+  Kind kind = 1;
+  string message_id = 2;
+  string conversation_id = 3;
+  string sender_id = 4;
+  uint64 acknowledged_at_ms = 5;
+}
+
+message GroupAction {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    CREATE = 1;
+    ADD = 2;
+    REMOVE = 3;
+  }
+
+  Kind kind = 1;
+  string group_id = 2;
+  string group_name = 3;
+  repeated string member_ids = 4;
+  string target_member_id = 5;
+  string admin_id = 6;
+  bytes group_key_ciphertext = 7;
+}
+
+message Presence {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    OFFLINE = 1;
+    ONLINE = 2;
+    AWAY = 3;
+    TYPING = 4;
+  }
+
+  State state = 1;
+  string display_name = 2;
+  uint64 updated_at_ms = 3;
+}
+
