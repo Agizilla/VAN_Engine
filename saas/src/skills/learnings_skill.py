@@ -80,9 +80,14 @@ class LearningsSkill(BaseSkill):
         "properties": {
             "action": {
                 "type": "string",
-                "enum": ["list", "add", "fix"],
-                "description": "list=query registry, add=new entry, fix=repair malformed lines",
+                "enum": ["list", "add", "fix", "list_peers", "add_peer", "broadcast"],
+                "description": "list=query, add=new entry, fix=repair, list_peers/show peers, add_peer=register peer, broadcast=gossip to all peers",
                 "default": "list",
+            },
+            "url": {
+                "type": "string",
+                "description": "Peer URL (add_peer action)",
+                "default": "",
             },
             "limit": {
                 "type": "integer",
@@ -159,6 +164,25 @@ class LearningsSkill(BaseSkill):
         if action == "fix":
             result = _fix_file()
             return {"result": {"action": "fix", "fixed": result["fixed"], "remaining": result["remaining"]}}
+
+        if action in ("list_peers", "add_peer", "broadcast"):
+            import requests
+            base = "http://localhost:8001/hooks/learnings/gossip"
+            try:
+                if action == "list_peers":
+                    resp = requests.get(f"{base}/peers", timeout=10)
+                    return {"result": {"action": "list_peers", **resp.json()}}
+                elif action == "add_peer":
+                    url = kwargs.get("url", "").strip()
+                    if not url:
+                        return {"result": {"action": "add_peer", "status": "error", "message": "url required"}}
+                    resp = requests.post(f"{base}/peers", json={"url": url}, timeout=10)
+                    return {"result": {"action": "add_peer", **resp.json()}}
+                else:
+                    resp = requests.post(f"{base}/broadcast", timeout=30)
+                    return {"result": {"action": "broadcast", **resp.json()}}
+            except Exception as e:
+                return {"result": {"action": action, "status": "error", "message": str(e)}}
 
         raw = _read_raw()
         all_entries = _parse_entries(raw)
