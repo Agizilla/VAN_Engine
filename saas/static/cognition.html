@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cognition — Agent Thinking</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #c9d1d9;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+header h1 { font-size: 18px; font-weight: 600; color: #58a6ff; }
+#status-bar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #8b949e;
+}
+#status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #3fb950; display: inline-block;
+}
+#status-text { color: #7ee787; }
+#thinking-count { color: #8b949e; font-size: 12px; }
+#timeline {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.event {
+  display: flex;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  animation: fadeIn 0.2s ease;
+  border-left: 3px solid #30363d;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.event .time { color: #484f58; font-size: 11px; white-space: nowrap; padding-top: 2px; min-width: 65px; }
+.event .body { flex: 1; }
+.event .body .msg { color: #c9d1d9; }
+.event .body .summary { color: #8b949e; font-size: 12px; margin-top: 2px; }
+.event .body .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.tag { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+.tag.learning { background: #1a3a1a; color: #7ee787; border-color: #3fb950; }
+.tag.meta { background: #1a2a3a; color: #58a6ff; border-color: #1f6feb; }
+
+/* Type indicators */
+.event.thinking { border-left-color: #58a6ff; }
+.event.tool_call { border-left-color: #d29922; }
+.event.tool_call .msg::before { content: "⚙ "; }
+.event.tool_result { border-left-color: #3fb950; }
+.event.tool_result .msg::before { content: "✓ "; }
+.event.decision { border-left-color: #bc8cff; }
+.event.decision .msg::before { content: "→ "; }
+.event.learning { border-left-color: #7ee787; }
+.event.learning .msg::before { content: "🧠 "; }
+.event.status { border-left-color: #8b949e; }
+.event.error { border-left-color: #f85149; }
+.event.error .msg::before { content: "✗ "; }
+
+.event .body .options {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.opt { font-size: 12px; padding: 2px 8px; border-radius: 4px; background: #161b22; border: 1px solid #30363d; display: flex; align-items: center; gap: 6px; }
+.opt.chosen { border-color: #3fb950; }
+.opt.chosen::after { content: "← chosen"; color: #3fb950; font-size: 10px; margin-left: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧠 Cognition</h1>
+  <div id="status-bar">
+    <span id="status-dot"></span>
+    <span id="status-text">listening</span>
+    <span id="thinking-count">0 events</span>
+  </div>
+</header>
+<div id="timeline"></div>
+<script>
+const timeline = document.getElementById('timeline');
+const statusText = document.getElementById('status-text');
+const statusDot = document.getElementById('status-dot');
+const countEl = document.getElementById('thinking-count');
+let lastId = 0;
+let count = 0;
+
+function addEvent(ev) {
+  const el = document.createElement('div');
+  el.className = `event ${ev.type}`;
+
+  const ts = new Date(ev.ts || Date.now());
+  const timeStr = ts.toLocaleTimeString();
+
+  let bodyHtml = `<div class="msg">${escapeHtml(ev.message)}</div>`;
+  if (ev.summary) bodyHtml += `<div class="summary">${escapeHtml(ev.summary)}</div>`;
+  if (ev.options && ev.options.length > 0) {
+    bodyHtml += '<div class="options">';
+    ev.options.forEach(o => {
+      const chosen = o === ev.message ? ' chosen' : '';
+      bodyHtml += `<div class="opt${chosen}">${escapeHtml(o)}</div>`;
+    });
+    bodyHtml += '</div>';
+  }
+  if (ev.tags && ev.tags.length > 0) {
+    bodyHtml += '<div class="tags">' + ev.tags.map(t => `<span class="tag ${t === 'learning' ? 'learning' : ''} ${t === 'meta-learning' ? 'meta' : ''}">${escapeHtml(t)}</span>`).join('') + '</div>';
+  }
+
+  el.innerHTML = `<div class="time">${timeStr}</div><div class="body">${bodyHtml}</div>`;
+  timeline.appendChild(el);
+  timeline.scrollTop = timeline.scrollHeight;
+
+  // update status bar
+  if (ev.type === 'thinking' || ev.type === 'tool_call') {
+    statusText.textContent = ev.message.slice(0, 60);
+    statusDot.style.background = '#d29922';
+  } else if (ev.type === 'error') {
+    statusText.textContent = 'error';
+    statusDot.style.background = '#f85149';
+  } else if (ev.type === 'learning') {
+    statusDot.style.background = '#7ee787';
+  } else {
+    statusText.textContent = 'idle';
+    statusDot.style.background = '#3fb950';
+  }
+  count++;
+  countEl.textContent = count + ' events';
+  lastId = ev.id || lastId;
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Connect SSE
+const evtSource = new EventSource(`/api/cognition/stream?after=${lastId}`);
+evtSource.onmessage = function(e) {
+  try {
+    const ev = JSON.parse(e.data);
+    addEvent(ev);
+  } catch(err) {
+    // keepalive
+  }
+};
+evtSource.onerror = function() {
+  statusText.textContent = 'reconnecting...';
+  statusDot.style.background = '#f85149';
+};
+</script>
+</body>
+</html>

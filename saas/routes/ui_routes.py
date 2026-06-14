@@ -96,12 +96,28 @@ async def ui_forge(request: Request):
 </body></html>""")
 
 
+@router.get("/hooks/ui/clawdia")
+async def ui_clawdia(request: Request):
+    fpath = Path(__file__).parent.parent / "static" / "clawdia.html"
+    if fpath.exists():
+        return HTMLResponse(fpath.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>clawdia.html not found</h1>", status_code=404)
+
+
 @router.get("/hooks/ui/forge-entanglement")
 async def forge_entanglement_ui():
     fpath = Path(__file__).parent.parent / "static" / "forge.html"
     if fpath.exists():
         return HTMLResponse(fpath.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>forge.html not found</h1>", status_code=404)
+
+
+@router.get("/hooks/ui/cockpit")
+async def ui_cockpit():
+    fpath = Path(__file__).parent.parent / "static" / "cockpit.html"
+    if fpath.exists():
+        return HTMLResponse(fpath.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>cockpit.html not found</h1>", status_code=404)
 
 
 @router.get("/hooks/ui/{skill_name}")

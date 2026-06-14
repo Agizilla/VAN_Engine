@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+import base64
 import numpy as np
 from .base import BaseSkill, register_skill
 from tools.master_skills.imageSkill import ImageSkill, resize_to_square, detect_face_in_image
@@ -17,6 +18,22 @@ def _get_img() -> ImageSkill:
 def _load_image(path: str) -> np.ndarray | None:
     if not path:
         return None
+    if path.startswith("data:"):
+        try:
+            from PIL import Image as PILImage
+            import io
+            _, encoded = path.split(",", 1)
+            decoded = base64.b64decode(encoded)
+            buf = io.BytesIO(decoded)
+            with PILImage.open(buf) as im:
+                im.verify()
+            buf.seek(0)
+            import cv2
+            file_bytes = np.frombuffer(decoded, dtype=np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            return img
+        except Exception:
+            return None
     p = Path(path)
     if not p.exists():
         return None
@@ -121,6 +138,14 @@ class VisionOcrSkill(BaseSkill):
     name = "vision_ocr"
     description = "Extract text from image using Tesseract OCR"
     category = "vision"
+    tags = ["vision", "ocr", "text-extraction"]
+    input_schema = {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "Path to image file or base64 data URI", "format": "image-path"},
+        },
+        "required": ["path"],
+    }
     def execute(self, **kwargs) -> dict:
         path = kwargs.get("path", "")
         img = _load_image(path)
@@ -226,6 +251,15 @@ class VisionSwapSkill(BaseSkill):
     name = "vision_swap"
     description = "Swap face from source image onto target image"
     category = "vision"
+    tags = ["vision", "face-swap", "image"]
+    input_schema = {
+        "type": "object",
+        "properties": {
+            "source": {"type": "string", "description": "Path to source face image or base64 data URI", "format": "image-path"},
+            "target": {"type": "string", "description": "Path to target image or base64 data URI", "format": "image-path"},
+        },
+        "required": ["source", "target"],
+    }
     def execute(self, **kwargs) -> dict:
         source = kwargs.get("source", "")
         target = kwargs.get("target", "")

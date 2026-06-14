@@ -15,6 +15,13 @@ from routes.midi import router as midi_router
 from routes.github_watch import router as github_watch_router
 from routes.optimiser import router as optimiser_router
 from routes.learning_gossip import router as gossip_router
+from routes.project_ingest import router as project_router
+from routes.agent_matcher import router as agent_router
+from routes.cognition import router as cognition_router
+from routes.simulations import router as simulations_router
+from routes.dirty_talker import router as dirty_talker_router
+from routes.tts import router as tts_router
+from routes.memory import router as memory_router
 
 
 _gossip_shutdown = asyncio.Event()
@@ -38,6 +45,9 @@ async def lifespan(app: FastAPI):
     from routes.gossip_worker import background_gossip_worker
     _gossip_task = asyncio.create_task(background_gossip_worker(3600, _gossip_shutdown))
     logger.info("Gossip worker started (hourly)")
+    from routes.agent_matcher import start_matcher_directly
+    start_matcher_directly()
+    logger.info("Agent matcher started")
     yield
     _gossip_shutdown.set()
     if _gossip_task:
@@ -56,9 +66,16 @@ app.include_router(midi_router)          # GET /hooks/ui/midi, POST /hooks/midi/
 app.include_router(forge_router)         # POST /hooks/forge
 app.include_router(github_watch_router)  # GET/POST /hooks/github_watch/{username}
 app.include_router(optimiser_router)     # POST /api/optimise
-app.include_router(gossip_router)        # /hooks/learnings/gossip/* (before ui_router)
-app.include_router(ui_router)           # /hooks/ui/* (catch-all for skill UIs)
-app.include_router(api_router)          # /hooks/* (catch-all for skill execution)
+app.include_router(project_router)       # POST /api/project/ingest, GET /api/projects
+app.include_router(agent_router)         # POST /api/agent/matcher/*, POST/GET /api/agent/interests
+app.include_router(cognition_router)     # POST /api/cognition/event, GET /api/cognition/stream, /hooks/ui/cognition
+app.include_router(simulations_router)   # GET /hooks/ui/simulations/* (before ui_router's {skill_name} catch-all)
+app.include_router(dirty_talker_router)  # GET /hooks/ui/dirty-talker, POST /api/dirty-talker/*
+app.include_router(tts_router)           # POST /api/tts/speak, GET /api/tts/last
+app.include_router(memory_router)        # POST/GET /api/memory/archive, GET /api/memory/boot-context
+app.include_router(ui_router)            # GET /hooks/ui/* (menu, clawdia, forge-entanglement, etc.)
+app.include_router(gossip_router)        # gossip protocol endpoints
+app.include_router(api_router)           # POST /hooks/{skill_name} catch-all
 
 
 @app.get("/")
@@ -68,4 +85,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host="127.0.0.1", port=8001, reload=False)
+    uvicorn.run(app, host="127.0.0.1", port=8001)

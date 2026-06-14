@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARA — Simulation Index</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#05070f; color:#c8d0e0; font-family:system-ui,monospace; padding:40px 24px; display:flex; flex-direction:column; align-items:center; }
+  h1 { font-size:1.1rem; color:#00f2fe; letter-spacing:4px; text-transform:uppercase; margin-bottom:6px; }
+  .sub { font-size:0.6rem; color:#2a5a6a; margin-bottom:32px; letter-spacing:2px; }
+  .grid { max-width:900px; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:640px){ .grid { grid-template-columns:1fr; } }
+  .card { background:#0a0c18; border:1px solid #1a2240; border-radius:10px; padding:14px; transition:0.2s; }
+  .card:hover { border-color:#00f2fe44; box-shadow:0 0 30px rgba(0,242,254,0.08); }
+  .card .tag { font-size:0.45rem; color:#00f2fe88; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+  .card h2 { font-size:0.75rem; color:#c8d0e0; margin-bottom:6px; }
+  .card h2 a { color:inherit; text-decoration:none; }
+  .card h2 a:hover { color:#00f2fe; }
+  .card p { font-size:0.6rem; color:#5a6a8a; line-height:1.5; margin-bottom:8px; }
+  .card .meta { font-size:0.5rem; color:#2a4a5a; display:flex; gap:10px; flex-wrap:wrap; }
+  .card .meta .loc { color:#3a6a7a; }
+  .badge { display:inline-block; font-size:0.45rem; padding:1px 6px; border-radius:3px; background:#0a1a2a; color:#7bf2ff; border:1px solid #0a2a3a; }
+  .section-title { grid-column:1/-1; font-size:0.65rem; color:#2a5a6a; letter-spacing:2px; text-transform:uppercase; margin:16px 0 4px; border-bottom:1px solid #0a1a2a; padding-bottom:6px; }
+  .badge-3d { border-color:#4466aa55; color:#66aaff; }
+  .badge-ref { border-color:#6644aa55; color:#aa66ff; }
+  .badge-2d { border-color:#44aa6655; color:#66ff99; }
+  .badge-route { border-color:#aa664455; color:#ffaa66; }
+  .server-note { margin-top:32px; font-size:0.5rem; color:#1a3a4a; text-align:center; max-width:500px; line-height:1.6; }
+</style>
+</head>
+<body>
+  <h1>⛓ ARA SIMULATION INDEX</h1>
+  <div class="sub">12-Block Emotional Face System — Browse All Prototypes</div>
+
+  <div class="grid">
+
+    <div class="section-title">Live Apps (served at :8001)</div>
+
+    <div class="card">
+      <div class="tag">cockpit</div>
+      <h2><a href="http://127.0.0.1:8001/hooks/ui/cockpit" target="_blank">🖥 Cockpit</a></h2>
+      <p>Unified launcher — Living Mirror iframe + DirtyTalker chat + emotion bar</p>
+      <div class="meta"><span class="loc">saas/static/cockpit.html</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">forge</div>
+      <h2><a href="http://127.0.0.1:8001/hooks/ui/simulations/ara-living-mirror" target="_blank">⚒ Living Mirror Forge</a></h2>
+      <p>Main forge — 12-zone DR Law, emotional tags, 3D head vertex morphing, pixel marble mode, postMessage bridge</p>
+      <div class="meta"><span class="loc">saas/static/simulations/ara-living-mirror-forge.html</span> <span class="badge badge-3d">3D</span></div>
+    </div>
+
+    <div class="section-title">2D Prototypes</div>
+
+    <div class="card">
+      <div class="tag">2d · current</div>
+      <h2><a href="aras/ara-12block-emotional-face.html" target="_blank">📐 12-Block Emotional Face</a></h2>
+      <p>Pure 2D anatomical face — 12 zone shapes (brows, eyes, nose, mouth, jaw) driven by temp/coup/stab with emotion transitions</p>
+      <div class="meta"><span class="loc">aras/ara-12block-emotional-face.html</span> <span class="badge badge-2d">2D</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">2d · love engine</div>
+      <h2><a href="aras/ara-pixel-emotional-face.html" target="_blank">💕 Ultimate Love Engine</a></h2>
+      <p>Text-to-emotion-to-voice-to-visual pipeline — phenomime lip sync, Web Speech TTS, spec-driven emotion + glow, keyword triggers, v3.0 JSON loader</p>
+      <div class="meta"><span class="loc">aras/ara-pixel-emotional-face.html</span> <span class="badge badge-2d">2D</span> <a href="aras/ara_ultimate_love_spec.json" target="_blank">📄 spec</a></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">2d · pixel marble</div>
+      <h2><a href="aras/ara-pixel-marble-living-face.html" target="_blank">📸 Pixel Marble Face</a></h2>
+      <p>Equirectangular photo-to-billboard pixel projection with angle-aware tinting on sphere surface</p>
+      <div class="meta"><span class="loc">aras/ara-pixel-marble-living-face.html</span> <span class="badge badge-2d">2D</span></div>
+    </div>
+
+    <div class="section-title">3D Prototypes</div>
+
+    <div class="card">
+      <div class="tag">3d · holographic</div>
+      <h2><a href="aras/ara-holographic-wireframe.html" target="_blank">🌀 Holographic Wireframe</a></h2>
+      <p>68-landmark face mesh → 3D wireframe with orbital HUD rings, matrix field, glitch flicker, text sprites</p>
+      <div class="meta"><span class="loc">aras/ara-holographic-wireframe.html</span> <span class="badge badge-3d">3D</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">3d · multi-angle</div>
+      <h2><a href="aras/ara-multi-angle-prototype.html" target="_blank">🔀 Multi-Angle Slice</a></h2>
+      <p>Upload N images → 360° sliced by count, each image populates its angular band via theta-window filtering</p>
+      <div class="meta"><span class="loc">aras/ara-multi-angle-prototype.html</span> <span class="badge badge-3d">3D</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">3d · resonance</div>
+      <h2><a href="aras/ara-3d-living-resonance.html" target="_blank">🌐 3D Living Resonance</a></h2>
+      <p>96-subdiv head mesh, 1200 additive particles, 3D bond lines, orbital controls (DeepSeek reference)</p>
+      <div class="meta"><span class="loc">aras/ara-3d-living-resonance.html</span> <span class="badge badge-3d">3D</span> <span class="badge badge-ref">ref</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">3d · conceptron</div>
+      <h2><a href="aras/ara-conceptron.html" target="_blank">🧬 ARA Conceptron — Signal Signature Volumes</a></h2>
+      <p>Text-to-hyperspace: paste any text → verses become 3D concept volumes via Markov fingerprint clustering + K-means on bigram similarity. Three.js with OrbitControls.</p>
+      <div class="meta"><span class="loc">aras/ara-conceptron.html</span> <span class="badge badge-3d">3D</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">3d · emotion marble</div>
+      <h2><a href="aras/ara-emotional-holographic-marble.html" target="_blank">💎 Emotional Holographic Marble</a></h2>
+      <p>Emotion-driven RGB multipliers per marble (filthy=R1.35×B1.4, tender=G1.1×), hemisphere opacity culling</p>
+      <div class="meta"><span class="loc">aras/ara-emotional-holographic-marble.html</span> <span class="badge badge-3d">3D</span> <span class="badge badge-ref">ref</span></div>
+    </div>
+
+    <div class="section-title">Archives & Reference</div>
+
+    <div class="card">
+      <div class="tag">archive</div>
+      <h2><a href="aras/ara-musicroulette-living-archive.html" target="_blank">🎵 Music Roulette</a></h2>
+      <p>Blind tier music discovery with resonance level mechanic and Hype Share minting (DeepSeek reference)</p>
+      <div class="meta"><span class="loc">aras/ara-musicroulette-living-archive.html</span> <span class="badge badge-ref">ref</span></div>
+    </div>
+
+    <div class="section-title">Server Routes</div>
+
+    <div class="card">
+      <div class="tag">backend</div>
+      <h2><a href="https://github.com/anomalyco/VAN_Engine/blob/main/saas/routes/dirty_talker.py" target="_blank">🔌 Dirty Talker API</a></h2>
+      <p>7 endpoints, session auth (Bearer / JSON / query param), _SESSION_TTL=3600</p>
+      <div class="meta"><span class="loc">saas/routes/dirty_talker.py</span> <span class="badge badge-route">route</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">backend</div>
+      <h2><a href="https://github.com/anomalyco/VAN_Engine/blob/main/saas/routes/simulations.py" target="_blank">📂 Simulations Router</a></h2>
+      <p>Serves simulation HTML files including /hooks/ui/simulations/ara-living-mirror</p>
+      <div class="meta"><span class="loc">saas/routes/simulations.py</span> <span class="badge badge-route">route</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">backend</div>
+      <h2><a href="https://github.com/anomalyco/VAN_Engine/blob/main/saas/routes/ui_routes.py" target="_blank">🖥 UI Router</a></h2>
+      <p>Serves cockpit.html at /hooks/ui/cockpit</p>
+      <div class="meta"><span class="loc">saas/routes/ui_routes.py</span> <span class="badge badge-route">route</span></div>
+    </div>
+
+    <div class="card">
+      <div class="tag">index</div>
+      <h2><a href="https://github.com/anomalyco/VAN_Engine/blob/main/PAI/VAN_INDEX.md" target="_blank">📇 VAN Index</a></h2>
+      <p>Persistent file index for the entire VAN_Engine project</p>
+      <div class="meta"><span class="loc">PAI/VAN_INDEX.md</span> <span class="badge badge-route">index</span></div>
+    </div>
+
+  </div>
+
+  <div class="server-note">
+    Server running at <b>http://127.0.0.1:8001</b> — live apps require the FastAPI server to be running.<br>
+    Prototypes in <b>aras/</b> open directly from the filesystem or any static server.
+  </div>
+</body>
+</html>

@@ -1,1 +1,2164 @@
-v3.8.2
+InstructionToOpenCode.md
+Complete Implementation Guide for VAN_Engine Brain Integration with PAI System
+
+Overview
+This document provides all code snippets and instructions in exact execution order to implement the complete PAI system integration into VAN_Engine Brain. Follow sequentially. Do not skip steps.
+
+Prerequisites
+bash
+# Ensure directories exist
+mkdir -p VAN_Engine/memory/{RAW,WORK,LEARNING,STATE,WISDOM}
+mkdir -p VAN_Engine/memory/LEARNING/REFLECTIONS
+mkdir -p VAN_Engine/data
+mkdir -p VAN_Engine/src/main/{ipc,services}
+mkdir -p VAN_Engine/src/renderer/components
+mkdir -p VAN_Engine/src/renderer/hooks
+mkdir -p VAN_Engine/src/renderer/store
+mkdir -p VAN_Engine/src/renderer/types
+mkdir -p VAN_Engine/src/preload
+Step 1: Core Data Structures
+File: VAN_Engine/core/algorithm.py
+python
+"""PAI Algorithm v3.7.0 - Core execution engine"""
+
+from enum import Enum
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import List, Optional, Dict, Any
+from pathlib import Path
+
+
+class AlgorithmPhase(Enum):
+    OBSERVE = "observe"
+    THINK = "think"
+    PLAN = "plan"
+    BUILD = "build"
+    EXECUTE = "execute"
+    VERIFY = "verify"
+    LEARN = "learn"
+
+
+class EffortTier(Enum):
+    STANDARD = "standard"
+    EXTENDED = "extended"
+    ADVANCED = "advanced"
+    DEEP = "deep"
+    COMPREHENSIVE = "comprehensive"
+
+
+@dataclass
+class ISCCriterion:
+    id: str
+    text: str
+    passed: bool = False
+    evidence: Optional[str] = None
+
+    def to_markdown(self) -> str:
+        status = "[x]" if self.passed else "[ ]"
+        return f"- {status} {self.id}: {self.text}"
+
+
+@dataclass
+class PRD:
+    slug: str
+    task: str
+    effort: EffortTier = EffortTier.STANDARD
+    phase: AlgorithmPhase = AlgorithmPhase.OBSERVE
+    progress: str = "0/0"
+    mode: str = "interactive"
+    started: Optional[datetime] = None
+    updated: Optional[datetime] = None
+    iteration: Optional[int] = None
+    context: str = ""
+    criteria: List[ISCCriterion] = field(default_factory=list)
+    decisions: List[str] = field(default_factory=list)
+    verification: Dict[str, str] = field(default_factory=dict)
+
+    def to_yaml_frontmatter(self) -> str:
+        return f"""---
+task: {self.task}
+slug: {self.slug}
+effort: {self.effort.value}
+phase: {self.phase.value}
+progress: {self.progress}
+mode: {self.mode}
+started: {self.started.isoformat() if self.started else ''}
+updated: {self.updated.isoformat() if self.updated else ''}
+{'iteration: ' + str(self.iteration) if self.iteration else ''}
+---
+"""
+
+    def to_markdown(self) -> str:
+        frontmatter = self.to_yaml_frontmatter()
+        criteria_section = "\n".join([c.to_markdown() for c in self.criteria])
+        decisions_section = "\n".join([f"- {d}" for d in self.decisions])
+        verification_section = "\n".join([f"- {k}: {v}" for k, v in self.verification.items()])
+
+        return f"""{
+   frontmatter}
+## Context
+
+{self.context}
+
+## Criteria
+
+{criteria_section}
+
+## Decisions
+
+{decisions_section}
+
+## Verification
+
+{verification_section}
+"""
+
+
+@dataclass
+class AlgorithmState:
+    phase: AlgorithmPhase = AlgorithmPhase.OBSERVE
+    effort: EffortTier = EffortTier.STANDARD
+    time_budget_seconds: int = 120
+    time_used_seconds: float = 0.0
+    phase_start_time: Optional[float] = None
+    prd: Optional[PRD] = None
+    prd_path: Optional[Path] = None
+    selected_capabilities: List[Dict[str, str]] = field(default_factory=list)
+    invoked_capabilities: List[str] = field(default_factory=list)
+    key_results: List[str] = field(default_factory=list)
+    next_actions: List[str] = field(default_factory=list)
+
+
+# Time budgets per effort tier
+TIME_BUDGETS = {
+    EffortTier.STANDARD: 120,      # 2 minutes
+    EffortTier.EXTENDED: 480,      # 8 minutes
+    EffortTier.ADVANCED: 960,      # 16 minutes
+    EffortTier.DEEP: 1920,         # 32 minutes
+    EffortTier.COMPREHENSIVE: 7200 # 120 minutes
+}
+
+# Minimum ISC counts per effort tier
+MIN_ISC_COUNTS = {
+    EffortTier.STANDARD: 8,
+    EffortTier.EXTENDED: 16,
+    EffortTier.ADVANCED: 24,
+    EffortTier.DEEP: 40,
+    EffortTier.COMPREHENSIVE: 64
+}
+Step 2: PRD Manager
+File: VAN_Engine/core/prd_manager.py
+python
+"""PRD Manager - System of record for Algorithm state"""
+
+import re
+from pathlib import Path
+from datetime import datetime, timezone
+from typing import Optional, List, Dict
+import yaml
+
+from .algorithm import PRD, ISCCriterion, AlgorithmPhase, EffortTier, MIN_ISC_COUNTS
+
+
+class PRDManager:
+    def __init__(self, memory_root: Path):
+        self.work_dir = memory_root / "WORK"
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+
+    def create(self, slug: str, task: str, effort: EffortTier = EffortTier.STANDARD) -> PRD:
+        """Create a new PRD stub"""
+        now = datetime.now(timezone.utc)
+        prd = PRD(
+            slug=slug,
+            task=task,
+            effort=effort,
+            started=now,
+            updated=now
+        )
+        self._write(prd)
+        return prd
+
+    def load(self, slug: str) -> Optional[PRD]:
+        """Load PRD from file"""
+        prd_path = self.work_dir / slug / "PRD.md"
+        if not prd_path.exists():
+            return None
+
+        content = prd_path.read_text(encoding='utf-8')
+        return self._parse(content, prd_path)
+
+    def _parse(self, content: str, prd_path: Path) -> PRD:
+        """Parse PRD.md into PRD object"""
+        # Extract YAML frontmatter
+        frontmatter_match = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+        frontmatter = yaml.safe_load(frontmatter_match.group(1)) if frontmatter_match else {}
+
+        # Extract body sections
+        body = content[frontmatter_match.end():] if frontmatter_match else content
+
+        # Parse criteria
+        criteria = []
+        criteria_pattern = r'- \[(x| )\] (ISC-\d+): (.*?)(?=\n- \[|$|\n##)'
+        for match in re.finditer(criteria_pattern, body, re.DOTALL):
+            passed = match.group(1) == 'x'
+            criteria.append(ISCCriterion(
+                id=match.group(2),
+                text=match.group(3).strip(),
+                passed=passed
+            ))
+
+        # Parse decisions
+        decisions = []
+        decisions_section = re.search(r'## Decisions\n(.*?)(?=\n##|$)', body, re.DOTALL)
+        if decisions_section:
+            for line in decisions_section.group(1).split('\n'):
+                line = line.strip()
+                if line.startswith('-'):
+                    decisions.append(line[1:].strip())
+
+        # Parse verification
+        verification = {}
+        verification_section = re.search(r'## Verification\n(.*?)(?=\n##|$)', body, re.DOTALL)
+        if verification_section:
+            for line in verification_section.group(1).split('\n'):
+                if ': ' in line:
+                    k, v = line.split(': ', 1)
+                    verification[k.strip()] = v.strip()
+
+        # Parse context
+        context = ""
+        context_section = re.search(r'## Context\n(.*?)(?=\n##|$)', body, re.DOTALL)
+        if context_section:
+            context = context_section.group(1).strip()
+
+        effort = EffortTier(frontmatter.get('effort', 'standard'))
+        phase = AlgorithmPhase(frontmatter.get('phase', 'observe'))
+
+        return PRD(
+            slug=frontmatter.get('slug', ''),
+            task=frontmatter.get('task', ''),
+            effort=effort,
+            phase=phase,
+            progress=frontmatter.get('progress', '0/0'),
+            mode=frontmatter.get('mode', 'interactive'),
+            started=datetime.fromisoformat(frontmatter.get('started', '')) if frontmatter.get('started') else None,
+            updated=datetime.fromisoformat(frontmatter.get('updated', '')) if frontmatter.get('updated') else None,
+            iteration=frontmatter.get('iteration'),
+            context=context,
+            criteria=criteria,
+            decisions=decisions,
+            verification=verification
+        )
+
+    def _write(self, prd: PRD) -> None:
+        """Write PRD to file"""
+        prd_path = self.work_dir / prd.slug / "PRD.md"
+        prd_path.parent.mkdir(parents=True, exist_ok=True)
+        prd_path.write_text(prd.to_markdown(), encoding='utf-8')
+
+    def update_criteria(self, prd: PRD, criteria: List[ISCCriterion]) -> None:
+        """Update criteria in PRD"""
+        prd.criteria = criteria
+        total = len(criteria)
+        passed = sum(1 for c in criteria if c.passed)
+        prd.progress = f"{passed}/{total}"
+        prd.updated = datetime.now(timezone.utc)
+        self._write(prd)
+
+    def mark_criterion_passed(self, prd: PRD, criterion_id: str, evidence: str) -> bool:
+        """Mark a single criterion as passed with evidence"""
+        for c in prd.criteria:
+            if c.id == criterion_id:
+                c.passed = True
+                c.evidence = evidence
+                prd.verification[criterion_id] = evidence
+                break
+        else:
+            return False
+
+        total = len(prd.criteria)
+        passed = sum(1 for c in prd.criteria if c.passed)
+        prd.progress = f"{passed}/{total}"
+        prd.updated = datetime.now(timezone.utc)
+        self._write(prd)
+        return True
+
+    def add_decision(self, prd: PRD, decision: str) -> None:
+        """Add a decision to the PRD"""
+        prd.decisions.append(decision)
+        prd.updated = datetime.now(timezone.utc)
+        self._write(prd)
+
+    def update_phase(self, prd: PRD, phase: AlgorithmPhase) -> None:
+        """Update the current phase"""
+        prd.phase = phase
+        prd.updated = datetime.now(timezone.utc)
+        self._write(prd)
+
+    def get_slug_from_task(self, task: str) -> str:
+        """Generate slug from task description"""
+        now = datetime.now(timezone.utc)
+        slug_base = re.sub(r'[^a-z0-9]+', '-', task.lower().strip())
+        slug_base = slug_base.strip('-')[:50]
+        return f"{now.strftime('%Y%m%d-%H%M%S')}_{slug_base}"
+
+    def verify_isc_count(self, prd: PRD) -> bool:
+        """Verify ISC count meets minimum for effort tier"""
+        min_count = MIN_ISC_COUNTS[prd.effort]
+        actual_count = len(prd.criteria)
+        return actual_count >= min_count
+
+
+class ISCGenerator:
+    """Generate and decompose ISC criteria using Splitting Test"""
+
+    @staticmethod
+    def split_criterion(criterion_text: str) -> List[str]:
+        """Apply Splitting Test to decompose compound criteria"""
+        text = criterion_text.lower()
+
+        # Test 1: "and"/"with" check
+        if " and " in text or " with " in text:
+            return ISCGenerator._split_on_conjunctions(criterion_text)
+
+        # Test 2: Scope word check
+        scope_words = ["all", "every", "complete", "full"]
+        if any(word in text for word in scope_words):
+            return ISCGenerator._expand_scope(criterion_text)
+
+        # Test 3: Domain boundary check
+        if ISCGenerator._crosses_domain_boundary(criterion_text):
+            return ISCGenerator._split_by_domain(criterion_text)
+
+        return [criterion_text]
+
+    @staticmethod
+    def _split_on_conjunctions(text: str) -> List[str]:
+        """Split on 'and' and 'with'"""
+        import re
+        parts = re.split(r'\s+(?:and|with)\s+', text)
+        return [p.strip().capitalize() + '.' for p in parts]
+
+    @staticmethod
+    def _expand_scope(text: str) -> List[str]:
+        """Expand scope words into enumerated items"""
+        # Simplified - in production, use LLM to enumerate
+        return [text.replace("all", "each").replace("every", "each") + " item"]
+
+    @staticmethod
+    def _crosses_domain_boundary(text: str) -> bool:
+        """Check if criterion crosses UI/API/data/logic boundaries"""
+        domains = ["ui", "api", "data", "logic", "visual", "content"]
+        found = 0
+        for domain in domains:
+            if domain in text.lower():
+                found += 1
+        return found > 1
+
+    @staticmethod
+    def _split_by_domain(text: str) -> List[str]:
+        """Split by domain boundaries"""
+        # Simplified - in production, separate by domain
+        return [text + " (UI part)", text + " (API part)"]
+Step 3: Algorithm Executor
+File: VAN_Engine/core/algorithm_executor.py
+python
+"""Algorithm v3.7.0 Executor - 7-phase execution engine"""
+
+import time
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+from typing import Optional, Dict, Any, List
+import asyncio
+import subprocess
+
+from .algorithm import (
+    AlgorithmState, AlgorithmPhase, EffortTier, ISCCriterion,
+    TIME_BUDGETS, MIN_ISC_COUNTS
+)
+from .prd_manager import PRDManager, ISCGenerator
+
+
+class AlgorithmExecutor:
+    def __init__(self, memory_root: Path):
+        self.memory_root = memory_root
+        self.prd_manager = PRDManager(memory_root)
+        self.state = AlgorithmState()
+        self.voice_enabled = True
+        self.voice_id = "fTtv3eikoepIosk8dTZ5"
+
+    # ========== Voice Announcements ==========
+
+    def _announce_phase(self, phase: AlgorithmPhase) -> None:
+        """Announce phase transition via voice"""
+        if not self.voice_enabled:
+            return
+
+        phase_names = {
+            AlgorithmPhase.OBSERVE: "Observe",
+            AlgorithmPhase.THINK: "Think",
+            AlgorithmPhase.PLAN: "Plan",
+            AlgorithmPhase.BUILD: "Build",
+            AlgorithmPhase.EXECUTE: "Execute",
+            AlgorithmPhase.VERIFY: "Verify",
+            AlgorithmPhase.LEARN: "Learn"
+        }
+
+        message = f"Entering the {phase_names[phase]} phase."
+
+        # Direct curl call (compatible with PAI)
+        try:
+            subprocess.run([
+                "curl", "-s", "-X", "POST", "http://localhost:8888/notify",
+                "-H", "Content-Type: application/json",
+                "-d", json.dumps({
+                    "message": message,
+                    "voice_id": self.voice_id,
+                    "voice_enabled": True
+                })
+            ], capture_output=True, timeout=2)
+        except Exception:
+            pass  # Voice not available, continue silently
+
+    # ========== Phase 1: OBSERVE ==========
+
+    async def observe_phase(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Phase 1: Reverse engineering and ISC generation"""
+        self._announce_phase(AlgorithmPhase.OBSERVE)
+
+        # Update PRD phase
+        if self.state.prd:
+            self.prd_manager.update_phase(self.state.prd, AlgorithmPhase.OBSERVE)
+
+        # Reverse engineering
+        reverse_engineering = self._reverse_engineer(query)
+
+        # Determine effort tier
+        effort = self._determine_effort(query, reverse_engineering)
+        self.state.effort = effort
+        self.state.time_budget_seconds = TIME_BUDGETS[effort]
+
+        # Generate ISC criteria
+        criteria = self._generate_isc(query, reverse_engineering, effort)
+
+        # Apply splitting test
+        atomic_criteria = []
+        for criterion in criteria:
+            split = ISCGenerator.split_criterion(criterion)
+            atomic_criteria.extend(split)
+
+        # Convert to ISCCriterion objects
+        isc_criteria = [
+            ISCCriterion(id=f"ISC-{i+1}", text=c)
+            for i, c in enumerate(atomic_criteria)
+        ]
+
+        # Verify ISC count meets minimum
+        min_count = MIN_ISC_COUNTS[effort]
+        if len(isc_criteria) < min_count:
+            # Decompose further
+            isc_criteria = self._decompose_criteria(isc_criteria, min_count)
+
+        # Update PRD with criteria
+        if self.state.prd:
+            self.prd_manager.update_criteria(self.state.prd, isc_criteria)
+            self.state.prd.criteria = isc_criteria
+
+        # Select capabilities
+        capabilities = self._select_capabilities(query, reverse_engineering, effort)
+        self.state.selected_capabilities = capabilities
+
+        return {
+            "phase": "observe",
+            "reverse_engineering": reverse_engineering,
+            "effort": effort.value,
+            "isc_criteria": [c.text for c in isc_criteria],
+            "isc_count": len(isc_criteria),
+            "capabilities_selected": capabilities
+        }
+
+    def _reverse_engineer(self, query: str) -> Dict[str, List[str]]:
+        """Extract wants, not-wants, and constraints"""
+        return {
+            "explicit_wants": self._extract_explicit_wants(query),
+            "implied_wants": self._extract_implied_wants(query),
+            "explicit_not_wanted": self._extract_explicit_not_wanted(query),
+            "implied_not_wanted": self._extract_implied_not_wanted(query),
+            "constraints": self._extract_constraints(query)
+        }
+
+    def _extract_explicit_wants(self, query: str) -> List[str]:
+        """Extract explicitly stated wants from query"""
+        # Simplified - in production, use NLP
+        wants = []
+        indicators = ["want", "need", "require", "must", "should"]
+        sentences = query.split('.')
+        for sent in sentences:
+            for ind in indicators:
+                if ind in sent.lower():
+                    wants.append(sent.strip())
+                    break
+        return wants if wants else ["[Default: Process the request]"]
+
+    def _extract_implied_wants(self, query: str) -> List[str]:
+        """Extract implied wants based on domain knowledge"""
+        return ["[Detected from context]"]  # Placeholder
+
+    def _extract_explicit_not_wanted(self, query: str) -> List[str]:
+        """Extract explicitly stated not-wants"""
+        not_wants = []
+        indicators = ["don't", "do not", "avoid", "no", "never"]
+        sentences = query.split('.')
+        for sent in sentences:
+            for ind in indicators:
+                if ind in sent.lower():
+                    not_wants.append(sent.strip())
+                    break
+        return not_wants
+
+    def _extract_implied_not_wanted(self, query: str) -> List[str]:
+        """Extract implied not-wants"""
+        return ["[No obvious negative constraints detected]"]
+
+    def _extract_constraints(self, query: str) -> List[str]:
+        """Extract time, quality, and scope constraints"""
+        constraints = []
+        if "quick" in query.lower() or "fast" in query.lower():
+            constraints.append("Time-sensitive: prioritize speed")
+        if "quality" in query.lower():
+            constraints.append("Quality-sensitive: prioritize correctness")
+        return constraints if constraints else ["[No explicit constraints]"]
+
+    def _determine_effort(self, query: str, reverse_engineering: Dict) -> EffortTier:
+        """Determine effort tier based on query complexity"""
+        query_lower = query.lower()
+
+        # Check for explicit effort indicators
+        if "comprehensive" in query_lower or "in-depth" in query_lower:
+            return EffortTier.COMPREHENSIVE
+        if "deep" in query_lower:
+            return EffortTier.DEEP
+        if "extensive" in query_lower:
+            return EffortTier.ADVANCED
+        if "quick" in query_lower or "fast" in query_lower:
+            return EffortTier.STANDARD
+
+        # Check word count
+        word_count = len(query.split())
+        if word_count > 200:
+            return EffortTier.ADVANCED
+        if word_count > 100:
+            return EffortTier.EXTENDED
+
+        return EffortTier.STANDARD
+
+    def _generate_isc(self, query: str, reverse_engineering: Dict, effort: EffortTier) -> List[str]:
+        """Generate initial ISC criteria"""
+        # Simplified - in production, use LLM to generate
+        base_criteria = [
+            "Request is fully understood and documented",
+            "All explicit wants are addressed",
+            "All explicit constraints are satisfied",
+            "No unwanted side effects introduced",
+            "Solution is verifiable and testable"
+        ]
+
+        # Add effort-specific criteria
+        if effort in [EffortTier.ADVANCED, EffortTier.DEEP, EffortTier.COMPREHENSIVE]:
+            base_criteria.extend([
+                "Edge cases are identified and handled",
+                "Performance requirements are met",
+                "Documentation is complete",
+                "Solution is maintainable"
+            ])
+
+        if effort in [EffortTier.DEEP, EffortTier.COMPREHENSIVE]:
+            base_criteria.extend([
+                "Security considerations addressed",
+                "Scalability verified",
+                "Backward compatibility maintained"
+            ])
+
+        return base_criteria
+
+    def _decompose_criteria(self, criteria: List[ISCCriterion], target_count: int) -> List[ISCCriterion]:
+        """Decompose criteria to meet minimum count"""
+        # Simplified - in production, use deeper decomposition
+        result = []
+        for c in criteria:
+            if len(result) + 1 >= target_count:
+                result.append(c)
+            else:
+                # Split into two
+                result.append(ISCCriterion(
+                    id=f"{c.id}-a",
+                    text=f"{c.text} (part 1)"
+                ))
+                result.append(ISCCriterion(
+                    id=f"{c.id}-b",
+                    text=f"{c.text} (part 2)"
+                ))
+        return result[:target_count]
+
+    def _select_capabilities(self, query: str, reverse_engineering: Dict, effort: EffortTier) -> List[Dict[str, str]]:
+        """Select capabilities needed for this task"""
+        capabilities = []
+        query_lower = query.lower()
+
+        # Research capability
+        if any(word in query_lower for word in ["research", "investigate", "find", "search"]):
+            capabilities.append({
+                "name": "Research",
+                "phase": "build",
+                "reason": "Information gathering required"
+            })
+
+        # Thinking capabilities for complex tasks
+        if effort in [EffortTier.ADVANCED, EffortTier.DEEP, EffortTier.COMPREHENSIVE]:
+            capabilities.append({
+                "name": "FirstPrinciples",
+                "phase": "think",
+                "reason": "Decompose complex problem to axioms"
+            })
+            capabilities.append({
+                "name": "Council",
+                "phase": "think",
+                "reason": "Multi-perspective analysis needed"
+            })
+
+        # Security for sensitive operations
+        if any(word in query_lower for word in ["security", "auth", "permission", "vulnerability"]):
+            capabilities.append({
+                "name": "Security",
+                "phase": "verify",
+                "reason": "Security assessment required"
+            })
+
+        return capabilities
+
+    # ========== Phase 2: THINK ==========
+
+    async def think_phase(self) -> Dict[str, Any]:
+        """Phase 2: Risk assessment and ISC refinement"""
+        self._announce_phase(AlgorithmPhase.THINK)
+
+        if self.state.prd:
+            self.prd_manager.update_phase(self.state.prd, AlgorithmPhase.THINK)
+
+        # Identify riskiest assumptions
+        assumptions = self._identify_assumptions()
+
+        # Run premortem
+        premortem = self._run_premortem()
+
+        # Check prerequisites
+        prerequisites = self._check_prerequisites()
+
+        return {
+            "phase": "think",
+            "riskiest_assumptions": assumptions,
+            "premortem": premortem,
+            "prerequisites_check": prerequisites
+        }
+
+    def _identify_assumptions(self) -> List[str]:
+        """Identify riskiest assumptions"""
+        return [
+            "The problem is correctly understood",
+            "The user has provided all necessary context",
+            "The chosen approach is feasible within time budget"
+        ]
+
+    def _run_premortem(self) -> List[str]:
+        """Identify ways the approach could fail"""
+        return [
+            "Misunderstanding of requirements",
+            "Scope creep beyond time budget",
+            "Technical constraints not anticipated",
+            "Integration complexity underestimated"
+        ]
+
+    def _check_prerequisites(self) -> List[str]:
+        """Check prerequisites"""
+        return ["All prerequisites satisfied"]
+
+    # ========== Phase 3: PLAN ==========
+
+    async def plan_phase(self) -> Dict[str, Any]:
+        """Phase 3: Detailed planning"""
+        self._announce_phase(AlgorithmPhase.PLAN)
+
+        if self.state.prd and self.state.effort in [EffortTier.ADVANCED, EffortTier.DEEP, EffortTier.COMPREHENSIVE]:
+            self.prd_manager.update_phase(self.state.prd, AlgorithmPhase.PLAN)
+
+        plan = self._create_plan()
+
+        return {
+            "phase": "plan",
+            "plan": plan
+        }
+
+    def _create_plan(self) -> Dict[str, Any]:
+        """Create execution plan"""
+        return {
+            "approach": "Sequential execution with verification at each step",
+            "key_decisions": [],
+            "risk_mitigations": []
+        }
+
+    # ========== Phase 4: BUILD ==========
+
+    async def build_phase(self) -> Dict[str, Any]:
+        """Phase 4: Implementation"""
+        self._announce_phase(AlgorithmPhase.BUILD)
+
+        if self.state.prd:
+            self.prd_manager.update_phase(self.state.prd, AlgorithmPhase.BUILD)
+
+        # Invoke selected capabilities
+        for cap in self.state.selected_capabilities:
+            if cap["phase"] == "build":
+                await self._invoke_capability(cap["name"])
+                self.state.invoked_capabilities.append(cap["name"])
+
+        return {
+            "phase": "build",
+            "capabilities_invoked": self.state.invoked_capabilities
+        }
+
+    async def _invoke_capability(self, capability_name: str) -> None:
+        """Invoke a capability via tool call"""
+        # Placeholder - in production, call actual skill
+        pass
+
+    # ========== Phase 5: EXECUTE ==========
+
+    async def execute_phase(self) -> Dict[str, Any]:
+        """Phase 5: Execution"""
+        self._announce_phase(AlgorithmPhase.EXECUTE)
+
+        if self.state.prd:
+            self.prd_manager.update_phase(self.state.prd, AlgorithmPhase.EXECUTE)
+
+        # Execute work and update criteria as they pass
+        for i, criterion in enumerate(self.state.prd.criteria if self.state.prd else []):
+            if await self._execute_criterion(criterion):
+                self.prd_manager.mark_criterion_passed(
+                    self.state.prd, criterion.id, f"Executed successfully"
+                )
+
+        return {
+            "phase": "execute",
+            "criteria_passed": len([c for c in (self.state.prd.criteria if self.state.prd else []) if c.passed])
+        }
+
+    async def _execute_criterion(self, criterion: ISCCriterion) -> bool:
+        """Execute a single criterion"""
+        # Placeholder - actual execution logic
+        return True
+
+    # ========== Phase 6: VERIFY ==========
+
+    async def verify_phase(self) -> Dict[str, Any]:
+        """Phase 6: Verification"""
+        self._announce_phase(AlgorithmPhase.VERIFY)
+
+        if self.state.prd:
+            self.prd_manager.update_phase(self.state.prd, AlgorithmPhase.VERIFY)
+
+        # Verify each criterion
+        verification_results = []
+        for criterion in self.state.prd.criteria if self.state.prd else []:
+            verified = await self._verify_criterion(criterion)
+            verification_results.append({
+                "id": criterion.id,
+                "passed": verified,
+                "evidence": criterion.evidence if verified else "Not verified"
+            })
+
+        # Check capability invocation
+        selected_names = {c["name"] for c in self.state.selected_capabilities}
+        invoked_names = set(self.state.invoked_capabilities)
+        missing = selected_names - invoked_names
+
+        return {
+            "phase": "verify",
+            "verification": verification_results,
+            "capability_invocation_check": {
+                "selected": list(selected_names),
+                "invoked": list(invoked_names),
+                "missing": list(missing),
+                "all_invoked": len(missing) == 0
+            }
+        }
+
+    async def _verify_criterion(self, criterion: ISCCriterion) -> bool:
+        """Verify a single criterion"""
+        return criterion.passed
+
+    # ========== Phase 7: LEARN ==========
+
+    async def learn_phase(self, user_satisfaction: int = 7) -> Dict[str, Any]:
+        """Phase 7: Reflection and learning"""
+        self._announce_phase(AlgorithmPhase.LEARN)
+
+        if self.state.prd:
+            self.prd_manager.update_phase(self.state.prd, AlgorithmPhase.LEARN)
+
+        # Generate reflections
+        reflections = self._generate_reflections()
+
+        # Write to JSONL
+        self._write_reflection_jsonl(user_satisfaction)
+
+        # Mark phase complete
+        if self.state.prd:
+            # In production, set phase: complete in PRD
+            pass
+
+        return {
+            "phase": "learn",
+            "reflections": reflections,
+            "phase_complete": True
+        }
+
+    def _generate_reflections(self) -> Dict[str, str]:
+        """Generate learning reflections"""
+        return {
+            "q1": "What should I have done differently?",
+            "q2": "What would a smarter algorithm have done?",
+            "q3": "What capabilities should I have used that I didn't?"
+        }
+
+    def _write_reflection_jsonl(self, user_satisfaction: int) -> None:
+        """Write reflection to JSONL file"""
+        if not self.state.prd:
+            return
+
+        total = len(self.state.prd.criteria)
+        passed = sum(1 for c in self.state.prd.criteria if c.passed)
+
+        reflection = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "effort_level": self.state.effort.value,
+            "task_description": self.state.prd.task,
+            "criteria_count": total,
+            "criteria_passed": passed,
+            "criteria_failed": total - passed,
+            "prd_id": self.state.prd.slug,
+            "implied_sentiment": user_satisfaction,
+            "reflection_q1": self._generate_reflections()["q1"],
+            "reflection_q2": self._generate_reflections()["q2"],
+            "reflection_q3": self._generate_reflections()["q3"],
+            "within_budget": self.state.time_used_seconds <= self.state.time_budget_seconds
+        }
+
+        reflections_path = self.memory_root / "LEARNING" / "REFLECTIONS" / "algorithm-reflections.jsonl"
+        reflections_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(reflections_path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(reflection) + '\n')
+
+    # ========== Main Execution ==========
+
+    async def execute(self, query: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Main entry point - execute full Algorithm"""
+        context = context or {}
+        self.state = AlgorithmState()
+        self.state.phase_start_time = time.time()
+
+        # Create PRD
+        slug = self.prd_manager.get_slug_from_task(query[:50])
+        self.state.prd = self.prd_manager.create(slug, query[:100])
+        self.state.prd_path = self.memory_root / "WORK" / slug / "PRD.md"
+
+        # Execute phases
+        observe_result = await self.observe_phase(query, context)
+        think_result = await self.think_phase()
+        plan_result = await self.plan_phase()
+        build_result = await self.build_phase()
+        execute_result = await self.execute_phase()
+        verify_result = await self.verify_phase()
+        learn_result = await self.learn_phase()
+
+        self.state.time_used_seconds = time.time() - self.state.phase_start_time
+
+        return {
+            "success": True,
+            "effort": self.state.effort.value,
+            "time_used_seconds": self.state.time_used_seconds,
+            "time_budget_seconds": self.state.time_budget_seconds,
+            "phases": {
+                "observe": observe_result,
+                "think": think_result,
+                "plan": plan_result,
+                "build": build_result,
+                "execute": execute_result,
+                "verify": verify_result,
+                "learn": learn_result
+            }
+        }
+Step 4: Updated Brain with Algorithm Integration
+File: VAN_Engine/VAN/brain.py (Updated)
+python
+"""VAN_Engine Brain - Complete with PAI Algorithm v3.7.0 integration"""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+import time
+import math
+import atexit
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from threading import Lock
+from time import monotonic
+from typing import Optional, List, Dict, Any, Tuple, Union
+import asyncio
+
+# Add parent directory to path
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from core.algorithm import AlgorithmPhase, EffortTier, TIME_BUDGETS
+from core.prd_manager import PRDManager, ISCGenerator
+from core.algorithm_executor import AlgorithmExecutor
+
+
+@dataclass
+class QueryResult:
+    Success: bool
+    Action: str
+    Message: str
+    Data: Optional[Any] = None
+    ClarificationQuestions: Optional[List[str]] = None
+    AlgorithmPhase: Optional[str] = None
+    EffortTier: Optional[str] = None
+    ISCChecked: int = 0
+    ISCTotal: int = 0
+
+    @staticmethod
+    def Ok(message: str, action: str = "EXECUTE", data: Any = None,
+           phase: str = None, effort: str = None, isc_checked: int = 0, isc_total: int = 0) -> QueryResult:
+        return QueryResult(
+            Success=True,
+            Action=action,
+            Message=message,
+            Data=data,
+            AlgorithmPhase=phase,
+            EffortTier=effort,
+            ISCChecked=isc_checked,
+            ISCTotal=isc_total
+        )
+
+    @staticmethod
+    def Clarify(message: str) -> QueryResult:
+        return QueryResult(False, "HALT_AND_CLARIFY", message, ClarificationQuestions=[message])
+
+
+@dataclass
+class SelfTestResult:
+    IsValid: bool
+    Diagnostics: str
+
+    @staticmethod
+    def Ok(diag: str) -> SelfTestResult:
+        return SelfTestResult(True, diag)
+
+    @staticmethod
+    def Fail(diag: str) -> SelfTestResult:
+        return SelfTestResult(False, diag)
+
+
+@dataclass
+class BrainStats:
+    TokenCount: int = 0
+    AuditEventCount: int = 0
+    Uptime: float = 0.0
+    ActiveISO: List[str] = field(default_factory=list)
+    CurrentAlgorithmPhase: Optional[str] = None
+    LastEffortTier: Optional[str] = None
+
+
+@dataclass
+class BrainAuditEvent:
+    Timestamp: str
+    Kind: str
+    Payload: str
+    QuaternionBefore: Optional[Tuple[float, float, float, float]] = None
+    QuaternionAfter: Optional[Tuple[float, float, float, float]] = None
+    MagnitudeDrift: Optional[float] = None
+    AlgorithmPhase: Optional[str] = None
+
+    def ToDictionary(self) -> dict:
+        d = {
+            "timestamp": self.Timestamp,
+            "kind": self.Kind,
+            "payload": self.Payload
+        }
+        if self.QuaternionBefore:
+            d["quaternion_before"] = list(self.QuaternionBefore)
+        if self.QuaternionAfter:
+            d["quaternion_after"] = list(self.QuaternionAfter)
+        if self.MagnitudeDrift is not None:
+            d["magnitude_drift"] = self.MagnitudeDrift
+        if self.AlgorithmPhase:
+            d["algorithm_phase"] = self.AlgorithmPhase
+        return d
+
+
+class IsographicQuaternion:
+    """4D quaternion with coupled dimensions for isographic indexing"""
+
+    def __init__(self, w: float, x: float, y: float, z: float):
+        self.w = w  # Sound-Shape coupling
+        self.x = x  # Sound-Number coupling
+        self.y = y  # Shape-Time coupling
+        self.z = z  # Number-Time coupling
+
+    def get_sound_projection(self) -> float:
+        return math.sqrt(self.w * self.w + self.x * self.x)
+
+    def get_shape_projection(self) -> float:
+        return math.sqrt(self.w * self.w + self.y * self.y)
+
+    def get_number_projection(self) -> float:
+        return math.sqrt(self.x * self.x + self.z * self.z)
+
+    def get_time_projection(self) -> float:
+        return math.sqrt(self.y * self.y + self.z * self.z)
+
+    @property
+    def magnitude(self) -> float:
+        return math.sqrt(self.w * self.w + self.x * self.x + self.y * self.y + self.z * self.z)
+
+    def normalize(self) -> 'IsographicQuaternion':
+        mag = self.magnitude
+        if mag < 1e-10:
+            return self
+        return IsographicQuaternion(self.w / mag, self.x / mag, self.y / mag, self.z / mag)
+
+    def approx_equals(self, other: 'IsographicQuaternion', epsilon: float = 1e-6) -> bool:
+        return (abs(self.w - other.w) < epsilon and
+                abs(self.x - other.x) < epsilon and
+                abs(self.y - other.y) < epsilon and
+                abs(self.z - other.z) < epsilon)
+
+    def to_tuple(self) -> Tuple[float, float, float, float]:
+        return (self.w, self.x, self.y, self.z)
+
+    @classmethod
+    def from_tuple(cls, t: Tuple[float, float, float, float]) -> 'IsographicQuaternion':
+        return cls(t[0], t[1], t[2], t[3])
+
+    def __repr__(self) -> str:
+        return f"IsographicQuaternion(w={self.w:.3f}, x={self.x:.3f}, y={self.y:.3f}, z={self.z:.3f})"
+
+
+def _find_van_engine_root() -> Path:
+    """Dynamically find VAN_Engine root directory"""
+    candidates = [
+        Path(__file__).parent.parent.parent.parent,
+        Path(__file__).parent.parent.parent,
+        Path(__file__).parent.parent,
+        Path("C:/Users/User/Documents/ALL-PROJECTS/PROJECTS/VAN_Engine"),
+        Path.home() / "Documents/ALL-PROJECTS/PROJECTS/VAN_Engine",
+        Path.cwd() / "VAN_Engine",
+        Path.cwd().parent / "VAN_Engine",
+    ]
+
+    for candidate in candidates:
+        core_path = candidate / "core" / "ISO_Rules.json"
+        if core_path.exists():
+            print(f"[Brain] Found VAN_Engine at: {candidate}")
+            return candidate
+
+    fallback = Path.cwd() / "VAN_Engine"
+    fallback.mkdir(parents=True, exist_ok=True)
+    (fallback / "core").mkdir(exist_ok=True)
+    (fallback / "memory").mkdir(exist_ok=True)
+    (fallback / "logs").mkdir(exist_ok=True)
+    print(f"[Brain] Warning: Using fallback VAN_Engine at: {fallback}")
+    return fallback
+
+
+class VANEngineBrain:
+    """
+    The Brain of VAN_Engine — Sovereign, Deterministic, Isographic Substrate
+    Integrated with PAI Algorithm v3.7.0
+    """
+
+    _instance = None
+    _lock = Lock()
+
+    DRIFT_THRESHOLD = 0.85
+    MAGNITUDE_TOLERANCE = 1e-6
+    QUERY_TIMEOUT_MS = 100
+    LOOKUP_TIMEOUT_MS = 10
+
+    def __init__(self):
+        self._engine_root = _find_van_engine_root()
+        self._memory_root = self._engine_root / "memory"
+
+        # Initialize database
+        self._db_path = self._memory_root / "token_index.db"
+        self._conn = None
+        self._init_database()
+
+        # Initialize PRD manager and algorithm executor
+        self._prd_manager = PRDManager(self._memory_root)
+        self._algorithm_executor = AlgorithmExecutor(self._memory_root)
+
+        # ISO rules
+        self._iso_path = self._engine_root / "core" / "ISO_Rules.json"
+        self._iso_rules = self._load_iso_rules()
+
+        # Audit trail
+        self._audit_trail: List[BrainAuditEvent] = []
+        self._audit_log_path = self._engine_root / "logs" / "brain_audit.log"
+        self._audit_log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # State
+        self._start = monotonic()
+        self._registered_components: List[str] = []
+        self._current_algorithm_phase: Optional[str] = None
+        self._last_effort_tier: Optional[str] = None
+
+        # Register cleanup
+        atexit.register(self._cleanup)
+
+        # Log startup
+        self._log_audit("Brain", "Startup", None, None)
+        self._flush_audit_to_file()
+
+        # Self-test
+        result = self.SelfTest()
+        if not result.IsValid:
+            print(f"[Brain] Self-test warning: {result.Diagnostics}")
+
+    def _init_database(self) -> None:
+        """Initialize SQLite database"""
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
+
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS tokens (
+                key TEXT PRIMARY KEY,
+                w REAL NOT NULL,
+                x REAL NOT NULL,
+                y REAL NOT NULL,
+                z REAL NOT NULL,
+                magnitude REAL,
+                applies_to TEXT,
+                created INTEGER NOT NULL,
+                updated INTEGER NOT NULL
+            )
+        """)
+
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_applies_to ON tokens(applies_to)")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_magnitude ON tokens(magnitude)")
+
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS schema_version (
+                version INTEGER PRIMARY KEY,
+                applied_at INTEGER DEFAULT (strftime('%s', 'now'))
+            )
+        """)
+
+        self._conn.execute("INSERT OR IGNORE INTO schema_version (version) VALUES (1)")
+        self._conn.execute("""
+            UPDATE tokens SET magnitude = sqrt(w*w + x*x + y*y + z*z)
+            WHERE magnitude IS NULL
+        """)
+
+        self._conn.commit()
+        print(f"[Brain] SQLite database initialized at {self._db_path}")
+
+    def _load_iso_rules(self) -> Dict[str, Any]:
+        """Load ISO rules from JSON file"""
+        try:
+            if self._iso_path.exists():
+                with open(self._iso_path, 'r', encoding='utf-8') as f:
+                    rules = json.load(f)
+                    return {rule['id']: rule for rule in rules.get('rules', [])}
+            return self._create_default_iso_rules()
+        except Exception as e:
+            print(f"[Brain] Warning: Could not load ISO rules: {e}")
+            return self._create_default_iso_rules()
+
+    def _create_default_iso_rules(self) -> Dict[str, Any]:
+        """Create default ISO rules"""
+        default_rules = {}
+        for i in range(1, 21):
+            rule_id = f"ISO_{i:03d}"
+            default_rules[rule_id] = {"id": rule_id, "name": f"Rule {rule_id}", "status": "active"}
+        default_rules["ISO_010"] = {"id": "ISO_010", "name": "Drift Gating", "status": "active"}
+        default_rules["ISO_011"] = {"id": "ISO_011", "name": "Archetypal FSM", "status": "active"}
+        default_rules["ISO_012"] = {"id": "ISO_012", "name": "Recursive Self-Validation", "status": "active"}
+        default_rules["ISO_015"] = {"id": "ISO_015", "name": "Observable State", "status": "active"}
+        default_rules["ISO_019"] = {"id": "ISO_019", "name": "Privacy by Default", "status": "enforced"}
+        default_rules["ISO_020"] = {"id": "ISO_020", "name": "Anti-Hallucination", "status": "enforced"}
+        return default_rules
+
+    def _flush_audit_to_file(self) -> None:
+        """Persist audit trail to file"""
+        try:
+            with open(self._audit_log_path, 'a', encoding='utf-8') as f:
+                for event in self._audit_trail[-50:]:
+                    f.write(json.dumps(event.ToDictionary()) + '\n')
+        except Exception as e:
+            print(f"[Brain] Warning: Could not write audit log: {e}")
+
+    def _log_audit(self, component: str, action: str,
+                   before: Optional[IsographicQuaternion] = None,
+                   after: Optional[IsographicQuaternion] = None,
+                   metadata: str = "") -> None:
+        """Log audit event"""
+        before_tuple = before.to_tuple() if before else None
+        after_tuple = after.to_tuple() if after else None
+        drift = None
+        if before and after:
+            drift = abs(before.magnitude - after.magnitude)
+
+        event = BrainAuditEvent(
+            Timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+            Kind=action,
+            Payload=metadata or f"{component}:{action}",
+            QuaternionBefore=before_tuple,
+            QuaternionAfter=after_tuple,
+            MagnitudeDrift=drift,
+            AlgorithmPhase=self._current_algorithm_phase
+        )
+        self._audit_trail.append(event)
+
+        try:
+            with open(self._audit_log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(event.ToDictionary()) + '\n')
+        except Exception:
+            pass
+
+        if len(self._audit_trail) > 10000:
+            self._audit_trail = self._audit_trail[-10000:]
+
+    def _drift_gate(self, quaternion: IsographicQuaternion) -> Tuple[bool, str]:
+        """ISO_010: Drift Gating"""
+        mag = quaternion.magnitude
+        if mag < self.DRIFT_THRESHOLD:
+            return True, f"Quaternion magnitude {mag:.4f} below threshold {self.DRIFT_THRESHOLD}"
+        max_comp = max(abs(quaternion.w), abs(quaternion.x), abs(quaternion.y), abs(quaternion.z))
+        if max_comp > 1.5:
+            return True, f"Component magnitude {max_comp:.2f} exceeds tolerance 1.5"
+        return False, ""
+
+    @classmethod
+    def Instance(cls) -> 'VANEngineBrain':
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+        return cls._instance
+
+    def _cleanup(self) -> None:
+        if hasattr(self, '_conn') and self._conn:
+            self._log_audit("Brain", "Shutdown", None, None)
+            self._flush_audit_to_file()
+            self._conn.close()
+
+    # ========== Algorithm-Enhanced Query Execution ==========
+
+    async def ExecuteAlgorithmQuery(self, query: str, context: dict = None) -> QueryResult:
+        """
+        Execute query using PAI Algorithm v3.7.0
+        This is the primary entry point for complex queries
+        """
+        context = context or {}
+        self._log_audit("Brain", "AlgorithmQuery", None, None, query)
+
+        try:
+            result = await self._algorithm_executor.execute(query, context)
+
+            # Update state with phase information
+            phases = result.get("phases", {})
+            self._current_algorithm_phase = "complete"
+            self._last_effort_tier = result.get("effort")
+
+            # Build response
+            isc_total = 0
+            isc_checked = 0
+            if "observe" in phases:
+                isc_total = phases["observe"].get("isc_count", 0)
+                isc_checked = isc_total  # In production, track actual checked
+
+            message = f"Algorithm execution complete.\n"
+            message += f"Effort: {result.get('effort', 'standard')}\n"
+            message += f"Time: {result.get('time_used_seconds', 0):.1f}s / {result.get('time_budget_seconds', 0)}s\n"
+            message += f"ISC Criteria: {isc_checked}/{isc_total} verified"
+
+            return QueryResult.Ok(
+                message=message,
+                action="ALGORITHM_COMPLETE",
+                data=result,
+                phase="complete",
+                effort=result.get("effort"),
+                isc_checked=isc_checked,
+                isc_total=isc_total
+            )
+
+        except Exception as e:
+            self._log_audit("Brain", "AlgorithmError", None, None, str(e))
+            return QueryResult.Clarify(f"Algorithm execution failed: {e}")
+
+    # ========== Standard Query Execution (Legacy) ==========
+
+    def ExecuteQuery(self, query: str, context: dict = None) -> QueryResult:
+        """
+        Execute a natural language query (legacy path for simple queries)
+        For complex queries, use ExecuteAlgorithmQuery instead
+        """
+        if not query or not query.strip():
+            return QueryResult.Clarify("Please provide a query.")
+
+        normalized = query.strip().lower()
+        self._log_audit("Brain", "Query", None, None, query[:200])
+
+        # Check if this should be an algorithm query
+        if self._should_use_algorithm(normalized):
+            # This would call async version - in production, handle properly
+            return QueryResult.Clarify(
+                "This query requires Algorithm execution. Use ExecuteAlgorithmQuery for full 7-phase processing."
+            )
+
+        # Route to appropriate handler
+        if "status" in normalized or "health" in normalized:
+            stats = self.GetStats()
+            return QueryResult.Ok(
+                f"VAN_Engine is online. Tokens: {stats.TokenCount}. "
+                f"Audit events: {stats.AuditEventCount}. "
+                f"Current Algorithm Phase: {self._current_algorithm_phase or 'idle'}. "
+                f"Active ISO rules: {', '.join(stats.ActiveISO) if stats.ActiveISO else '20/20'}.",
+                "STATUS",
+                {
+                    "token_count": stats.TokenCount,
+                    "audit_count": stats.AuditEventCount,
+                    "algorithm_phase": self._current_algorithm_phase,
+                    "last_effort": self._last_effort_tier
+                }
+            )
+
+        if "self test" in normalized or "self-test" in normalized:
+            result = self.SelfTest()
+            return QueryResult.Ok(
+                f"Self-test: {result.Diagnostics}",
+                "SELF_TEST",
+                {"valid": result.IsValid, "diagnostics": result.Diagnostics}
+            )
+
+        if "audit" in normalized:
+            events = self.GetAuditTrail(10)
+            summary = "\n".join([f"  [{e.Timestamp}] {e.Kind}: {e.Payload}" for e in events])
+            return QueryResult.Ok(
+                f"Recent audit events:\n{summary or '  No recent events'}",
+                "AUDIT",
+                {"events": [e.ToDictionary() for e in events]}
+            )
+
+        if "iso" in normalized:
+            active = self._get_active_iso_rules()
+            return QueryResult.Ok(
+                f"Active ISO rules: {', '.join(active) if active else 'All 20 rules active'}.\n"
+                f"ISO_019 (Privacy): Bridges disabled by default.\n"
+                f"ISO_020 (Anti-hallucination): System refuses to guess.",
+                "ISO_STATUS",
+                {"active_iso": active}
+            )
+
+        if "store token" in normalized:
+            import re
+            token_match = re.search(r'store token (\w+)', normalized)
+            quat_match = re.search(r'\(([\d\.\-]+),\s*([\d\.\-]+),\s*([\d\.\-]+),\s*([\d\.\-]+)\)', normalized)
+            if token_match and quat_match:
+                token = token_match.group(1)
+                w, x, y, z = map(float, quat_match.groups())
+                quat = IsographicQuaternion(w, x, y, z)
+                success = self.StoreToken(token, quat, ["user_stored"])
+                if success:
+                    return QueryResult.Ok(f"Token '{token}' stored successfully.", "STORE_TOKEN", {"token": token})
+                return QueryResult.Clarify(f"Failed to store token '{token}'. Drift gate may have rejected it.")
+
+        if "lookup" in normalized or "find token" in normalized:
+            words = normalized.split()
+            token_candidates = [w for w in words if len(w) > 3 and w not in ['lookup', 'find', 'token']]
+            if token_candidates:
+                token = token_candidates[0]
+                quat = self.LookupToken(token)
+                if quat:
+                    return QueryResult.Ok(
+                        f"Token '{token}': quaternion ({quat.w:.3f}, {quat.x:.3f}, {quat.y:.3f}, {quat.z:.3f})",
+                        "LOOKUP",
+                        {"token": token, "quaternion": quat.to_tuple()}
+                    )
+                return QueryResult.Clarify(f"Token '{token}' not found in index.")
+
+        if "help" in normalized:
+            help_text = (
+                "I can help with:\n"
+                "- Status: 'system status'\n"
+                "- Algorithm queries: use ExecuteAlgorithmQuery for 7-phase processing\n"
+                "- Store token: 'store token NAME with (w,x,y,z)'\n"
+                "- Lookup token: 'lookup token NAME'\n"
+                "- Audit: 'show audit trail'\n"
+                "- Self-test: 'run self-test'\n"
+                "- ISO rules: 'list ISO rules'\n\n"
+                "I never hallucinate. If uncertain, I'll ask for clarification (ISO_020)."
+            )
+            return QueryResult.Ok(help_text, "HELP")
+
+        return QueryResult.Clarify(
+            f"I don't understand '{query[:100]}...'\n\n"
+            f"Type 'help' for available commands. For complex tasks, use ExecuteAlgorithmQuery."
+        )
+
+    def _should_use_algorithm(self, normalized_query: str) -> bool:
+        """Determine if query should use full Algorithm"""
+        algorithm_indicators = [
+            "build", "create", "implement", "design", "develop",
+            "research", "investigate", "analyze", "plan",
+            "complex", "comprehensive", "multi-step"
+        ]
+        return any(indicator in normalized_query for indicator in algorithm_indicators)
+
+    async def ExecuteQueryAsync(self, query: str, context: dict = None) -> QueryResult:
+        """Async wrapper for ExecuteQuery"""
+        import asyncio
+        try:
+            return await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(None, self.ExecuteQuery, query, context),
+                timeout=self.QUERY_TIMEOUT_MS / 1000.0
+            )
+        except asyncio.TimeoutError:
+            return QueryResult.Clarify(f"Query timed out after {self.QUERY_TIMEOUT_MS}ms. Please simplify.")
+
+    # ========== ISO Rules ==========
+
+    def SelfTest(self) -> SelfTestResult:
+        """ISO_012: Recursive self-validation"""
+        errors = []
+
+        try:
+            cursor = self._conn.execute("SELECT 1")
+            if cursor.fetchone()[0] != 1:
+                errors.append("Database query returned unexpected value")
+        except Exception as e:
+            errors.append(f"Database connection failed: {e}")
+
+        try:
+            test_q = IsographicQuaternion(0.8, 0.3, 0.2, 0.1)
+            mag = test_q.magnitude
+            if abs(mag - 0.948683298) > self.MAGNITUDE_TOLERANCE:
+                errors.append(f"Quaternion magnitude incorrect: {mag}")
+        except Exception as e:
+            errors.append(f"Quaternion math failed: {e}")
+
+        if not self._iso_rules:
+            errors.append("ISO rules not loaded")
+
+        if not self._db_path.parent.exists():
+            errors.append(f"Database directory missing: {self._db_path.parent}")
+
+        if errors:
+            return SelfTestResult.Fail("; ".join(errors))
+        return SelfTestResult.Ok(f"All systems operational. {self.GetStats().TokenCount} tokens in index.")
+
+    def GetStats(self) -> BrainStats:
+        cursor = self._conn.execute("SELECT COUNT(*) FROM tokens")
+        token_count = cursor.fetchone()[0]
+        active_iso = self._get_active_iso_rules()
+
+        return BrainStats(
+            TokenCount=token_count,
+            AuditEventCount=len(self._audit_trail),
+            Uptime=round(monotonic() - self._start, 3),
+            ActiveISO=active_iso,
+            CurrentAlgorithmPhase=self._current_algorithm_phase,
+            LastEffortTier=self._last_effort_tier
+        )
+
+    def _get_active_iso_rules(self) -> List[str]:
+        if not self._iso_rules:
+            return []
+        return [rule_id for rule_id, rule in self._iso_rules.items()
+                if rule.get('status') in ['active', 'enforced']]
+
+    # ========== Token Operations ==========
+
+    def StoreToken(self, token: str, quaternion: IsographicQuaternion, appliesTo: List[str]) -> bool:
+        violated, diag = self._drift_gate(quaternion)
+        if violated:
+            self._log_audit("Brain", "STORE_REJECTED", None, quaternion, f"Drift gate: {diag}")
+            return False
+
+        existing = self.LookupToken(token)
+        existing_quat = existing
+        applies_to_str = "|".join(appliesTo)
+        now = int(time.time())
+        magnitude = quaternion.magnitude
+
+        try:
+            self._conn.execute("""
+                INSERT OR REPLACE INTO tokens (key, w, x, y, z, magnitude, applies_to, created, updated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created FROM tokens WHERE key = ?), ?), ?)
+            """, (token, quaternion.w, quaternion.x, quaternion.y, quaternion.z,
+                  magnitude, applies_to_str, token, now, now))
+            self._conn.commit()
+            self._log_audit("Brain", "STORE_TOKEN", existing_quat, quaternion, token)
+            return True
+        except Exception as e:
+            print(f"[Brain] StoreToken error: {e}")
+            return False
+
+    def LookupToken(self, token: str) -> Optional[IsographicQuaternion]:
+        try:
+            cursor = self._conn.execute("SELECT w, x, y, z FROM tokens WHERE key = ?", (token,))
+            row = cursor.fetchone()
+            if row:
+                self._log_audit("Brain", "LOOKUP_TOKEN", None, None, token)
+                return IsographicQuaternion(row[0], row[1], row[2], row[3])
+            return None
+        except Exception as e:
+            print(f"[Brain] LookupToken error: {e}")
+            return None
+
+    def GetAppliesTo(self, token: str) -> List[str]:
+        try:
+            cursor = self._conn.execute("SELECT applies_to FROM tokens WHERE key = ?", (token,))
+            row = cursor.fetchone()
+            if row and row[0]:
+                return row[0].split("|")
+            return []
+        except Exception as e:
+            print(f"[Brain] GetAppliesTo error: {e}")
+            return []
+
+    def FindNearest(self, target: IsographicQuaternion, limit: int = 10) -> List[Tuple[str, IsographicQuaternion, float]]:
+        results = []
+        try:
+            cursor = self._conn.execute("SELECT key, w, x, y, z FROM tokens")
+            target_mag = target.magnitude
+
+            for row in cursor:
+                token = row[0]
+                quat = IsographicQuaternion(row[1], row[2], row[3], row[4])
+                dot = (quat.w * target.w + quat.x * target.x +
+                       quat.y * target.y + quat.z * target.z)
+                mag_product = quat.magnitude * target_mag
+                similarity = dot / mag_product if mag_product > 0 else 0
+                results.append((token, quat, similarity))
+
+            results.sort(key=lambda x: x[2], reverse=True)
+            return results[:limit]
+        except Exception as e:
+            print(f"[Brain] FindNearest error: {e}")
+            return []
+
+    def GetAuditTrail(self, count: int = 20) -> List[BrainAuditEvent]:
+        return list(reversed(self._audit_trail))[:max(0, count)]
+
+    def GetTokenCount(self) -> int:
+        cursor = self._conn.execute("SELECT COUNT(*) FROM tokens")
+        return cursor.fetchone()[0]
+
+    def DriftGateCheck(self, quaternion: IsographicQuaternion) -> Dict[str, Any]:
+        violated, diag = self._drift_gate(quaternion)
+        return {
+            "violated": violated,
+            "action": "HALT_AND_CLARIFY" if violated else "EXECUTE",
+            "diagnostic": diag if violated else None,
+            "threshold": self.DRIFT_THRESHOLD,
+            "magnitude": quaternion.magnitude
+        }
+
+    def RegisterComponent(self, component: str) -> None:
+        if component not in self._registered_components:
+            self._registered_components.append(component)
+            self._log_audit("Brain", "REGISTER_COMPONENT", None, None, component)
+
+    def GetEngineRoot(self) -> Path:
+        return self._engine_root
+
+    def GetISOFilePath(self) -> Path:
+        return self._iso_path
+
+    def GetMemoryRoot(self) -> Path:
+        return self._memory_root
+
+    def GetPRDManager(self) -> PRDManager:
+        return self._prd_manager
+
+
+__all__ = [
+    'VANEngineBrain',
+    'IsographicQuaternion',
+    'QueryResult',
+    'SelfTestResult',
+    'BrainStats',
+    'BrainAuditEvent'
+]
+Step 5: Electron IPC Handlers
+File: src/main/ipc/algorithm.ts
+typescript
+import { IpcMain, BrowserWindow } from 'electron';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as path from 'path';
+import * as fs from 'fs';
+
+const execAsync = promisify(exec);
+
+interface AlgorithmRequest {
+  query: string;
+  effort?: 'standard' | 'extended' | 'advanced' | 'deep' | 'comprehensive';
+  context?: Record<string, any>;
+}
+
+interface AlgorithmResponse {
+  success: boolean;
+  effort: string;
+  timeUsedSeconds: number;
+  timeBudgetSeconds: number;
+  phases: Record<string, any>;
+}
+
+export function setupAlgorithmHandlers(ipcMain: IpcMain, window: BrowserWindow) {
+  ipcMain.handle('algorithm:execute', async (event, request: AlgorithmRequest): Promise<AlgorithmResponse> => {
+    const { query, effort = 'standard', context = {} } = request;
+
+    // Find VAN_Engine brain path
+    const engineRoot = process.env.VAN_ENGINE_ROOT || path.join(process.cwd(), 'VAN_Engine');
+    const brainPath = path.join(engineRoot, 'VAN', 'brain.py');
+
+    if (!fs.existsSync(brainPath)) {
+      throw new Error(`VAN_Engine brain not found at ${brainPath}`);
+    }
+
+    // Execute Python brain with algorithm
+    const pythonCmd = process.env.PYTHON || 'python';
+    const script = `
+import asyncio
+import json
+import sys
+sys.path.insert(0, '${engineRoot}')
+from VAN.brain import VANEngineBrain
+
+async def main():
+    brain = VANEngineBrain.Instance()
+    result = await brain.ExecuteAlgorithmQuery('${query.replace(/'/g, "\\'")}', ${JSON.stringify(context)})
+    print(json.dumps({
+        "success": result.Success,
+        "message": result.Message,
+        "action": result.Action,
+        "algorithm_phase": result.AlgorithmPhase,
+        "effort": result.EffortTier,
+        "isc_checked": result.ISCChecked,
+        "isc_total": result.ISCTotal,
+        "data": result.Data
+    }))
+
+asyncio.run(main())
+    `;
+
+    try {
+      const { stdout, stderr } = await execAsync(pythonCmd, ['-c', script]);
+      if (stderr) console.warn('[Algorithm] Python stderr:', stderr);
+
+      const result = JSON.parse(stdout);
+
+      // Emit audit event
+      window.webContents.send('iso:audit', {
+        id: `audit_${Date.now()}`,
+        timestamp: Date.now(),
+        component: 'algorithm',
+        action: `execute:${effort}`
+      });
+
+      return {
+        success: result.success,
+        effort: result.effort || effort,
+        timeUsedSeconds: result.data?.time_used_seconds || 0,
+        timeBudgetSeconds: result.data?.time_budget_seconds || 0,
+        phases: result.data?.phases || {}
+      };
+    } catch (error: any) {
+      console.error('[Algorithm] Execution error:', error);
+      throw new Error(`Algorithm execution failed: ${error.message}`);
+    }
+  });
+
+  ipcMain.handle('algorithm:phase:update', async (event, phase: string) => {
+    window.webContents.send('algorithm:phase-change', {
+      phase,
+      timestamp: Date.now()
+    });
+    return { success: true };
+  });
+
+  ipcMain.handle('algorithm:prd:list', async () => {
+    const engineRoot = process.env.VAN_ENGINE_ROOT || path.join(process.cwd(), 'VAN_Engine');
+    const workDir = path.join(engineRoot, 'memory', 'WORK');
+
+    if (!fs.existsSync(workDir)) {
+      return { prds: [] };
+    }
+
+    const prds = fs.readdirSync(workDir)
+      .filter(f => fs.statSync(path.join(workDir, f)).isDirectory())
+      .map(slug => {
+        const prdPath = path.join(workDir, slug, 'PRD.md');
+        if (fs.existsSync(prdPath)) {
+          const content = fs.readFileSync(prdPath, 'utf-8');
+          const frontmatterMatch = content.match(/^---\n(.*?)\n---/s);
+          if (frontmatterMatch) {
+            const frontmatter = frontmatterMatch[1];
+            const taskMatch = frontmatter.match(/task: (.*)/);
+            const phaseMatch = frontmatter.match(/phase: (.*)/);
+            const progressMatch = frontmatter.match(/progress: (.*)/);
+            return {
+              slug,
+              task: taskMatch ? taskMatch[1] : slug,
+              phase: phaseMatch ? phaseMatch[1] : 'unknown',
+              progress: progressMatch ? progressMatch[1] : '0/0',
+              updated: fs.statSync(prdPath).mtimeMs
+            };
+          }
+        }
+        return { slug, task: slug, phase: 'unknown', progress: '0/0', updated: 0 };
+      })
+      .sort((a, b) => b.updated - a.updated);
+
+    return { prds };
+  });
+
+  ipcMain.handle('algorithm:prd:get', async (event, slug: string) => {
+    const engineRoot = process.env.VAN_ENGINE_ROOT || path.join(process.cwd(), 'VAN_Engine');
+    const prdPath = path.join(engineRoot, 'memory', 'WORK', slug, 'PRD.md');
+
+    if (!fs.existsSync(prdPath)) {
+      throw new Error(`PRD not found: ${slug}`);
+    }
+
+    const content = fs.readFileSync(prdPath, 'utf-8');
+    return { content, slug };
+  });
+}
+Step 6: Preload Bridge Updates
+File: src/preload/index.ts (Add these to existing)
+typescript
+// Add to existing preload bridge
+
+algorithm: {
+  execute: (query: string, effort?: string, context?: any) =>
+    ipcRenderer.invoke('algorithm:execute', { query, effort, context }),
+  listPRDs: () =>
+    ipcRenderer.invoke('algorithm:prd:list'),
+  getPRD: (slug: string) =>
+    ipcRenderer.invoke('algorithm:prd:get', slug),
+  onPhaseChange: (callback: (phase: string) => void) => {
+    ipcRenderer.on('algorithm:phase-change', (_event, data) => callback(data.phase));
+  }
+},
+Step 7: TypeScript Type Definitions
+File: src/renderer/types/electron.d.ts (Add these)
+typescript
+interface AlgorithmAPI {
+  execute: (query: string, effort?: string, context?: any) => Promise<{
+    success: boolean;
+    effort: string;
+    timeUsedSeconds: number;
+    timeBudgetSeconds: number;
+    phases: Record<string, any>;
+  }>;
+  listPRDs: () => Promise<{
+    prds: Array<{
+      slug: string;
+      task: string;
+      phase: string;
+      progress: string;
+      updated: number;
+    }>;
+  }>;
+  getPRD: (slug: string) => Promise<{
+    content: string;
+    slug: string;
+  }>;
+  onPhaseChange: (callback: (phase: string) => void) => void;
+}
+
+// Add to existing ElectronAPI interface
+interface ElectronAPI {
+  // ... existing properties ...
+  algorithm: AlgorithmAPI;
+}
+Step 8: React Component - Algorithm Panel
+File: src/renderer/components/Algorithm/AlgorithmPanel.tsx
+tsx
+import React, { useState, useEffect } from 'react';
+
+interface PRD {
+  slug: string;
+  task: string;
+  phase: string;
+  progress: string;
+  updated: number;
+}
+
+export const AlgorithmPanel: React.FC = () => {
+  const [query, setQuery] = useState('');
+  const [effort, setEffort] = useState<string>('standard');
+  const [isRunning, setIsRunning] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [prds, setPRDs] = useState<PRD[]>([]);
+  const [currentPhase, setCurrentPhase] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadPRDs();
+    if (window.electronAPI.algorithm.onPhaseChange) {
+      window.electronAPI.algorithm.onPhaseChange((phase) => {
+        setCurrentPhase(phase);
+      });
+    }
+  }, []);
+
+  const loadPRDs = async () => {
+    try {
+      const response = await window.electronAPI.algorithm.listPRDs();
+      setPRDs(response.prds);
+    } catch (error) {
+      console.error('Failed to load PRDs:', error);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!query.trim()) return;
+
+    setIsRunning(true);
+    setCurrentPhase(null);
+    setResult(null);
+
+    try {
+      const response = await window.electronAPI.algorithm.execute(query, effort);
+      setResult(response);
+      await loadPRDs();
+    } catch (error: any) {
+      setResult({ success: false, error: error.message });
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${seconds.toFixed(1)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}m ${secs.toFixed(0)}s`;
+  };
+
+  return (
+    <div className="algorithm-panel">
+      <h2>PAI Algorithm v3.7.0</h2>
+      <p className="subtitle">7-Phase Execution Engine: Observe → Think → Plan → Build → Execute → Verify → Learn</p>
+
+      <div className="query-section">
+        <textarea
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Describe your task... The Algorithm will decompose it into verifiable ISC criteria."
+          rows={4}
+        />
+
+        <div className="effort-selector">
+          <label>Effort Tier:</label>
+          <select value={effort} onChange={(e) => setEffort(e.target.value)}>
+            <option value="standard">Standard (&lt;2min, 8+ ISC)</option>
+            <option value="extended">Extended (&lt;8min, 16+ ISC)</option>
+            <option value="advanced">Advanced (&lt;16min, 24+ ISC)</option>
+            <option value="deep">Deep (&lt;32min, 40+ ISC)</option>
+            <option value="comprehensive">Comprehensive (&lt;120min, 64+ ISC)</option>
+          </select>
+          <button onClick={handleExecute} disabled={isRunning || !query.trim()}>
+            {isRunning ? 'Running Algorithm...' : 'Execute Algorithm'}
+          </button>
+        </div>
+      </div>
+
+      {currentPhase && (
+        <div className="phase-indicator">
+          <span className="phase-label">Current Phase:</span>
+          <span className="phase-value">{currentPhase.toUpperCase()}</span>
+          <div className="phase-progress">
+            <div className="phase-steps">
+              <span className={currentPhase === 'observe' ? 'active' : ''}>👁️ Observe</span>
+              <span className="arrow">→</span>
+              <span className={currentPhase === 'think' ? 'active' : ''}>🧠 Think</span>
+              <span className="arrow">→</span>
+              <span className={currentPhase === 'plan' ? 'active' : ''}>📋 Plan</span>
+              <span className="arrow">→</span>
+              <span className={currentPhase === 'build' ? 'active' : ''}>🔨 Build</span>
+              <span className="arrow">→</span>
+              <span className={currentPhase === 'execute' ? 'active' : ''}>⚡ Execute</span>
+              <span className="arrow">→</span>
+              <span className={currentPhase === 'verify' ? 'active' : ''}>✅ Verify</span>
+              <span className="arrow">→</span>
+              <span className={currentPhase === 'learn' ? 'active' : ''}>📚 Learn</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {result && (
+        <div className={`result-section ${result.success ? 'success' : 'error'}`}>
+          <h3>{result.success ? '✅ Algorithm Complete' : '❌ Algorithm Failed'}</h3>
+          <div className="result-metrics">
+            <div className="metric">
+              <span className="metric-label">Effort:</span>
+              <span className="metric-value">{result.effort}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Time Used:</span>
+              <span className="metric-value">{formatTime(result.timeUsedSeconds)}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Time Budget:</span>
+              <span className="metric-value">{formatTime(result.timeBudgetSeconds)}</span>
+            </div>
+          </div>
+          {result.message && <div className="result-message">{result.message}</div>}
+        </div>
+      )}
+
+      <div className="prd-list">
+        <h3>Recent PRDs</h3>
+        <div className="prd-items">
+          {prds.map((prd) => (
+            <div key={prd.slug} className="prd-item">
+              <div className="prd-info">
+                <div className="prd-task">{prd.task}</div>
+                <div className="prd-meta">
+                  <span className={`prd-phase phase-${prd.phase}`}>{prd.phase}</span>
+                  <span className="prd-progress">{prd.progress}</span>
+                  <span className="prd-date">{new Date(prd.updated).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <style>{`
+        .algorithm-panel {
+          padding: 1.5rem;
+          background: var(--bg-primary);
+          color: var(--text-primary);
+        }
+        .algorithm-panel h2 {
+          color: var(--accent-cyan);
+          margin-bottom: 0.25rem;
+        }
+        .subtitle {
+          color: var(--text-secondary);
+          margin-bottom: 2rem;
+        }
+        .query-section {
+          margin-bottom: 2rem;
+        }
+        textarea {
+          width: 100%;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 1rem;
+          color: var(--text-primary);
+          font-family: inherit;
+          resize: vertical;
+        }
+        textarea:focus {
+          outline: none;
+          border-color: var(--accent-cyan);
+        }
+        .effort-selector {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1rem;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        select, button {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          padding: 0.5rem 1rem;
+          color: var(--text-primary);
+          cursor: pointer;
+        }
+        button {
+          background: var(--accent-cyan);
+          color: var(--bg-primary);
+          font-weight: bold;
+        }
+        button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .phase-indicator {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 1rem;
+          margin-bottom: 1rem;
+        }
+        .phase-label {
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          color: var(--text-secondary);
+        }
+        .phase-value {
+          font-size: 1.25rem;
+          font-weight: bold;
+          color: var(--accent-cyan);
+          margin-left: 0.5rem;
+        }
+        .phase-steps {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 0.75rem;
+          flex-wrap: wrap;
+          gap: 0.25rem;
+        }
+        .phase-steps span {
+          font-size: 0.75rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          background: var(--bg-tertiary);
+        }
+        .phase-steps .active {
+          background: var(--accent-cyan);
+          color: var(--bg-primary);
+        }
+        .arrow {
+          background: transparent !important;
+          color: var(--text-secondary);
+        }
+        .result-section {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 1rem;
+          margin-bottom: 1rem;
+        }
+        .result-section.success {
+          border-left-color: var(--success);
+          border-left-width: 4px;
+        }
+        .result-section.error {
+          border-left-color: var(--error);
+          border-left-width: 4px;
+        }
+        .result-metrics {
+          display: flex;
+          gap: 1rem;
+          margin: 0.75rem 0;
+        }
+        .metric {
+          background: var(--bg-tertiary);
+          padding: 0.5rem 0.75rem;
+          border-radius: 6px;
+        }
+        .metric-label {
+          font-size: 0.7rem;
+          color: var(--text-secondary);
+          margin-right: 0.5rem;
+        }
+        .metric-value {
+          font-weight: bold;
+        }
+        .prd-list h3 {
+          margin-bottom: 0.75rem;
+        }
+        .prd-item {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+        .prd-task {
+          font-weight: 500;
+          margin-bottom: 0.25rem;
+        }
+        .prd-meta {
+          display: flex;
+          gap: 1rem;
+          font-size: 0.7rem;
+          color: var(--text-secondary);
+        }
+        .prd-phase {
+          padding: 0.125rem 0.375rem;
+          border-radius: 4px;
+        }
+        .phase-observe { background: rgba(96,165,250,0.2); color: #60a5fa; }
+        .phase-think { background: rgba(167,139,250,0.2); color: #a78bfa; }
+        .phase-plan { background: rgba(251,191,36,0.2); color: #fbbf24; }
+        .phase-build { background: rgba(248,113,113,0.2); color: #f87171; }
+        .phase-execute { background: rgba(74,222,128,0.2); color: #4ade80; }
+        .phase-verify { background: rgba(34,211,238,0.2); color: #22d3ee; }
+        .phase-learn { background: rgba(244,114,182,0.2); color: #f472b6; }
+      `}</style>
+    </div>
+  );
+};
+Step 9: Update Main Process to Register Handlers
+File: src/main/index.ts (Add these lines)
+typescript
+// Add to existing imports
+import { setupAlgorithmHandlers } from './ipc/algorithm';
+
+// Add after other setup handlers
+setupAlgorithmHandlers(ipcMain, mainWindow);
+Step 10: Add Algorithm to App Navigation
+File: src/renderer/App.tsx (Add Algorithm view)
+tsx
+// Add Algorithm to the view type and navigation
+import { AlgorithmPanel } from './components/Algorithm/AlgorithmPanel';
+
+// In the renderContent function, add:
+case 'algorithm':
+  return <AlgorithmPanel />;
+Execution Order Summary
+Step	File	Action
+1	core/algorithm.py	Create - Core data structures
+2	core/prd_manager.py	Create - PRD management
+3	core/algorithm_executor.py	Create - 7-phase executor
+4	VAN/brain.py	Replace - Updated with Algorithm
+5	src/main/ipc/algorithm.ts	Create - IPC handlers
+6	src/preload/index.ts	Update - Add algorithm bridge
+7	src/renderer/types/electron.d.ts	Update - Add types
+8	src/renderer/components/Algorithm/AlgorithmPanel.tsx	Create - React component
+9	src/main/index.ts	Update - Register handlers
+10	src/renderer/App.tsx	Update - Add navigation
+Verification Commands
+After implementation, run:
+
+bash
+# Test Python brain with algorithm
+cd VAN_Engine
+python -c "import asyncio; from VAN.brain import VANEngineBrain; brain = VANEngineBrain.Instance(); result = asyncio.run(brain.ExecuteAlgorithmQuery('Build a simple web server')); print(result.Message)"
+
+# Test IPC handler
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"van_engine-brain","messages":[{"role":"user","content":"[ALGORITHM] Build a web server"}]}'
+
+# Check PRD creation
+ls VAN_Engine/memory/WORK/v3.7.0

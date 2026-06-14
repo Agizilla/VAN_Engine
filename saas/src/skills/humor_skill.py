@@ -186,6 +186,15 @@ class HumorAsciiGeneratorSkill(BaseSkill):
     description = "Generate simple ASCII art from a text prompt (offline, template-based)"
     category = "utility"
     tags = ["humor", "ascii", "generator", "template"]
+    input_schema = {
+        "type": "object",
+        "properties": {
+            "text": {"type": "string", "description": "Text to render as ASCII art"},
+            "action": {"type": "string", "enum": ["banner", "figlet"], "default": "banner"},
+            "style": {"type": "string", "enum": ["box", "angle", "rounded", "double"], "default": "box"},
+        },
+        "required": ["text"],
+    }
 
     BORDER_TEMPLATES = [
         ("box", "┌{top}┐\n{body}\n└{bot}┘"),

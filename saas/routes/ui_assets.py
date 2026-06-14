@@ -179,6 +179,46 @@ function buildForm(schema, container, prefix) {
         '<div class="fd"><label>' + escapeHtml(label) + req + '</label>' + desc +
         '<textarea class="widget code" data-key="' + escapeAttr(key) + '" rows="2" placeholder="JSON array, e.g. [&quot;a&quot;,&quot;b&quot;]" spellcheck="false"></textarea></div>');
       formFields[key] = {el: container.lastElementChild.querySelector('textarea'), type: 'array'};
+    } else if (p.format === 'image-path') {
+      var fid = 'fu-' + key.replace(/[^a-z0-9]/gi, '-');
+      container.insertAdjacentHTML('beforeend',
+        '<div class="fd"><label>' + escapeHtml(label) + req + '</label>' + desc +
+        '<div style="display:flex;gap:6px;align-items:center">' +
+        '<input type="text" class="widget" data-key="' + escapeAttr(key) + '" placeholder="File path or data: URI" spellcheck="false" style="flex:1">' +
+        '<button type="button" class="fu-btn" data-fid="' + escapeAttr(fid) + '" style="padding:6px 12px;background:#1e2a3a;color:#e6edf3;border:1px solid #30363d;border-radius:6px;cursor:pointer;font-size:12px">\uD83D\uDCC1 Browse</button>' +
+        '</div>' +
+        '<input type="file" id="' + escapeAttr(fid) + '" accept="image/*" style="display:none">' +
+        '<textarea id="b64-' + escapeAttr(fid) + '" class="widget code" rows="2" placeholder="Paste base64 data URI here..." spellcheck="false" style="display:none;margin-top:4px;font-size:11px"></textarea>' +
+        '<div style="margin-top:4px">' +
+        '<label style="font-size:11px;color:#8b949e;cursor:pointer"><input type="checkbox" class="fu-b64-toggle" data-b64="b64-' + escapeAttr(fid) + '" data-target="' + escapeAttr(key) + '"> Paste base64 instead</label>' +
+        '</div></div>');
+      var textInput = container.lastElementChild.querySelector('input[type="text"]');
+      formFields[key] = {el: textInput, type: 'string'};
+      var fileInput = container.lastElementChild.querySelector('input[type="file"]');
+      fileInput.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          textInput.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+      container.lastElementChild.querySelector('.fu-btn').addEventListener('click', function() {
+        document.getElementById(this.dataset.fid).click();
+      });
+      container.lastElementChild.querySelector('.fu-b64-toggle').addEventListener('change', function() {
+        var ta = document.getElementById(this.dataset.b64);
+        if (this.checked) {
+          ta.style.display = 'block';
+          textInput.style.display = 'none';
+          formFields[key].el = ta;
+        } else {
+          ta.style.display = 'none';
+          textInput.style.display = '';
+          formFields[key].el = textInput;
+        }
+      });
     } else {
       var isLong = (p.description && p.description.length > 60) || (label === 'text');
       var tag = isLong ? 'textarea' : 'input';
@@ -186,10 +226,18 @@ function buildForm(schema, container, prefix) {
       var rows = isLong ? ' rows="4"' : '';
       var def = p.default !== undefined ? (isLong ? '>' + escapeHtml(String(p.default)) : ' value="' + escapeAttr(String(p.default)) + '"') : (isLong ? '>' : '');
       var close = isLong ? '</textarea>' : '';
+      var isJsonLike = name.toLowerCase().indexOf('json') !== -1 || (p.description && p.description.toLowerCase().indexOf('json') !== -1);
       container.insertAdjacentHTML('beforeend',
         '<div class="fd"><label>' + escapeHtml(label) + req + '</label>' + desc +
-        '<' + tag + typeAttr + ' class="widget' + (isLong ? ' code' : '') + '" data-key="' + escapeAttr(key) + '"' + rows + ' placeholder="' + escapeAttr(label) + '" spellcheck="false"' + def + close + '></div>');
-      formFields[key] = {el: container.lastElementChild.querySelector(tag), type: 'string'};
+        '<' + tag + typeAttr + ' class="widget' + (isLong ? ' code' : '') + '" data-key="' + escapeAttr(key) + '"' + rows + ' placeholder="' + escapeAttr(label) + '" spellcheck="false"' + def + close + '></div>' +
+        (isJsonLike ? '<div style="margin-top:4px"><button type="button" class="json-builder-btn" data-key="' + escapeAttr(key) + '" style="padding:4px 10px;background:#1e2a3a;color:#e6edf3;border:1px solid #30363d;border-radius:4px;cursor:pointer;font-size:11px">\uD83D\uDDD2 Build JSON</button></div>' : ''));
+      var el = container.lastElementChild.querySelector(tag);
+      formFields[key] = {el: el, type: 'string'};
+      if (isJsonLike) {
+        container.lastElementChild.querySelector('.json-builder-btn').addEventListener('click', function() {
+          openJsonBuilder(key, el);
+        });
+      }
     }
   });
 }
@@ -307,6 +355,29 @@ async function submitForm(skillName) {
         if (lastResult && lastResult.result && lastResult.result.html) {
           if (prevBtn) { prevBtn.disabled = false; prevBtn.textContent = '\u25B6 Preview'; }
         }
+        // skill-specific rendering
+        if (skillName === 'vibe_affirmations' && json.result) {
+          renderAffirmationsAsArt(json.result, resultDiv);
+        }
+        if (skillName === 'text_rewrite' && json.result && json.result.variations && json.result.variations.length) {
+          var origText = data.text || '';
+          renderRewriteDiff(origText, json.result.variations, resultDiv);
+        }
+        if (skillName === 'dirty_talker' && json.result && json.result.phrase) {
+          renderDirtyTalkerPreview(json.result, resultDiv);
+        }
+        if (skillName === 'emotion_svg' && json.result && json.result.svg) {
+          renderSvgPreview(json.result, resultDiv);
+        }
+        if (skillName === 'bullshit_detector' && json.result) {
+          renderBullshitAlert(json.result, resultDiv);
+        }
+        if (skillName === 'humor_ascii_generator' && json.result && json.result.ascii) {
+          renderAsciiPreview(json.result, resultDiv);
+        }
+        if (skillName === 'batch_wizard' && json.result) {
+          renderBatchWizard(json.result, resultDiv, skillName);
+        }
       }
     } else {
       errorDiv.innerHTML = 'Status ' + resp.status + ': ' + escapeHtml(text);
@@ -344,6 +415,392 @@ function copyPreviewHtml() {
 
 function escapeAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ─── VIBE AFFIRMATIONS — ASCII ART COMIC PREVIEW ────────────────────
+function renderAffirmationsAsArt(result, container) {
+  var items = result.affirmations || (result.affirmation ? [result.affirmation] : []);
+  if (!items.length) return;
+  var chars = ['\u2571', 'o', '\u25cb', '\u2022', '*', '+'];
+  var hue = Math.floor(Math.random() * 360);
+  var comic = '<div style="font-family:monospace;white-space:pre;line-height:1.3;padding:12px;background:#0a0a12;border-radius:8px;overflow-x:auto">';
+  comic += '<div style="color:#888;font-size:10px;margin-bottom:6px">\u250c\u2500 VIBE AFFIRMATIONS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510</div>';
+  items.forEach(function(aff, i) {
+    var lines = aff.split(' ').reduce(function(acc, w) {
+      if (!acc.length || acc[acc.length-1].length + w.length + 1 > 36) acc.push(w);
+      else acc[acc.length-1] += ' ' + w;
+      return acc;
+    }, []);
+    var bw = Math.max.apply(null, lines.map(function(l) { return l.length; })) + 4;
+    var c = ['#ff6680','#66ffaa','#ffaa66','#aa88ff','#66ccff','#ff88cc'][i % 6];
+    var cx = 8 + (i % 3) * 12;
+    var cy = 14 + Math.floor(i / 3) * 6;
+    comic += '<div style="color:' + c + ';margin-bottom:14px">';
+    // stick figure (simple)
+    comic += '  '.repeat(i % 3) + ' \u256d' + '\u2500'.repeat(4) + '\u256e' + '\n';
+    comic += '  '.repeat(i % 3) + ' \u2502' + chars[i % chars.length] + '  \u2502' + '\n';
+    comic += '  '.repeat(i % 3) + ' \u2570' + '\u2500'.repeat(4) + '\u256f' + '\n';
+    comic += '  '.repeat(i % 3) + '  \u2571\u2572' + '\n';
+    comic += '  '.repeat(i % 3) + ' \u2571  \u2572' + '\n';
+    // speech bubble
+    var sw = bw + 2;
+    comic += '  '.repeat(i % 3) + ' ' + '\u250c' + '\u2500'.repeat(sw) + '\u2510' + '\n';
+    lines.forEach(function(l) {
+      var pad = sw - l.length;
+      comic += '  '.repeat(i % 3) + ' \u2502 ' + l + ' '.repeat(pad) + '\u2502' + '\n';
+    });
+    comic += '  '.repeat(i % 3) + ' \u2514' + '\u2500'.repeat(sw) + '\u2518' + '\n';
+    // tail
+    comic += '  '.repeat(i % 3) + '   \u2570\u2500\u2500\u2572' + '\n';
+    comic += '</div>';
+  });
+  comic += '<div style="color:#888;font-size:10px">\u2514' + '\u2500'.repeat(36) + '\u2518</div></div>';
+  container.innerHTML = comic;
+}
+
+// ─── TEXT REWRITE — WORD-LEVEL DIFF PREVIEW ─────────────────────────
+function wordDiff(oldWords, newWords) {
+  var m = oldWords.length, n = newWords.length;
+  var dp = Array(m + 1).fill().map(function() { return Array(n + 1).fill(0); });
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      if (oldWords[i-1] === newWords[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+      else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  var result = [];
+  var i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldWords[i-1] === newWords[j-1]) {
+      result.unshift({type: 'same', word: oldWords[i-1]});
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      result.unshift({type: 'added', word: newWords[j-1]});
+      j--;
+    } else {
+      result.unshift({type: 'removed', word: oldWords[i-1]});
+      i--;
+    }
+  }
+  return result;
+}
+
+function renderRewriteDiff(original, variations, container) {
+  var html = '<div style="font-family:monospace;font-size:13px;line-height:1.6">';
+  variations.forEach(function(v, vi) {
+    var origWords = original.match(/\\S+\\s*/g) || [];
+    var newWords = v.match(/\\S+\\s*/g) || [];
+    var diff = wordDiff(origWords, newWords);
+    html += '<div style="margin-bottom:16px;padding:10px;background:#0d1117;border:1px solid #30363d;border-radius:6px">';
+    html += '<div style="color:#8b949e;font-size:10px;margin-bottom:6px">Variation ' + (vi + 1) + ':</div>';
+    html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+    // original
+    html += '<div style="flex:1;min-width:200px"><div style="color:#8b949e;font-size:9px;margin-bottom:4px">ORIGINAL</div><div>';
+    origWords.forEach(function(w) {
+      html += '<span style="color:#8b949e">' + escapeHtml(w) + '</span>';
+    });
+    html += '</div></div>';
+    // rewritten with diff
+    html += '<div style="flex:1;min-width:200px"><div style="color:#8b949e;font-size:9px;margin-bottom:4px">REWRITTEN</div><div>';
+    diff.forEach(function(d) {
+      if (d.type === 'same') html += '<span style="color:#e6edf3">' + escapeHtml(d.word) + '</span>';
+      else if (d.type === 'added') html += '<span style="color:#3fb950;font-weight:700">' + escapeHtml(d.word) + '</span>';
+      else if (d.type === 'removed') html += '<span style="color:#f85149;text-decoration:line-through">' + escapeHtml(d.word) + '</span>';
+    });
+    html += '</div></div></div></div>';
+  });
+  html += '</div>';
+  // popup button
+  html += '<button onclick="showDiffPopup()" style="padding:6px 14px;background:#1e2a3a;color:#e6edf3;border:1px solid #30363d;border-radius:6px;cursor:pointer;font-size:12px">\\u26A0 Open Diff Popup</button>';
+  container.innerHTML = html;
+  // Store for popup
+  window.__diffData = {original: original, variations: variations};
+}
+
+function showDiffPopup() {
+  if (!window.__diffData) return;
+  var d = window.__diffData;
+  var w = window.open('', 'diff-popup', 'width=800,height=600,scrollbars=yes');
+  if (!w) return;
+  var origWords = d.original.match(/\\S+\\s*/g) || [];
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Text Rewrite — Diff</title>';
+  html += '<style>body{background:#0d1117;color:#e6edf3;font-family:monospace;padding:24px;font-size:14px;line-height:1.6}';
+  html += '.old{color:#f85149;text-decoration:line-through}.new{color:#3fb950;font-weight:700}.same{color:#e6edf3}</style></head><body>';
+  html += '<h2 style="color:#58a6ff;font-size:16px;margin-bottom:16px">Original</h2>';
+  html += '<div style="margin-bottom:24px;padding:12px;background:#161b22;border:1px solid #21262d;border-radius:6px">';
+  html += '<pre style="white-space:pre-wrap;margin:0">' + escapeHtml(d.original) + '</pre></div>';
+  d.variations.forEach(function(v, vi) {
+    var newWords = v.match(/\\S+\\s*/g) || [];
+    var diff = wordDiff(origWords, newWords);
+    html += '<h3 style="color:#8b949e;font-size:12px;margin-bottom:8px">Variation ' + (vi+1) + '</h3>';
+    html += '<div style="margin-bottom:20px;padding:12px;background:#161b22;border:1px solid #21262d;border-radius:6px">';
+    diff.forEach(function(d2) {
+      if (d2.type === 'same') html += '<span class="same">' + escapeHtml(d2.word) + '</span>';
+      else if (d2.type === 'added') html += '<span class="new">' + escapeHtml(d2.word) + '</span>';
+      else if (d2.type === 'removed') html += '<span class="old">' + escapeHtml(d2.word) + '</span>';
+    });
+    html += '</div>';
+  });
+  html += '</body></html>';
+  w.document.write(html);
+  w.document.close();
+}
+
+// ─── DIRTY TALKER — VOICE PLAYBACK PREVIEW ───────────────────────────
+function renderDirtyTalkerPreview(result, container) {
+  var phrase = result.phrase || '';
+  var html = '<div style="font-family:monospace;padding:16px;background:#0d1117;border:1px solid #30363d;border-radius:8px;max-width:600px">';
+  html += '<div style="color:#8b949e;font-size:10px;margin-bottom:6px">GENERATED PHRASE</div>';
+  html += '<div style="color:#e6edf3;font-size:16px;padding:12px;background:#161b22;border-radius:6px;margin-bottom:12px">' + escapeHtml(phrase) + '</div>';
+  if (result.sanitized) html += '<div style="color:#3fb950;font-size:11px;margin-bottom:8px">✓ Sanitized</div>';
+  html += '<div style="display:flex;gap:8px">';
+  html += '<button onclick="speakPhrase()" style="padding:8px 16px;background:#238636;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">🔊 Speak</button>';
+  html += '<button onclick="speakPhraseSlow()" style="padding:8px 16px;background:#1e2a3a;color:#e6edf3;border:1px solid #30363d;border-radius:6px;cursor:pointer;font-size:13px">🐢 Slow Mode</button>';
+  html += '</div></div>';
+  container.innerHTML = html;
+  window.__dirtyPhrase = phrase;
+}
+
+function speakPhrase() {
+  if (!window.__dirtyPhrase || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(window.__dirtyPhrase);
+  u.rate = 1.0; u.pitch = 1.0;
+  speechSynthesis.speak(u);
+}
+
+function speakPhraseSlow() {
+  if (!window.__dirtyPhrase || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(window.__dirtyPhrase);
+  u.rate = 0.6; u.pitch = 0.85;
+  speechSynthesis.speak(u);
+}
+
+// ─── EMOTION SVG — RENDER SVG PREVIEW ───────────────────────────────
+function renderSvgPreview(result, container) {
+  var svg = result.svg || '';
+  var emotion = result.emotion || 'neutral';
+  var colors = {neutral:'#00f2fe', joy:'#66ff99', laugh:'#88ffbb', sad:'#aa88ff', surprise:'#66aaff', anger:'#ff6666', fear:'#cc66ff', disgust:'#88cc44', contempt:'#dd8844', tension:'#ffaa44', love:'#ff88aa', mischief:'#ff66aa'};
+  var c = colors[emotion] || '#00f2fe';
+  var html = '<div style="font-family:monospace;padding:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px">';
+  html += '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">';
+  html += '<span style="color:' + c + ';font-weight:700;font-size:14px">Emotion: ' + emotion + '</span>';
+  if (result.text) html += '<span style="color:#8b949e;font-size:11px">"' + escapeHtml(result.text) + '"</span>';
+  html += '</div>';
+  html += '<div style="background:#fff;border-radius:6px;padding:8px;display:flex;justify-content:center;max-height:400px;overflow:auto">';
+  html += svg;
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+// ─── BULLSHIT DETECTOR — ALERT BOX ──────────────────────────────────
+function renderBullshitAlert(result, container) {
+  var action = result.action || 'pass';
+  var score = result.score !== undefined ? result.score : null;
+  var level = result.level !== undefined ? result.level : 0;
+  var message = result.message || '';
+  var details = result.details || [];
+  var isAlert = action === 'warn' || action === 'block';
+  var map = {
+    pass: {icon: '✅', color: '#3fb950', bg: '#0a2a1a', border: '#3fb95033', label: 'PASS — Looks good'},
+    warn: {icon: '⚠️', color: '#d29922', bg: '#1a1a0a', border: '#d2992233', label: 'WARNING — Low quality'},
+    block: {icon: '🚫', color: '#f85149', bg: '#2a0a0a', border: '#f8514933', label: 'BLOCKED — Try again'}
+  };
+  var m = map[action] || map.pass;
+  var barW = score !== null ? Math.min(100, Math.max(0, score)) : 0;
+  var barColor = barW < 30 ? '#3fb950' : barW < 60 ? '#d29922' : '#f85149';
+  var html = '<div style="font-family:monospace;padding:16px;background:' + m.bg + ';border:2px solid ' + m.border + ';border-radius:10px;max-width:600px">';
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+  html += '<span style="font-size:24px">' + m.icon + '</span>';
+  html += '<div><div style="color:' + m.color + ';font-weight:700;font-size:14px">' + m.label + '</div>';
+  if (level > 0) html += '<div style="color:#8b949e;font-size:11px">Level ' + level + '</div>';
+  html += '</div></div>';
+  if (score !== null) {
+    html += '<div style="margin:10px 0">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#8b949e;margin-bottom:4px"><span>Score</span><span>' + barW + '/100</span></div>';
+    html += '<div style="height:8px;background:#21262d;border-radius:4px;overflow:hidden"><div style="height:100%;width:' + barW + '%;background:' + barColor + ';border-radius:4px;transition:width .3s"></div></div>';
+    html += '</div>';
+  }
+  if (message) html += '<div style="color:#e6edf3;font-size:12px;padding:8px;background:#00000066;border-radius:4px;margin-top:8px;white-space:pre-wrap">' + escapeHtml(message) + '</div>';
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ─── HUMOR ASCII GENERATOR — RICH TEXT ASCII PREVIEW ────────────────
+function renderAsciiPreview(result, container) {
+  var ascii = result.ascii || '';
+  var style = result.style || 'banner';
+  var html = '<div style="font-family:monospace;padding:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px">';
+  html += '<div style="color:#8b949e;font-size:10px;margin-bottom:6px">ASCII ART — ' + style + '</div>';
+  html += '<pre style="color:#58a6ff;background:#0a0a12;padding:16px;border-radius:6px;overflow-x:auto;line-height:1.2;font-size:12px;margin:0">' + escapeHtml(ascii) + '</pre>';
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ─── BATCH WIZARD — DIRECTORY INPUT + MODAL ─────────────────────────
+function renderBatchWizard(result, container, skillName) {
+  var state = result.state || 'idle';
+  var script = result.script || '';
+  var grouped = result.grouped || {};
+  var total = result.total || 0;
+  var choices = result.choices || [];
+  var options = result.options || [];
+  var ext = result.ext || '';
+  var html = '<div style="font-family:monospace">';
+  if (state === 'welcome' || state === 'idle') {
+    html += '<div style="padding:12px;background:#161b22;border:1px solid #30363d;border-radius:8px;margin-bottom:10px">';
+    html += '<div style="color:#58a6ff;font-weight:700;font-size:13px;margin-bottom:6px">📂 Directory Scan</div>';
+    if (script) html += '<pre style="color:#e6edf3;font-size:12px;white-space:pre-wrap;background:#0d1117;padding:8px;border-radius:4px">' + escapeHtml(script) + '</pre>';
+    if (total > 0) html += '<div style="color:#8b949e;font-size:11px;margin-top:6px">Found ' + total + ' files</div>';
+    html += '</div>';
+  } else if (state === 'choose_type' || state === 'choose_action') {
+    html += '<div style="padding:12px;background:#161b22;border:1px solid #30363d;border-radius:8px;margin-bottom:10px">';
+    html += '<div style="color:' + (state === 'choose_type' ? '#d29922' : '#3fb950') + ';font-weight:700;font-size:13px;margin-bottom:6px">Step: ' + state.replace('_', ' ') + '</div>';
+    if (script) html += '<pre style="color:#e6edf3;font-size:12px;white-space:pre-wrap;background:#0d1117;padding:8px;border-radius:4px">' + escapeHtml(script) + '</pre>';
+    if (state === 'choose_type' && choices.length) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">';
+      choices.forEach(function(c) {
+        html += '<span style="padding:3px 8px;background:#1e2a3a;border:1px solid #30363d;border-radius:4px;font-size:11px;color:#e6edf3">' + escapeHtml(c) + '</span>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  } else if (state === 'run') {
+    var errs = result.errors || [];
+    var ok = result.success_count || 0;
+    var fail = result.error_count || 0;
+    html += '<div style="padding:12px;background:#161b22;border:1px solid #30363d;border-radius:8px;margin-bottom:10px">';
+    html += '<div style="color:#3fb950;font-weight:700;font-size:13px;margin-bottom:6px">✓ Processing Complete</div>';
+    html += '<div style="color:#e6edf3;font-size:12px">' + ok + ' succeeded, ' + fail + ' failed</div>';
+    if (errs.length) html += '<pre style="color:#f85149;font-size:11px;margin-top:6px;background:#0d1117;padding:8px;border-radius:4px">' + escapeHtml(errs.join('\n')) + '</pre>';
+    html += '</div>';
+  }
+  html += '<button onclick="openBatchWizardModal()" style="padding:8px 16px;background:#238636;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;margin-top:4px">🔍 Open Wizard Modal</button>';
+  html += '</div>';
+  container.innerHTML = html;
+  window.__batchResult = result;
+}
+
+function openBatchWizardModal() {
+  var r = window.__batchResult;
+  if (!r) return;
+  var w = window.open('', 'batch-wizard', 'width=700,height=600,scrollbars=yes');
+  if (!w) return;
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Batch Wizard</title>';
+  html += '<style>body{background:#0d1117;color:#e6edf3;font-family:monospace;padding:20px;font-size:13px;line-height:1.5}';
+  html += 'pre{background:#161b22;padding:10px;border-radius:6px;white-space:pre-wrap;font-size:12px}';
+  html += 'h2{color:#58a6ff;font-size:15px}';
+  html += '.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;margin:2px;background:#1e2a3a;border:1px solid #30363d}</style></head><body>';
+  html += '<h2>📂 Batch Wizard — ' + (r.state || 'idle') + '</h2>';
+  if (r.script) html += '<pre>' + escapeHtml(r.script) + '</pre>';
+  if (r.grouped) {
+    html += '<h3 style="color:#8b949e;font-size:12px;margin-top:12px">Files by type</h3><div>';
+    Object.keys(r.grouped).forEach(function(ext) {
+      html += '<div style="margin:4px 0"><span class="badge">' + escapeHtml(ext) + '</span> <span style="color:#8b949e">' + r.grouped[ext] + ' files</span></div>';
+    });
+    html += '</div>';
+  }
+  if (r.choices && r.choices.length) {
+    html += '<h3 style="color:#8b949e;font-size:12px;margin-top:12px">Available choices</h3><div>';
+    r.choices.forEach(function(c) { html += '<span class="badge" style="border-color:#d29922;color:#d29922">' + escapeHtml(c) + '</span> '; });
+    html += '</div>';
+  }
+  if (r.total !== undefined) html += '<div style="margin-top:12px;color:#8b949e;font-size:11px">Total files: ' + r.total + '</div>';
+  html += '</body></html>';
+  w.document.write(html);
+  w.document.close();
+}
+
+// ─── JSON BUILDER — DYNAMIC JSON POPUP ──────────────────────────────
+function openJsonBuilder(paramName, textarea) {
+  var w = window.open('', 'json-builder', 'width=650,height=550,scrollbars=yes');
+  if (!w) return;
+  var current = '';
+  try { current = JSON.stringify(JSON.parse(textarea.value || '{}'), null, 2); } catch(e) { current = textarea.value || '{}'; }
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>JSON Builder — ' + escapeHtml(paramName) + '</title>';
+  html += '<style>body{background:#0d1117;color:#e6edf3;font-family:monospace;padding:20px;font-size:13px}';
+  html += 'h2{color:#58a6ff;font-size:15px;margin-bottom:10px}';
+  html += '.row{display:flex;gap:6px;margin-bottom:6px;align-items:center}';
+  html += '.row input{flex:1;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#e6edf3;padding:6px 8px;font-family:monospace;font-size:12px}';
+  html += '.row input:focus{outline:none;border-color:#58a6ff}';
+  html += '.row .del{background:#3d1114;border:1px solid #da3633;color:#ffa198;border-radius:4px;cursor:pointer;padding:4px 8px;font-size:11px}';
+  html += '.row .del:hover{background:#5a1a1a}';
+  html += '#addBtn{background:#1e2a3a;border:1px solid #30363d;color:#e6edf3;border-radius:4px;cursor:pointer;padding:6px 12px;font-size:12px;margin:8px 0}';
+  html += '#addBtn:hover{background:#2a3a4a}';
+  html += '#doneBtn{background:#238636;border:none;color:#fff;border-radius:6px;cursor:pointer;padding:8px 16px;font-size:13px;font-weight:600;margin-right:6px}';
+  html += '#cancelBtn{background:#1e2a3a;border:1px solid #30363d;color:#e6edf3;border-radius:6px;cursor:pointer;padding:8px 16px;font-size:13px}';
+  html += '#preview{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px;margin-top:10px;font-size:11px;white-space:pre-wrap;max-height:150px;overflow:auto}';
+  html += '.key-hint{color:#8b949e;font-size:10px;margin-bottom:8px}';
+  html += '.type-select{background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#e6edf3;padding:4px;font-size:11px}</style></head><body>';
+  html += '<h2>🛠 Build JSON: ' + escapeHtml(paramName) + '</h2>';
+  html += '<div class="key-hint">Add key-value pairs. Supports strings, numbers, booleans, arrays, nested objects.</div>';
+  html += '<div id="rows"></div>';
+  html += '<button id="addBtn">+ Add Field</button>';
+  html += '<div style="margin-top:10px"><button id="doneBtn">✓ Done — Use This JSON</button><button id="cancelBtn">Cancel</button></div>';
+  html += '<pre id="preview">' + escapeHtml(current) + '</pre>';
+  html += '<script>';
+  html += 'var data = {};';
+  try {
+    var existing = JSON.parse(textarea.value || '{}');
+    Object.keys(existing).forEach(function(k) {
+      html += 'data[' + JSON.stringify(k) + '] = ' + JSON.stringify(existing[k]) + ';';
+    });
+  } catch(e) {}
+  html += 'function addRow(k, v, t) {';
+  html += '  var key = k || ""; var val = v !== undefined ? v : ""; var type = t || "string";';
+  html += '  var div = document.createElement("div"); div.className = "row";';
+  html += '  div.innerHTML = \'<input class="jk" placeholder="key" value="\' + escapeJs(key) + \'" spellcheck="false">\' +';
+  html += '    \'<select class="jt" onchange="updatePreview()">\' +';
+  html += '    \'<option value="string"\'>\' + (type==="string"?" selected":"") + \'</option>\' +';
+  html += '    \'<option value="number"\'>\' + (type==="number"?" selected":"") + \'</option>\' +';
+  html += '    \'<option value="boolean"\'>\' + (type==="boolean"?" selected":"") + \'</option>\' +';
+  html += '    \'<option value="array"\'>\' + (type==="array"?" selected":"") + \'</option>\' +';
+  html += '    \'<option value="null"\'>\' + (type==="null"?" selected":"") + \'</option>\' +';
+  html += '    \'</select>\' +';
+  html += '    \'<input class="jv" placeholder="value" value="\' + escapeJs(String(val)) + \'" spellcheck="false">\' +';
+  html += '    \'<button class="del" onclick="this.parentElement.remove();updatePreview()">✕</button>\';';
+  html += '  document.getElementById("rows").appendChild(div);';
+  html += '}';
+  html += 'function escapeJs(s) { return s.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }';
+  html += 'function updatePreview() {';
+  html += '  var obj = {};';
+  html += '  document.querySelectorAll(".row").forEach(function(row) {';
+  html += '    var k = row.querySelector(".jk").value.trim();';
+  html += '    if (!k) return;';
+  html += '    var v = row.querySelector(".jv").value;';
+  html += '    var t = row.querySelector(".jt").value;';
+  html += '    if (t === "number") v = parseFloat(v) || 0;';
+  html += '    else if (t === "boolean") v = v === "true" || v === "1";';
+  html += '    else if (t === "array") { try { v = JSON.parse(v); } catch(e) { v = []; } }';
+  html += '    else if (t === "null") v = null;';
+  html += '    obj[k] = v;';
+  html += '  });';
+  html += '  document.getElementById("preview").textContent = JSON.stringify(obj, null, 2);';
+  html += '}';
+  html += 'document.getElementById("addBtn").onclick = function() { addRow("","","string"); updatePreview(); };';
+  html += 'document.getElementById("cancelBtn").onclick = function() { window.close(); };';
+  html += 'document.getElementById("doneBtn").onclick = function() {';
+  html += '  updatePreview();';
+  html += '  var json = document.getElementById("preview").textContent;';
+  html += '  window.opener.__jsonBuilderCallback(' + JSON.stringify(paramName) + ', json);';
+  html += '  window.close();';
+  html += '};';
+  html += 'Object.keys(data).forEach(function(k) { addRow(k, data[k], typeof data[k]); });';
+  html += 'updatePreview();';
+  html += '<\/script>';
+  html += '</body></html>';
+  w.document.write(html);
+  w.document.close();
+}
+
+// JSON builder callback — stored on the opener window
+window.__jsonBuilderCallback = function(paramName, json) {
+  // find the textarea for this param and set its value
+  var ta = document.querySelector('textarea[data-key="' + escapeAttr(paramName) + '"], input[data-key="' + escapeAttr(paramName) + '"]');
+  if (ta) ta.value = json;
+  // trigger preview update
+  if (window.updatePreview) window.updatePreview();
+};
 
 document.addEventListener('DOMContentLoaded', function() {
   var skillName = document.getElementById('hook-form').dataset.skill;

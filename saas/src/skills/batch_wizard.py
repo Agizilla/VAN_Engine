@@ -362,6 +362,18 @@ class BatchWizardSkill(BaseSkill):
     name = "batch_wizard"
     description = "Voice-driven batch processing wizard - scan dirs, choose file types and actions"
     category = "utility"
+    tags = ["batch", "wizard", "directory", "processing"]
+    input_schema = {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "Directory path to scan for batch processing"},
+            "action": {"type": "string", "enum": ["scan", "choose_type", "choose_action", "run", "reset"], "default": "scan"},
+            "ext": {"type": "string", "default": "", "description": "File extension filter (e.g. .py, .txt)"},
+            "max_depth": {"type": "integer", "default": -1},
+            "dry_run": {"type": "boolean", "default": False},
+        },
+        "required": ["path"],
+    }
     required_libs = []
 
     def execute(self, **kwargs: Any) -> dict:

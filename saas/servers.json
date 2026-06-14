@@ -1,0 +1,24 @@
+{
+  "servers": [
+    {
+      "name": "SAAS API",
+      "command": "python saas/server.py",
+      "cwd": "C:\\Users\\User\\Documents\\ALL-PROJECTS\\PROJECTS\\VAN_Engine",
+      "port": 8001,
+      "health_url": "http://127.0.0.1:8001/",
+      "color": "#00f2fe",
+      "tags": ["API", "TTS", "skills"],
+      "notes": "Main server: simulations, TTS, cognition, skills"
+    },
+    {
+      "name": "Cognition Stream",
+      "command": "",
+      "cwd": "",
+      "port": 0,
+      "health_url": "http://127.0.0.1:8001/api/cognition/stream",
+      "color": "#7c5cfc",
+      "tags": ["streaming"],
+      "notes": "SSE endpoint inside SAAS API (port 8001)"
+    }
+  ]
+}

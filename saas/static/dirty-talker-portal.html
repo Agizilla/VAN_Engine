@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DirtyTalker — SAAS Portal</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #06080f; color: #c8d0e0; font-family: 'Segoe UI', system-ui, monospace; min-height: 100vh; display: flex; flex-direction: column; }
+header { background: #0a0d18; border-bottom: 1px solid #1a2540; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+header h1 { font-size: 1rem; font-weight: 300; letter-spacing: 0.1em; color: #e55; }
+header .status { font-size: 0.7rem; color: #4a6; }
+header .status.active { color: #4c4; }
+.back { color: #5a7; font-size: 0.8rem; text-decoration: none; }
+.back:hover { color: #6af; }
+
+.container { display: flex; flex: 1; overflow: hidden; }
+
+.chat-panel { flex: 1; display: flex; flex-direction: column; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px 24px; }
+.msg { margin-bottom: 16px; max-width: 80%; }
+.msg.user { align-self: flex-end; margin-left: auto; }
+.msg.system { align-self: flex-start; }
+.msg .bubble { padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; line-height: 1.5; }
+.msg.user .bubble { background: #1a2540; border: 1px solid #2a3550; color: #c8d0e0; }
+.msg.system .bubble { background: #0c1220; border: 1px solid #1a2540; color: #d4a0c0; }
+.msg.system .voice-tag { display: inline-block; margin-top: 4px; font-size: 0.6rem; color: #6a5; background: #0a1a10; border: 1px solid #1a3a20; border-radius: 8px; padding: 2px 8px; }
+.msg.system .meta { font-size: 0.6rem; color: #4a5a6a; margin-top: 2px; }
+.msg .label { font-size: 0.6rem; color: #5a6a8a; margin-bottom: 2px; }
+
+.msg .actions { display: flex; gap: 6px; margin-top: 6px; }
+.msg .actions button { background: #12182a; border: 1px solid #1a2540; color: #8af; border-radius: 6px; padding: 3px 10px; cursor: pointer; font-family: inherit; font-size: 0.65rem; }
+.msg .actions button:hover { background: #1a2540; border-color: #4cf; }
+.msg .actions button:disabled { opacity: 0.3; cursor: not-allowed; }
+.msg .actions button.speaking { background: #1a3a20; border-color: #4c4; color: #4c4; }
+
+.chat-input { border-top: 1px solid #1a2540; padding: 12px 24px; display: flex; gap: 8px; background: #0a0d18; }
+.chat-input input { flex: 1; background: #0c1220; border: 1px solid #1a2540; border-radius: 8px; padding: 8px 12px; color: #c8d0e0; font-family: inherit; font-size: 0.85rem; outline: none; }
+.chat-input input:focus { border-color: #4cf; }
+.chat-input button { background: #1a2540; border: 1px solid #2a3550; color: #c8d0e0; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size: 0.8rem; }
+.chat-input button:hover { background: #2a3550; }
+.chat-input button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.settings-panel { width: 280px; border-left: 1px solid #1a2540; padding: 16px; background: #080b16; overflow-y: auto; }
+.settings-panel h2 { font-size: 0.75rem; color: #6a8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.settings-panel label { display: block; font-size: 0.7rem; color: #5a7; margin-bottom: 4px; margin-top: 12px; }
+.settings-panel select, .settings-panel input[type=range], .settings-panel input[type=text] { width: 100%; background: #0c1220; border: 1px solid #1a2540; border-radius: 6px; padding: 4px 8px; color: #c8d0e0; font-family: inherit; font-size: 0.75rem; }
+.settings-panel .val { font-size: 0.65rem; color: #6af; float: right; }
+.settings-panel .toggle { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.settings-panel .toggle input { width: auto; }
+.settings-panel button.save { margin-top: 16px; width: 100%; background: #1a2540; border: 1px solid #2a3550; color: #c8d0e0; border-radius: 6px; padding: 6px; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
+.settings-panel button.save:hover { background: #2a3550; }
+.settings-panel .photo-zone { margin-top: 12px; border: 1px dashed #1a2540; border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; font-size: 0.7rem; color: #5a7; }
+.settings-panel .photo-zone:hover { border-color: #4cf; background: #0c1420; }
+.settings-panel .photo-zone.has-photo { border-color: #4a6; }
+.settings-panel .photo-zone img { max-width: 100%; max-height: 120px; border-radius: 4px; display: block; margin: 0 auto 6px; }
+
+.connect-bar { padding: 8px 24px; background: #0a0d18; border-bottom: 1px solid #1a2540; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.connect-bar button { background: #1a2540; border: 1px solid #2a3550; color: #c8d0e0; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-family: inherit; font-size: 0.75rem; }
+.connect-bar button:hover { background: #2a3550; }
+.connect-bar .tok { font-size: 0.65rem; color: #4a5; font-family: monospace; }
+.connect-bar .hint { font-size: 0.7rem; color: #5a7; }
+
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #3a4a5a; }
+.empty-state p { font-size: 0.8rem; margin-top: 8px; }
+
+.video-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
+.video-modal.active { display: flex; }
+.video-modal video { max-width: 90vw; max-height: 80vh; border-radius: 12px; border: 1px solid #1a2540; }
+.video-modal .close { position: absolute; top: 20px; right: 30px; color: #c8d0e0; font-size: 1.5rem; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="video-modal" id="video-modal">
+  <span class="close" onclick="closeVideoModal()">&times;</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+    <video id="video-player" controls autoplay></video>
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveVideo()" style="background:#1a2540;border:1px solid #7c5cfc;color:#fff;padding:8px 24px;border-radius:8px;cursor:pointer;font-size:0.8rem;">💾 Save</button>
+      <button onclick="closeVideoModal()" style="background:#1a2540;border:1px solid #555;color:#aaa;padding:8px 24px;border-radius:8px;cursor:pointer;font-size:0.8rem;">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <a href="/hooks/ui/simulations" class="back">&larr; Simulations</a>
+    <span style="margin:0 12px;color:#1a2540">|</span>
+    <span class="back" onclick="location.href='/hooks/ui'">Menu</span>
+  </div>
+  <div>
+    <span class="status" id="session-status">disconnected</span>
+    <h1 style="display:inline;margin-left:8px;">DirtyTalker</h1>
+  </div>
+</header>
+
+<div class="connect-bar" id="connect-bar">
+  <button id="connect-btn" onclick="startSession()">Connect</button>
+  <span class="hint" id="session-hint">Start a session to begin chatting</span>
+  <span class="tok" id="token-display"></span>
+</div>
+
+<div class="container">
+  <div class="chat-panel">
+    <div class="chat-messages" id="chat-messages">
+      <div class="empty-state" id="empty-state">
+        <span style="font-size:2rem;opacity:0.3;">&hearts;</span>
+        <p>Connect to start. Every whisper is yours.</p>
+      </div>
+    </div>
+    <div class="chat-input">
+      <input type="text" id="msg-input" placeholder="Type something..." disabled autocomplete="off">
+      <button id="send-btn" disabled onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <div class="settings-panel">
+    <h2>Settings</h2>
+    <label>Voice</label>
+    <select id="voice-select">
+      <option value="en_US-amy-medium">Amy (medium)</option>
+      <option value="en_US-amy-low">Amy (low)</option>
+    </select>
+    <label>Stutter rate <span class="val" id="stutter-val">0.4</span></label>
+    <input type="range" id="stutter-rate" min="0" max="1" step="0.1" value="0.4">
+    <label>Category</label>
+    <select id="category-select">
+      <option value="">Random (all)</option>
+      <option value="crying_fillers">Crying Fillers</option>
+      <option value="begging_phrases">Begging Phrases</option>
+      <option value="action_verbs">Action Verbs</option>
+      <option value="body_parts">Body Parts</option>
+      <option value="intensifiers">Intensifiers</option>
+      <option value="emotional_reactions">Emotional Reactions</option>
+      <option value="positions">Positions</option>
+      <option value="cum_related">Cum Related</option>
+    </select>
+    <div class="toggle">
+      <input type="checkbox" id="sanitize-toggle">
+      <label for="sanitize-toggle" style="margin:0;">Sanitize (censor *)</label>
+    </div>
+    <button class="save" onclick="saveSettings()">Save Settings</button>
+
+    <h2 style="margin-top:20px;">Your Photo</h2>
+    <p style="font-size:0.65rem;color:#4a5a6a;margin-bottom:6px;">Required for Speak Visually</p>
+    <div class="photo-zone" id="photo-zone" onclick="document.getElementById('photo-input').click()">
+      <div id="photo-placeholder">Click to upload a face photo</div>
+      <img id="photo-preview" style="display:none;">
+    </div>
+    <input type="file" id="photo-input" accept="image/*" style="display:none">
+  </div>
+</div>
+
+<script>
+let TOKEN = null;
+let CONNECTED = false;
+
+const msgInput = document.getElementById('msg-input');
+const sendBtn = document.getElementById('send-btn');
+const connectBtn = document.getElementById('connect-btn');
+const msgArea = document.getElementById('chat-messages');
+const emptyState = document.getElementById('empty-state');
+const tokenDisplay = document.getElementById('token-display');
+const sessionHint = document.getElementById('session-hint');
+const sessionStatus = document.getElementById('session-status');
+const photoInput = document.getElementById('photo-input');
+const photoZone = document.getElementById('photo-zone');
+const photoPreview = document.getElementById('photo-preview');
+const photoPlaceholder = document.getElementById('photo-placeholder');
+const videoModal = document.getElementById('video-modal');
+const videoPlayer = document.getElementById('video-player');
+
+// ── Session ─────────────────────────────────────────────────────────────
+
+function startSession() {
+  connectBtn.disabled = true;
+  sessionHint.textContent = 'Connecting...';
+  fetch('/api/dirty-talker/session', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' })
+    .then(r => r.json())
+    .then(data => {
+      TOKEN = data.session_token;
+      CONNECTED = true;
+      connectBtn.textContent = 'Connected';
+      connectBtn.disabled = true;
+      sessionHint.textContent = 'Session active';
+      tokenDisplay.textContent = 'Token: ' + TOKEN.slice(0,8) + '...';
+      sessionStatus.textContent = 'connected';
+      sessionStatus.className = 'status active';
+      msgInput.disabled = false;
+      sendBtn.disabled = false;
+      msgInput.focus();
+      return fetch('/api/dirty-talker/settings', { headers: {'Authorization': 'Bearer ' + TOKEN} });
+    })
+    .then(r => r.json())
+    .then(data => { if (data.settings) applySettings(data.settings); })
+    .catch(e => { sessionHint.textContent = 'Connection failed: ' + e.message; connectBtn.disabled = false; });
+}
+
+// ── Chat ────────────────────────────────────────────────────────────────
+
+function sendMessage() {
+  const text = msgInput.value.trim();
+  if (!text || !TOKEN) return;
+  msgInput.value = '';
+  addUserMsg(text);
+  emptyState.style.display = 'none';
+  sendBtn.disabled = true;
+
+  fetch('/api/dirty-talker/chat', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + TOKEN},
+    body: JSON.stringify({message: text})
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.phrase) {
+        addSystemMsg(data.phrase, data.voice_tag, data.voice_tag_text, data.sanitized, data.generated);
+      } else if (data.detail) {
+        addSystemMsg('[error] ' + data.detail);
+      }
+    })
+    .catch(e => addSystemMsg('[connection error] ' + e.message))
+    .finally(() => { sendBtn.disabled = false; msgInput.focus(); });
+}
+
+function addUserMsg(text) {
+  const d = document.createElement('div');
+  d.className = 'msg user';
+  d.innerHTML = '<div class="label">you</div><div class="bubble">' + esc(text) + '</div>';
+  msgArea.appendChild(d);
+  scrollBottom();
+}
+
+function addSystemMsg(phrase, voiceTag, voiceTagText, sanitized, generated) {
+  const idx = msgArea.querySelectorAll('.msg.system').length;
+  const d = document.createElement('div');
+  d.className = 'msg system';
+  d.dataset.phrase = phrase;
+  let html = '<div class="label">ara</div><div class="bubble">' + esc(phrase) + '</div>';
+  if (voiceTag) {
+    html += '<span class="voice-tag">' + esc(voiceTagText || '') + ' &middot; ' + (voiceTag.sample_rate || '?') + 'hz</span>';
+  }
+  if (sanitized) {
+    html += ' <span class="voice-tag" style="border-color:#3a2a20;color:#a85;">sanitized</span>';
+  }
+  html += '<div class="meta">' + (generated ? new Date(generated).toLocaleTimeString() : new Date().toLocaleTimeString()) + '</div>';
+  html += '<div class="actions">';
+  html += '<button class="speak-btn" onclick="speakPhrase(this)" data-idx="' + idx + '">\u25b6 Speak</button>';
+  html += '<button class="visual-btn" onclick="speakVisual(this)" data-idx="' + idx + '">\u2728 Speak Visually</button>';
+  html += '</div>';
+  d.innerHTML = html;
+  msgArea.appendChild(d);
+  scrollBottom();
+}
+
+// ── Speak (TTS) ─────────────────────────────────────────────────────────
+
+function speakPhrase(btn) {
+  if (btn.classList.contains('speaking')) return;
+  const bubble = btn.closest('.msg').querySelector('.bubble');
+  const phrase = bubble.textContent;
+
+  btn.disabled = true;
+  btn.textContent = '\u25b6 Speaking...';
+  btn.classList.add('speaking');
+
+  fetch('/api/dirty-talker/speak', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + TOKEN},
+    body: JSON.stringify({phrase: phrase})
+  })
+    .then(r => {
+      if (!r.ok) throw new Error('Speak failed');
+      return r.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        btn.textContent = '\u25b6 Speak';
+        btn.disabled = false;
+        btn.classList.remove('speaking');
+      };
+      audio.play();
+    })
+    .catch(e => {
+      btn.textContent = '\u25b6 Speak';
+      btn.disabled = false;
+      btn.classList.remove('speaking');
+      addSystemMsg('[speak error] ' + e.message);
+    });
+}
+
+// ── Speak Visually (animated face + TTS) ────────────────────────────────
+
+function speakVisual(btn) {
+  if (btn.classList.contains('speaking')) return;
+  const bubble = btn.closest('.msg').querySelector('.bubble');
+  const phrase = bubble.textContent;
+
+  btn.disabled = true;
+  btn.textContent = '\u2728 Generating...';
+  btn.classList.add('speaking');
+
+  fetch('/api/dirty-talker/speak-visual', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + TOKEN},
+    body: JSON.stringify({phrase: phrase})
+  })
+    .then(r => {
+      if (!r.ok) throw new Error('Visual generation failed');
+      return r.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      videoPlayer.src = url;
+      videoModal.classList.add('active');
+      videoPlayer.play();
+      btn.textContent = '\u2728 Speak Visually';
+      btn.disabled = false;
+      btn.classList.remove('speaking');
+    })
+    .catch(e => {
+      btn.textContent = '\u2728 Speak Visually';
+      btn.disabled = false;
+      btn.classList.remove('speaking');
+      addSystemMsg('[visual error] ' + e.message);
+    });
+}
+
+function closeVideoModal() {
+  videoModal.classList.remove('active');
+  videoPlayer.pause();
+  videoPlayer.src = '';
+}
+function saveVideo() {
+  const url = videoPlayer.src;
+  if (!url) return;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'speak-visual-' + Date.now() + '.mp4';
+  a.click();
+}
+
+// ── Photo Upload ────────────────────────────────────────────────────────
+
+photoInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file || !TOKEN) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    photoPreview.src = ev.target.result;
+    photoPreview.style.display = 'block';
+    photoPlaceholder.textContent = '';
+    photoZone.classList.add('has-photo');
+  };
+  reader.readAsDataURL(file);
+
+  fetch('/api/dirty-talker/photo', {
+    method: 'POST',
+    headers: {'Authorization': 'Bearer ' + TOKEN},
+    body: formData
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        photoPlaceholder.textContent = 'Photo ready';
+        photoZone.classList.add('has-photo');
+      }
+    })
+    .catch(e => console.error('Photo upload failed', e));
+});
+
+// ── Settings ────────────────────────────────────────────────────────────
+
+function saveSettings() {
+  if (!TOKEN) return;
+  const settings = {
+    voice: document.getElementById('voice-select').value,
+    stutter_rate: parseFloat(document.getElementById('stutter-rate').value),
+    sanitize: document.getElementById('sanitize-toggle').checked,
+    categories: document.getElementById('category-select').value ? [document.getElementById('category-select').value] : [],
+  };
+  fetch('/api/dirty-talker/settings', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + TOKEN},
+    body: JSON.stringify({settings})
+  })
+    .then(r => r.json())
+    .then(() => {
+      const btn = document.querySelector('.save');
+      btn.textContent = 'Saved!';
+      setTimeout(() => btn.textContent = 'Save Settings', 1200);
+    });
+}
+
+function applySettings(s) {
+  if (s.voice) document.getElementById('voice-select').value = s.voice;
+  if (s.stutter_rate != null) {
+    document.getElementById('stutter-rate').value = s.stutter_rate;
+    document.getElementById('stutter-val').textContent = s.stutter_rate;
+  }
+  if (s.sanitize != null) document.getElementById('sanitize-toggle').checked = s.sanitize;
+  if (s.categories && s.categories.length) document.getElementById('category-select').value = s.categories[0];
+}
+
+document.getElementById('stutter-rate').addEventListener('input', function() {
+  document.getElementById('stutter-val').textContent = this.value;
+});
+
+msgInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') sendMessage();
+});
+
+function scrollBottom() {
+  msgArea.scrollTop = msgArea.scrollHeight;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>

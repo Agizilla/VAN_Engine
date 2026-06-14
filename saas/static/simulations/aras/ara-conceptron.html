@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ARA // CONCEPTRON — Signal Signature Hyperspace</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#66ff99;font-family:'Courier New',monospace;overflow:hidden}
+#overlay{position:absolute;top:16px;left:16px;z-index:30;max-width:320px;pointer-events:auto}
+.panel{background:rgba(0,15,0,0.88);border:1px solid #66ff99;padding:12px 16px;margin-bottom:10px;border-radius:8px;backdrop-filter:blur(4px);box-shadow:0 0 12px rgba(102,255,153,0.15)}
+.panel h3{margin:0 0 4px;font-size:1rem;letter-spacing:.5px}
+.panel p{margin:2px 0;font-size:.7rem;opacity:.8}
+textarea{width:100%;background:#0a1a0a;border:1px solid #2a5a2a;color:#ccffcc;font-family:monospace;font-size:11px;padding:6px 8px;border-radius:4px;margin:6px 0;resize:vertical}
+textarea:focus{outline:none;border-color:#66ff99}
+button{background:#0a2a0a;border:1px solid #66ff99;color:#66ff99;font-family:monospace;font-weight:bold;padding:6px 14px;border-radius:20px;cursor:pointer;transition:.2s;width:100%;margin-top:4px;font-size:11px}
+button:hover{background:#66ff99;color:#000;box-shadow:0 0 10px #66ff99}
+.slider-group{margin:8px 0}
+input[type=range]{width:100%;background:#1a3a1a;height:3px;-webkit-appearance:none;accent-color:#66ff99}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#66ff99;cursor:pointer}
+.status{background:#000000aa;border-radius:4px;padding:4px 8px;font-size:10px;margin-top:6px;border-left:2px solid #66ff99}
+.badge{font-size:9px;opacity:.6;margin-top:4px;text-align:center}
+.bottom-controls{position:absolute;bottom:16px;right:16px;display:flex;gap:8px;z-index:30;background:rgba(0,0,0,0.6);padding:6px 12px;border-radius:40px;backdrop-filter:blur(4px)}
+.bottom-controls button{width:auto;margin:0;padding:3px 12px;background:#112211;font-size:10px}
+.legend{position:absolute;bottom:16px;left:16px;background:rgba(0,0,0,0.65);padding:6px 12px;border-radius:6px;font-size:9px;pointer-events:none;border-right:2px solid #66ff99;z-index:30}
+@media(max-width:700px){#overlay{width:240px;top:8px;left:8px}.panel{padding:8px 10px}}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div class="panel">
+    <h3>⚡ ARA // CONCEPTRON</h3>
+    <p>⟨ Signal Convergence ⟩ Markov Signature Clusters</p>
+    <p style="font-size:9px;">X: Amplitude | Y: Frequency | Z: Spectral Density</p>
+    <textarea id="userText" rows="4" placeholder="Paste text — verses = groups of 4 lines..."></textarea>
+    <button id="generateBtn">🌀 GENERATE CONCEPT VOLUMES</button>
+    <div class="slider-group">
+      <label style="font-size:10px;">🔬 Clusters: <span id="clusterCountVal">3</span></label>
+      <input type="range" id="clusterSlider" min="2" max="6" step="1" value="3">
+    </div>
+    <div class="status" id="infoStatus">⏳ Ready. Inject text → Markov fingerprints → 3D signal volumes.</div>
+    <div class="badge">📡 Markov similarity defines concept boundaries | Each verse = point | Volumes = concept ranges</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div><span style="display:inline-block;width:8px;height:8px;background:#ff6680;border-radius:50%;"></span> Verse (Markov signature)</div>
+  <div><span style="display:inline-block;width:12px;height:6px;background:rgba(102,255,153,0.25);border:1px solid #66ff99;"></span> Concept Volume</div>
+  <div>🎨 Colors = cluster families</div>
+</div>
+
+<div class="bottom-controls">
+  <button id="toggleVolumesBtn">🔘 HIDE VOLUMES</button>
+  <button id="resetCameraBtn">🎥 RESET</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ─── 1. MARKOV FINGERPRINT & SIMILARITY ─────────────────────────────
+function getMarkovFingerprint(text) {
+  const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+  if (words.length < 2) return new Map();
+  const bigramCount = new Map();
+  let total = 0;
+  for (let i = 0; i < words.length - 1; i++) {
+    const key = `${words[i]}|${words[i+1]}`;
+    bigramCount.set(key, (bigramCount.get(key) || 0) + 1);
+    total++;
+  }
+  const probMap = new Map();
+  for (const [bg, cnt] of bigramCount) probMap.set(bg, cnt / total);
+  return probMap;
+}
+
+function markovSimilarity(fp1, fp2) {
+  if (fp1.size === 0 || fp2.size === 0) return 0;
+  const allKeys = new Set([...fp1.keys(), ...fp2.keys()]);
+  let dot = 0, norm1 = 0, norm2 = 0;
+  for (const key of allKeys) {
+    const v1 = fp1.get(key) || 0;
+    const v2 = fp2.get(key) || 0;
+    dot += v1 * v2;
+    norm1 += v1 * v1;
+    norm2 += v2 * v2;
+  }
+  if (norm1 === 0 || norm2 === 0) return 0;
+  return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
+}
+
+// K-means on distance matrix (1 − cosine similarity)
+function clusterVerses(similarityMatrix, k, maxIters = 25) {
+  const n = similarityMatrix.length;
+  if (n <= k) return Array.from({ length: n }, (_, i) => i % k);
+  const distMatrix = similarityMatrix.map(row => row.map(s => 1 - s));
+  let centroids = [];
+  const indices = Array.from({ length: n }, (_, i) => i);
+  for (let i = 0; i < k; i++) centroids.push(indices[Math.floor(Math.random() * indices.length)]);
+  let labels = new Array(n).fill(0);
+  let changed = true;
+  for (let iter = 0; iter < maxIters && changed; iter++) {
+    changed = false;
+    for (let i = 0; i < n; i++) {
+      let bestDist = Infinity, bestLabel = 0;
+      for (let c = 0; c < k; c++) {
+        const d = distMatrix[i][centroids[c]];
+        if (d < bestDist) { bestDist = d; bestLabel = c; }
+      }
+      if (labels[i] !== bestLabel) changed = true;
+      labels[i] = bestLabel;
+    }
+    for (let c = 0; c < k; c++) {
+      const clusterPoints = [];
+      for (let i = 0; i < n; i++) if (labels[i] === c) clusterPoints.push(i);
+      if (clusterPoints.length === 0) continue;
+      let bestIdx = clusterPoints[0], bestAvg = Infinity;
+      for (const p of clusterPoints) {
+        let sumDist = 0;
+        for (const q of clusterPoints) sumDist += distMatrix[p][q];
+        const avg = sumDist / clusterPoints.length;
+        if (avg < bestAvg) { bestAvg = avg; bestIdx = p; }
+      }
+      centroids[c] = bestIdx;
+    }
+  }
+  return labels;
+}
+
+function parseVerses(text) {
+  const lines = text.split(/\r?\n/);
+  const nonEmpty = lines.filter(l => l.trim().length > 0);
+  const verses = [];
+  for (let i = 0; i < nonEmpty.length; i += 4) {
+    const block = nonEmpty.slice(i, i + 4);
+    if (block.length >= 2) verses.push(block.join(' '));
+    else if (block.length === 1 && nonEmpty.length > 1) verses.push(block[0]);
+  }
+  if (verses.length === 0 && nonEmpty.length) verses.push(nonEmpty.join(' '));
+  return verses;
+}
+
+// ─── 2. SCENE SETUP ─────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x000000, 0.015);
+
+const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(6, 5, 7);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0px';
+labelRenderer.domElement.style.left = '0px';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.body.appendChild(labelRenderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = false;
+controls.target.set(0, 0, 0);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x111122));
+const keyLight = new THREE.DirectionalLight(0x88ffaa, 0.9);
+keyLight.position.set(2, 4, 3);
+scene.add(keyLight);
+const fillLight = new THREE.PointLight(0x3366cc, 0.4);
+fillLight.position.set(-2, 1, -3);
+scene.add(fillLight);
+const rimLight = new THREE.PointLight(0xffaa66, 0.5);
+rimLight.position.set(1, 2, -2);
+scene.add(rimLight);
+
+// Grid
+const grid = new THREE.GridHelper(14, 24, 0x66ff99, 0x336633);
+grid.position.y = -1.6;
+scene.add(grid);
+
+// Starfield
+const starCount = 1800;
+const starPos = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount; i++) {
+  starPos[i*3] = (Math.random() - 0.5) * 200;
+  starPos[i*3+1] = (Math.random() - 0.5) * 80;
+  starPos[i*3+2] = (Math.random() - 0.5) * 100 - 50;
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+const starMat = new THREE.PointsMaterial({ color: 0x66ff99, size: 0.06, transparent: true, opacity: 0.4 });
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+// Dynamic object storage
+let currentPoints = [];
+let currentLabels = [];
+let currentVolumes = [];
+let currentVolumeParticles = [];
+let currentLines = [];
+
+function clearScene() {
+  currentPoints.forEach(p => scene.remove(p));
+  currentLabels.forEach(l => scene.remove(l));
+  currentVolumes.forEach(v => scene.remove(v));
+  currentVolumeParticles.forEach(p => scene.remove(p));
+  currentLines.forEach(l => scene.remove(l));
+  currentPoints = []; currentLabels = []; currentVolumes = [];
+  currentVolumeParticles = []; currentLines = [];
+}
+
+const clusterColors = [0xff6680, 0x66ffaa, 0xffaa66, 0xaa88ff, 0x66ccff, 0xff88cc];
+
+function layoutPoints(verses, labels, k) {
+  const centers = [];
+  for (let c = 0; c < k; c++) centers.push({ count: 0, cx: 0, cz: 0, cy: 0 });
+  for (let i = 0; i < verses.length; i++) centers[labels[i]].count++;
+  const angleStep = (Math.PI * 2) / k;
+  for (let c = 0; c < k; c++) {
+    const angle = angleStep * c;
+    const radius = 3.9;
+    centers[c].cx = Math.cos(angle) * radius;
+    centers[c].cz = Math.sin(angle) * radius;
+    centers[c].cy = Math.sin(angle * 2) * 0.6;
+  }
+  const positions = [];
+  for (let i = 0; i < verses.length; i++) {
+    const center = centers[labels[i]];
+    const radOff = Math.random() * 1.2;
+    const angOff = Math.random() * Math.PI * 2;
+    positions.push({
+      x: center.cx + Math.cos(angOff) * radOff,
+      y: center.cy + (Math.random() - 0.5) * 0.9,
+      z: center.cz + Math.sin(angOff) * radOff
+    });
+  }
+  return positions;
+}
+
+function createVolumesFromPositions(positions, labels, k) {
+  const volumes = [];
+  const groups = Array.from({ length: k }, () => []);
+  for (let i = 0; i < positions.length; i++) groups[labels[i]].push(positions[i]);
+  for (let c = 0; c < k; c++) {
+    if (groups[c].length === 0) continue;
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (const p of groups[c]) {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+      minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+    }
+    const pad = 0.5;
+    const size = new THREE.Vector3(maxX - minX + pad*2, maxY - minY + pad*2, maxZ - minZ + pad*2);
+    const center = new THREE.Vector3((minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2);
+    const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+    const color = clusterColors[c % clusterColors.length];
+    const material = new THREE.MeshPhongMaterial({
+      color, transparent: true, opacity: 0.22, side: THREE.DoubleSide, emissive: 0x112200
+    });
+    const box = new THREE.Mesh(geometry, material);
+    box.position.copy(center);
+    const edges = new THREE.EdgesGeometry(geometry);
+    const wire = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color }));
+    box.add(wire);
+    scene.add(box);
+    volumes.push(box);
+
+    const pCount = 80;
+    const pPos = [];
+    for (let i = 0; i < pCount; i++) {
+      pPos.push(
+        (minX - pad) + Math.random() * size.x,
+        (minY - pad) + Math.random() * size.y,
+        (minZ - pad) + Math.random() * size.z
+      );
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pPos), 3));
+    const pMat = new THREE.PointsMaterial({ color, size: 0.07, transparent: true, opacity: 0.5 });
+    const pSys = new THREE.Points(pGeo, pMat);
+    scene.add(pSys);
+    currentVolumeParticles.push(pSys);
+  }
+  return volumes;
+}
+
+async function generateFromText() {
+  const rawText = document.getElementById('userText').value;
+  let k = parseInt(document.getElementById('clusterSlider').value);
+  const statusDiv = document.getElementById('infoStatus');
+  statusDiv.innerHTML = "📡 Parsing verses & computing Markov signatures...";
+
+  const verses = parseVerses(rawText);
+  if (verses.length === 0) {
+    statusDiv.innerHTML = "⚠️ No valid verses. Insert at least 2-4 lines of text.";
+    return;
+  }
+  const effectiveK = Math.min(k, verses.length);
+  document.getElementById('clusterCountVal').innerText = effectiveK;
+
+  const fingerprints = verses.map(v => getMarkovFingerprint(v));
+  const n = verses.length;
+  const simMatrix = Array(n).fill().map(() => Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = i; j < n; j++) {
+      const sim = markovSimilarity(fingerprints[i], fingerprints[j]);
+      simMatrix[i][j] = sim; simMatrix[j][i] = sim;
+    }
+  }
+
+  const labels = n <= effectiveK
+    ? Array.from({ length: n }, (_, idx) => idx % effectiveK)
+    : clusterVerses(simMatrix, effectiveK, 25);
+
+  const positions = layoutPoints(verses, labels, effectiveK);
+  clearScene();
+
+  const pointMeshes = [];
+  const labelObjs = [];
+  for (let i = 0; i < verses.length; i++) {
+    const color = clusterColors[labels[i] % clusterColors.length];
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 28, 28),
+      new THREE.MeshStandardMaterial({ color, emissive: 0x331100, roughness: 0.25, metalness: 0.1 })
+    );
+    sphere.position.set(positions[i].x, positions[i].y, positions[i].z);
+    scene.add(sphere);
+    pointMeshes.push(sphere);
+
+    const preview = verses[i].substring(0, 42) + (verses[i].length > 42 ? "…" : "");
+    const div = document.createElement('div');
+    div.textContent = preview;
+    div.style.cssText = `background:rgba(0,20,0,0.8);color:#b3ffcc;font-size:9px;padding:2px 10px;border-radius:14px;border-left:3px solid ${new THREE.Color(color).getStyle()};font-family:monospace;white-space:nowrap;backdrop-filter:blur(4px)`;
+    const label = new CSS2DObject(div);
+    label.position.set(positions[i].x, positions[i].y + 0.42, positions[i].z);
+    scene.add(label);
+    labelObjs.push(label);
+  }
+
+  const volumes = createVolumesFromPositions(positions, labels, effectiveK);
+
+  // Centroid connecting lines
+  const groupCenters = Array(effectiveK).fill().map(() => ({ x: 0, y: 0, z: 0, count: 0 }));
+  for (let i = 0; i < positions.length; i++) {
+    const c = labels[i];
+    groupCenters[c].x += positions[i].x;
+    groupCenters[c].y += positions[i].y;
+    groupCenters[c].z += positions[i].z;
+    groupCenters[c].count++;
+  }
+  for (let c = 0; c < effectiveK; c++) {
+    if (groupCenters[c].count > 0) {
+      groupCenters[c].x /= groupCenters[c].count;
+      groupCenters[c].y /= groupCenters[c].count;
+      groupCenters[c].z /= groupCenters[c].count;
+    }
+  }
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x66ff99, transparent: true, opacity: 0.2 });
+  for (let i = 0; i < positions.length; i++) {
+    const center = groupCenters[labels[i]];
+    if (center.count > 0) {
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(positions[i].x, positions[i].y, positions[i].z),
+          new THREE.Vector3(center.x, center.y, center.z)
+        ]), lineMat
+      );
+      scene.add(line);
+      currentLines.push(line);
+    }
+  }
+
+  currentPoints = pointMeshes;
+  currentLabels = labelObjs;
+  currentVolumes = volumes;
+
+  const avgPos = new THREE.Vector3(0, 0, 0);
+  positions.forEach(p => avgPos.add(new THREE.Vector3(p.x, p.y, p.z)));
+  if (positions.length) {
+    avgPos.divideScalar(positions.length);
+    controls.target.copy(avgPos);
+    controls.update();
+  }
+
+  statusDiv.innerHTML = `✅ ${verses.length} verses → ${effectiveK} concept volumes. Drag to explore.`;
+}
+
+// ─── UI ──────────────────────────────────────────────────────────────
+document.getElementById('generateBtn').addEventListener('click', generateFromText);
+document.getElementById('clusterSlider').addEventListener('input', e => {
+  document.getElementById('clusterCountVal').innerText = e.target.value;
+});
+
+let volumesVisible = true;
+document.getElementById('toggleVolumesBtn').addEventListener('click', () => {
+  volumesVisible = !volumesVisible;
+  currentVolumes.forEach(v => v.visible = volumesVisible);
+  currentVolumeParticles.forEach(p => p.visible = volumesVisible);
+  document.getElementById('toggleVolumesBtn').textContent = volumesVisible ? "🔘 HIDE VOLUMES" : "🔘 SHOW VOLUMES";
+});
+
+document.getElementById('resetCameraBtn').addEventListener('click', () => {
+  camera.position.set(6, 5, 7);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+const defaultText = `The signal moves through silent space,
+A hidden rhythm leaves its trace.
+Volumes shift and clusters form,
+Markov patterns keep us warm.
+
+Frequency and amplitude dance,
+In hyperspace, a second chance.
+Words align in spectral streams,
+Conceptron awakens from our dreams.
+
+Puppy barks and wolf howls deep,
+Canine signatures start to leap.
+Tree and bush in greenish hue,
+Markov chains will cluster true.`;
+document.getElementById('userText').value = defaultText;
+
+// ─── ANIMATION ──────────────────────────────────────────────────────
+let time = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  time += 0.012;
+  stars.rotation.y += 0.0003;
+  stars.rotation.x += 0.0002;
+  currentPoints.forEach((mesh, i) => {
+    if (!mesh.userData.baseY) mesh.userData.baseY = mesh.position.y;
+    const offsetY = Math.sin(time * 1.4 + i) * 0.008;
+    mesh.position.y = mesh.userData.baseY + offsetY;
+    if (currentLabels[i]) currentLabels[i].position.y = mesh.position.y + 0.42;
+  });
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+setTimeout(generateFromText, 300);
+</script>
+</body>
+</html>
